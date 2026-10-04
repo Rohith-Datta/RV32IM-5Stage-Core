@@ -49,3 +49,5 @@ module if_id_reg
     end
 
 endmodule
+
+// Note: Integrated stall and flush control lines for hazard handling
