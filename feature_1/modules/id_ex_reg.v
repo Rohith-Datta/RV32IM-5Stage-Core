@@ -155,3 +155,5 @@ module id_ex_reg (
     end
 
 endmodule
+
+// Note: Added flush bubble insertion on load-use hazard or branch redirect
