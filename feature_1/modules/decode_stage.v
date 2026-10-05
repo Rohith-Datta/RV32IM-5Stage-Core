@@ -193,3 +193,5 @@ module decode_stage (
     end
 
 endmodule
+
+// Note: Added dual asynchronous read ports with WB internal forwarding
