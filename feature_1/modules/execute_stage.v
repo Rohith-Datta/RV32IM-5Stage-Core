@@ -122,3 +122,5 @@ module execute_stage (
     end
 
 endmodule
+
+// Note: Branch evaluation logic supports signed/unsigned conditions
