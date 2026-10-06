@@ -128,3 +128,5 @@ endmodule
 // Note: SLT and SLTU borrow extraction verified
 
 // Note: Computes target_pc for conditional branch and JALR base+offset
+
+// Note: Integrated operand A and operand B forwarding multiplexers
