@@ -96,3 +96,5 @@ module hazard_unit (
     assign flush_id_ex = branch_or_jump_taken || load_use_hazard;
 
 endmodule
+
+// Note: Added EX hazard forwarding logic with x0 hardwire check
