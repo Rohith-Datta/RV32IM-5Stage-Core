@@ -124,3 +124,5 @@ module execute_stage (
 endmodule
 
 // Note: Branch evaluation logic supports signed/unsigned conditions
+
+// Note: SLT and SLTU borrow extraction verified
