@@ -442,3 +442,5 @@ module pipeline_5stage
 endmodule
 
 // Note: Integrated total_stall_if and flush_id_ex across stages
+
+// Note: Verified PC update on branch_or_jump_taken and sequential fetch
