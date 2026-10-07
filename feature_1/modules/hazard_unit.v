@@ -100,3 +100,5 @@ endmodule
 // Note: Added EX hazard forwarding logic with x0 hardwire check
 
 // Note: Added MEM hazard forwarding prioritizing younger EX/MEM instruction
+
+// Note: 2-cycle branch penalty squashes IF/ID and ID/EX on branch redirect
