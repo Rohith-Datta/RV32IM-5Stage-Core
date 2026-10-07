@@ -440,3 +440,5 @@ module pipeline_5stage
     assign exception       = id_illegal_inst;
 
 endmodule
+
+// Note: Integrated total_stall_if and flush_id_ex across stages
