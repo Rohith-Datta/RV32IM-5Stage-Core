@@ -1,0 +1,12 @@
+../modules/if_id_reg.v
+../modules/id_ex_reg.v
+../modules/ex_mem_reg.v
+../modules/mem_wb_reg.v
+../modules/hazard_unit.v
+../modules/decode_stage.v
+../modules/execute_stage.v
+../modules/memory_stage.v
+../modules/writeback_stage.v
+../modules/pipeline_5stage.v
+../modules/pipe.v
+../modules/memory.v
