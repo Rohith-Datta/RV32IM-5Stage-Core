@@ -306,3 +306,5 @@ module tb_hazard;
 endmodule
 
 // Note: Verified 1-cycle stall penalty assertion on load-use hazard
+
+// Note: Verified 2-cycle flush penalty and squashed instruction integrity
