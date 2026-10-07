@@ -11,3 +11,5 @@ xsim.dir/
 Thumbs.db
 Desktop.ini
 .DS_Store
+# Compiler intermediate binaries
+*.elf
