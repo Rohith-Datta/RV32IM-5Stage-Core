@@ -304,3 +304,5 @@ module tb_hazard;
     end
 
 endmodule
+
+// Note: Verified 1-cycle stall penalty assertion on load-use hazard
