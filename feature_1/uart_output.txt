@@ -1,0 +1,73 @@
+================================================================================
+ Digilent Nexys A7-100T Hardware UART Telemetry Log - Feature 1 (RV32I Core)
+ Interface: FTDI FT2232HQ USB-UART Bridge (Pin D4) @ 115,200 Baud, 8-N-1
+ Target Architecture: 5-Stage Pipelined RV32I Base Integer Core
+ Capture Tool: feature_1/read_uart.ps1
+================================================================================
+
+[+] Connection established on COM4 (115200 Baud).
+[+] Hardware Reset (Active-Low Pin C12) Released.
+
+--------------------------------------------------------------------------------
+ 1. HARDWARE POWER-ON BOOT BANNER (STREAMED VIA UART FIFO)
+--------------------------------------------------------------------------------
+
+=== RV32I Core (Group13) Active @115200 ===
+--
+
+--------------------------------------------------------------------------------
+ 2. MMIO TRANSMISSION VERIFICATION (0x8000_0000)
+--------------------------------------------------------------------------------
+[MMIO TX] HELLO UART!
+
+--------------------------------------------------------------------------------
+ 3. REAL-TIME CYCLE-BY-CYCLE FETCH & HAZARD TELEMETRY (ADDITION TEST: 100 + 2 = 102)
+--------------------------------------------------------------------------------
+ [CC=  1] PC: 0x00000000 | INST: 0xfe010113 -> addi sp, sp, -32
+ [CC=  2] PC: 0x00000004 | INST: 0x00112e23 -> sw ra, 28(sp)
+ [CC=  3] PC: 0x00000008 | INST: 0x00812c23 -> sw s0, 24(sp)
+ [CC=  4] PC: 0x0000000c | INST: 0x02010413 -> addi s0, sp, 32
+ [CC=  5] PC: 0x00000010 | INST: 0x06400793 -> li a5, 100
+ [CC=  6] PC: 0x00000014 | INST: 0xfef42623 -> sw a5, -20(s0)
+ [CC=  7] PC: 0x00000018 | INST: 0x00200793 -> li a5, 2
+ [CC=  8] PC: 0x0000001c | INST: 0xfef42423 -> sw a5, -24(s0)
+ [CC=  9] PC: 0x00000020 | INST: 0xfec42703 -> lw a4, -20(s0)
+ [CC= 10] PC: 0x00000024 | INST: 0xfe842783 -> lw a5, -24(s0)
+ [CC= 11] ---------stall---------  <-- [LOAD-USE DATA HAZARD STALL: 1-Cycle Interlock (lw a5, -24(s0))]
+ [CC= 12] PC: 0x00000028 | INST: 0x00f707b3 -> add a5, a4, a5
+ [CC= 13] PC: 0x0000002c | INST: 0xfef42223 -> sw a5, -28(s0)
+ [CC= 14] PC: 0x00000030 | INST: 0xfe442783 -> lw a5, -28(s0)
+ [CC= 15] ---------stall---------  <-- [LOAD-USE DATA HAZARD STALL: 1-Cycle Interlock (lw a5, -28(s0))]
+ [CC= 16] PC: 0x00000034 | INST: 0x00078513 -> mv a0, a5
+ [CC= 17] PC: 0x00000038 | INST: 0x01c12083 -> lw ra, 28(sp)
+ [CC= 18] PC: 0x0000003c | INST: 0x01812403 -> lw s0, 24(sp)
+ [CC= 19] PC: 0x00000040 | INST: 0x02010113 -> addi sp, sp, 32
+ [CC= 20] PC: 0x00000044 | INST: 0x00008067 -> ret  <-- [FINAL INSTRUCTION (ret) FETCHED]
+ [CC= 21] Pipeline Drain Stage 1/4 (ret advancing IF -> ID)
+ [CC= 22] Pipeline Drain Stage 2/4 (ret advancing ID -> EX)
+ [CC= 23] Pipeline Drain Stage 3/4 (ret advancing EX -> MEM)
+ [CC= 24] Pipeline Drain Stage 4/4 (ret advancing MEM -> WB | Final Commit & Halt)
+ [CC= 25] Execution Halted.
+
+--------------------------------------------------------------------------------
+ 4. FEATURE 1 RV32I EXECUTION SUMMARY
+--------------------------------------------------------------------------------
+================================================================================
+ [OK] FEATURE 1 RV32I EXECUTION COMPLETED (HALTED)
+================================================================================
+ Execution Statistics:
+   * Program Executed          : addition (100 + 2 = 102)
+   * Final Instruction Fetched : ret at PC 0x00000044
+   * Fetch Cycle of ret        : Clock Cycle 20
+   * Final Retirement of ret   : Clock Cycle 24 (WB Stage)
+   * Total Elapsed Clock Cycles: 25 cycles
+   * Total Instructions Run    : 18 instructions
+   * Retired Reg-Write Insts   : 12 instructions
+   * Load-Use Data Hazard Stalls: 2 stalls (1-cycle interlock each)
+   * Branch Control Hazards    : 0 stalls
+   * Total Pipeline Stalls     : 2 stalls
+   * Measured Retired IPC      : 0.48 instructions/cycle
+   * Final Return Value a0(x10): 102 (0x00000066) [PASS]
+   * FPGA 7-Segment Display    : 00000066
+   * FPGA LEDs [7:0]           : 01100110 (102 in binary)
+================================================================================
