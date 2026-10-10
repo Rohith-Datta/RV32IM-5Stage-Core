@@ -1,6 +1,6 @@
 # Feature 1: 5-Stage Pipeline Upgrade & Hazard Detection Unit
 
-**Project:** Pipelined RV32IM RISC-V Core with L1 Cache Hierarchy and Dedicated Neural Network MAC Coprocessor  
+**Project:** Pipelined RV32IMF RISC-V Core with L1 Cache Hierarchy, Branch Prediction, and Hardware Math Accelerators  
 **Course:** CS2202L (Group 13)  
 **Deliverable Milestone (Week 5–11 Oct):** Base 5-Stage Pipeline Integration & Hazard Unit  
 **Deliverables:** IF-WB pipeline registers, Forwarding multiplexer RTL + `tb_pipeline_base.v` and `tb_hazard.v`
@@ -134,16 +134,16 @@ feature_1/
 
 Both testbenches were fully verified using **Vivado Simulator 2025.2 (`xvlog`, `xelab`, `xsim`)**:
 
-### Testbench 1: `tb_hazard.v`
+### Testbench 1: `tb_feature1_pipeline.v` (also `tb_hazard.v`)
 Validates 7 targeted hazard scenarios with automated self-checking assertions:
 - `[PASS] Test 1: EX-to-EX Forwarding verified! (x2 = 15, expected 15)`
 - `[PASS] Test 2: MEM-to-EX Forwarding verified! (x4 = 27, expected 27)`
-- `[PASS] Test 3: Back-to-Back Hazard Priority verified! (x6 = 6, expected 6)`
-- `[PASS] Test 4: Load-Use Hazard 1-cycle stall verified! (x8 = 20, stalls = 1)`
-- `[PASS] Test 5: Store Data Forwarding verified! (x10 = 42, expected 42)`
-- `[PASS] Test 6: Branch 2-cycle flush verified! (x11=0, x12=0, x13=100, flushes = 1)`
+- `[PASS] Test 3: Back-to-Back Hazard Priority verified! (x6 = 12, expected 12)`
+- `[PASS] Test 4: Load-Use Hazard 1-cycle stall verified! (x10 = 100, stalls = 1)`
+- `[PASS] Test 5: Store Data Forwarding verified! (x16 = 77, expected 77)`
+- `[PASS] Test 6: Branch 2-cycle flush verified! (x11=0, x12=0, x13=42, flushes = 1)`
 - `[PASS] Test 7: Register x0 hardwired zero verified! (x14 = 5, expected 5)`
-- **Result:** `>>> ALL 7 HAZARD & FORWARDING TESTS PASSED (100% SUCCESS) <<<`
+- **Result:** `>>> ALL 7 FEATURE 1 PIPELINE TESTS PASSED (100% SUCCESS) <<<`
 
 ### Testbench 2: `tb_pipeline_base.v`
 Executes the bare-metal compiled RISC-V Fibonacci benchmark (`fibonacci(5)`):
@@ -152,6 +152,10 @@ Executes the bare-metal compiled RISC-V Fibonacci benchmark (`fibonacci(5)`):
 - Computes final Fibonacci value `a5 (x15) = 8`.
 - Achieves continuous execution throughput with flawless pipeline advance.
 
+### Testbench 3: `tb_uart.v`
+Verifies memory-mapped I/O UART transmissions, 115,200 baud serial framing, and boot banner output.
+- **Result:** `>>> [PASS] UART TRANSMISSION TEST COMPLETED SUCCESSFULLY! <<<`
+
 ---
 
 ## 6. How to Run Simulations
@@ -159,15 +163,155 @@ Executes the bare-metal compiled RISC-V Fibonacci benchmark (`fibonacci(5)`):
 From the `feature_1/simulation/` directory:
 
 ```powershell
+# Run Feature 1 Pipeline Integration Testbench
+make sim_feature1
+
 # Run Hazard Unit Testbench
 make sim_hazard
 
 # Run Full System Base Pipeline Testbench
 make sim_pipeline
 
-# Run Both Testbenches
+# Run UART Subsystem Testbench
+make sim_uart
+
+# Run All Testbenches
 make all
 
 # Clean Simulation Artifacts
 make clean
 ```
+
+---
+
+## 7. FPGA Implementation & Board Mapping (Digilent Nexys A7-100T)
+
+The 5-stage core has a dedicated FPGA top-level wrapper (`modules/fpga_top_feature1.v`) and XDC constraints file (`constraints/nexys_a7_100t.xdc`) targeted to the Xilinx Artix-7 XC7A100T FPGA.
+
+### Board Peripherals & Visual Feedback
+
+| Peripheral | Board Location | Core Signal Connected | Hardware Behavior & Visual Indication |
+|---|---|---|---|
+| **8-Digit 7-Segment Display** | Located directly **ABOVE the 16 LEDs** | `imem_addr` / `pc_if[31:0]` | **Displays the 32-bit Address Being Fetched** in real-time (8 hex characters, e.g. `00000028`), multiplexed across all 8 digits at ~763 Hz without flicker. |
+| **LED[0]** | Discrete LED 0 (Pin `H17`) | `hazard_stall` | **DATA HAZARD LED:** Turns ON whenever a data hazard is detected (load-use stall freeze). Features ~50ms pulse-stretching for clear naked-eye visibility at 100 MHz. |
+| **LED[1]** | Discrete LED 1 (Pin `K15`) | `(forward_a != 0) \|\| (forward_b != 0)` | **DATA FORWARDING LED:** Turns ON whenever data forwarding is active (operand bypass from EX/MEM or MEM/WB). Pulse-stretched. |
+| **LED[2]** | Discrete LED 2 (Pin `J13`) | `hazard_flush_id` | **BRANCH FLUSH LED:** Turns ON when a branch misprediction or jump flush annuls instructions. |
+| **LED[3]** | Discrete LED 3 (Pin `N14`) | `wb_reg_write` | **RETIREMENT LED:** Turns ON whenever an instruction commits to the Register File. |
+| **LED[5:4]** | Discrete LEDs 5:4 | `forward_a[1:0]` | Raw Forwarding code for Operand A (`01`: EX/MEM, `10`: MEM/WB). |
+| **LED[7:6]** | Discrete LEDs 7:6 | `forward_b[1:0]` | Raw Forwarding code for Operand B (`01`: EX/MEM, `10`: MEM/WB). |
+| **LED[15:8]** | Discrete LEDs 15:8 | `wb_data[7:0]` | Displays low byte of retired register result (e.g. `102` = `0x66`). |
+| **Switch sw[0]** | Slide Switch 0 (Pin `J15`) | Clock Mode | `0` = Continuous Execution, `1` = Manual Single-Step Clock Mode via `btnc`. |
+| **Switch sw[1]** | Slide Switch 1 (Pin `L16`) | Speed Select | `0` = 50 MHz core speed, `1` = 1 Hz slow clock for live visual tracking (1 instruction/cycle per second). |
+| **Switch sw[2]** | Slide Switch 2 (Pin `M13`) | Display Select | `0` = 7-Segment shows **Fetch PC Address** (e.g. `00000028`), `1` = Shows **32-bit Machine Instruction Code** (e.g. `00F707B3` for `add`). |
+| **Switch sw[3]** | Slide Switch 3 (Pin `R15`) | UART Mode | `0` = Standard CPU MMIO `printf` mode, `1` = **Auto-Telemetry Step Streamer** (dumps PC and committed register over serial on every step). |
+| **UART TX Pin**  | USB-UART Bridge (Pin `D4`) | `uart_tx` | **115,200 Baud Serial Stream** (8-N-1): Connect micro-USB cable to PC; open PuTTY/Tera Term at 115200 baud to see live diagnostics and program text. |
+| **UART RX Pin**  | USB-UART Bridge (Pin `C4`) | `uart_rx` | Serial Receive from Host PC terminal. |
+| **Button btnc** | Center Pushbutton (Pin `N17`)| Step Clock | In step mode (`sw[0]=1`), advances pipeline by exactly 1 clock cycle per press. |
+| **Button reset**| CPU Reset (Pin `C12`) | `cpu_resetn` | Active-low master synchronous reset. Restarts execution from `PC=0x00` and emits UART boot banner. |
+
+---
+
+## 8. Interactive Terminal Pipeline Simulation & Trace Visualizer
+
+A full-system cycle-by-cycle pipeline trace tool is available via `run_pipeline_trace.py`:
+
+```bash
+# Run standard compiled C benchmarks with cycle-by-cycle trace:
+python run_pipeline_trace.py addition
+python run_pipeline_trace.py fibonacci
+python run_pipeline_trace.py sort
+python run_pipeline_trace.py negative
+python run_pipeline_trace.py xor
+
+# Run custom inline assembly instructions:
+python run_pipeline_trace.py --asm "addi x1, x0, 15; addi x2, x0, 25; add x3, x1, x2; addi x10, x3, 0; ret"
+
+# Run custom C, Assembly, or Hex file:
+python run_pipeline_trace.py custom_prog.c
+python run_pipeline_trace.py custom_prog.s
+python run_pipeline_trace.py custom_prog.hex
+```
+
+### What `run_pipeline_trace.py` Displays on the Terminal Screen:
+
+1. **Static Instruction Memory Listing**: Address, 32-bit machine word, and decoded instruction mnemonic for every instruction in memory.
+2. **Cycle-by-Cycle Pipeline Trace Table**: Shows the exact instruction present in each stage at each clock cycle:
+   - `CC`: Clock cycle number
+   - `FETCH (IF)`: PC address and instruction being fetched (displayed on the 8 seven-segment lights).
+   - `DECODE (ID)`: PC address and instruction being decoded.
+   - `EXECUTE (EX)`: PC address and instruction executing in the ALU.
+   - `MEMORY (MEM)`: PC address and memory access operation.
+   - `WRITEBACK (WB)`: PC address and register retirement value (`rd <= value`).
+   - `HAZARDS & FORWARDING NOTES`: Live annotations showing:
+     - `>>> [DATA HAZARD STALL] (LED[0] ON! Freeze IF/ID, bubble to EX)`
+     - `[*] [DATA FORWARDING] (LED[1] ON! A:EX/MEM, B:MEM/WB)`
+     - `[!] [BRANCH/CONTROL FLUSH] (LED[2] ON! Annulling IF/ID)`
+     - `[+] [RETIRE] rd = val (LED[3] ON)`
+3. **Dynamic Instruction Execution Order**: Chronological list of retired instructions in the exact order they executed.
+4. **FPGA Hardware Verification Summary**: Total cycles, retired instructions, IPC throughput, hazard stall counts, forwarding event counts, and final return value in `a0` (`x10`).
+
+---
+
+## 9. Opening in AMD Vivado GUI
+
+The project files and scripts are housed directly within `feature_1`:
+
+1. **One-Click Launch:**
+   - Double-click or run `open_vivado.bat` inside `feature_1/` (or run `open_vivado.bat` at the repository root, which forwards here).
+2. **Batch Generation:**
+   - If regenerating from scratch:
+     ```bash
+     cd feature_1
+     vivado -mode batch -source create_vivado_project.tcl
+     ```
+3. **Direct Project File:**
+   - Double-click `feature_1/vivado_project/rv32i_5stage_core.xpr`.
+
+---
+
+## 10. UART Diagnostic & Telemetry Subsystem (115,200 Baud)
+
+Feature 1 includes a full-duplex capable **Universal Asynchronous Receiver-Transmitter (UART)** subsystem connected to the onboard FTDI FT2232HQ USB-to-UART bridge on the Nexys A7:
+
+* **Hardware Transmitter (`uart_tx.v`):** Standard 8-N-1 framing (1 start bit, 8 data bits, 1 stop bit) clocked by the stable 100 MHz oscillator.
+* **Buffer Architecture:** 64-byte circular FIFO buffer preventing character loss during rapid CPU burst writes.
+* **FPGA Pins:** 
+  * `uart_tx`: Pin `D4` (FPGA transmit $\rightarrow$ FTDI chip $\rightarrow$ PC Terminal).
+  * `uart_rx`: Pin `C4` (FPGA receive $\leftarrow$ FTDI chip $\leftarrow$ PC Terminal).
+
+### Memory-Mapped I/O (MMIO) Register Map
+
+| Register Name | Byte Address | Access | Bit Field Description |
+|---|:---:|:---:|---|
+| **`UART_TX_DATA`** | `0x8000_0000` | Write-Only | `[7:0]`: ASCII character byte written into UART TX FIFO. |
+| **`UART_STATUS`**  | `0x8000_0004` | Read-Only  | `[0]`: `uart_busy` (1 = Transmitting or FIFO not empty)<br>`[1]`: `fifo_full` (1 = FIFO full, wait before write)<br>`[2]`: `fifo_empty` (1 = All characters transmitted) |
+
+### Bare-Metal C Usage (`c_tests/uart.h`)
+
+```c
+#include "uart.h"
+
+int main(void) {
+    uart_puts("RV32I Core Initialized on Nexys A7!\n");
+    uart_puts("Committed Result: ");
+    uart_puthex(102);
+    uart_putc('\n');
+    return 102;
+}
+```
+
+### Live Terminal Verification on Host PC
+1. Connect the Nexys A7 micro-USB cable to your laptop.
+2. Open any serial terminal (e.g., **PuTTY**, **Tera Term**, or `minicom`).
+3. Set the port to the board's virtual COM port (e.g. `COM3` on Windows) at **115200 Baud, 8 Data Bits, 1 Stop Bit, No Parity**.
+4. Press the red **CPU Reset Button (`C12`)**: The terminal immediately displays:
+   ```text
+   ===================================================
+    RV32I Core (Group 13) Active @ 115200 Baud
+   ===================================================
+   ```
+5. In Single-Step Mode (`sw[0]=1, sw[3]=1`), every press of the center button `btnc` dumps the execution state:
+   ```text
+   [PC:0x00000028 | WB:x14=0x00000066 | OK]
+   ```
+
