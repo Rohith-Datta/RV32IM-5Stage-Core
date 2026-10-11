@@ -18,6 +18,17 @@ The complete top-level hardware block diagram for the Group 13 Extended RV32IMF 
 
 An interactive, high-resolution vector visualizer is available in [block_diagram_visualizer.html](file:///c:/CS2202L/RISCV/block_diagram_visualizer.html).
 
+### Arithmetic Units Implementation Specification
+
+| Instruction / Unit | Clock Cycles | Hardware Implementation Method |
+|---|:---:|---|
+| **MUL (Integer)** | **1** | Direct combinational execution utilizing FPGA DSP Slices. |
+| **FMUL.S (Float)** | **4** | Multi-cycle FSM utilizing DSP Slices for 24-bit mantissa multiplication. |
+| **FADD.S (Float)** | **5** | Multi-cycle FSM using Standard Logic (LUTs, Adders, Shifters). *No DSP slices.* |
+| **FSUB.S (Float)** | **5** | Multi-cycle FSM using Standard Logic (inverts sign bit, shares FADD hardware). *No DSP slices.* |
+| **FDIV.S (Float)\*** | **15** | Newton-Raphson Algorithm utilizing DSP Slices (for iterative multiplication) and BRAM (for initial guess lookup). |
+| **DIV (Integer)** | **32** | Shift-and-Subtract state machine using Standard Logic (LUTs and Registers). *No DSP slices.* |
+
 ### Comprehensive Hardware Architecture ASCII Schematic
 
 ```text
@@ -112,13 +123,13 @@ An interactive, high-resolution vector visualizer is available in [block_diagram
        |
        +---> [1] BASE ALU (RV32I) : ADD, SUB, SLT, SLTU, XOR, OR, AND, SLL, SRL, SRA ------> base_alu_out[31:0] ------+
        |                                                                                                              |
-       +---> [2] FEATURE 2: HARDWARE MULTIPLIER (Radix-4 Booth / DSP48E2 Slices) -----------> mul_out[31:0] ----------+
-       |         Instructions: MUL, MULH, MULHSU, MULHU (Single-Cycle Latency)                                        |
+       +---> [2] FEATURE 2: HARDWARE MULTIPLIER (Artix-7 DSP48E1 / Booth) --------------------> mul_out[31:0] ----------+
+       |         Instructions: MUL, MULH, MULHSU, MULHU (1-Cycle Latency via DSP Slices)                              |
        |                                                                                                              |
-       +---> [3] FEATURE 5: HARDWARE DIVIDER (Multi-Cycle Radix-2 Non-Restoring) -----------> div_out[31:0] ----------+
+       +---> [3] FEATURE 5: HARDWARE DIVIDER (32-Cycle Shift-and-Subtract Standard Logic) ----> div_out[31:0] ----------+
        |         Instructions: DIV, DIVU, REM, REMU (32 cycles, div_busy handshaking)           [div_busy to Hazard]   |
        |                                                                                                              |
-       +---> [4] FEATURE 4: IEEE 754 SINGLE-PRECISION FPU (32-bit Float Processing) --------> fpu_out[31:0] ----------+
+       +---> [4] FEATURE 4: IEEE 754 SINGLE-PRECISION FPU (FMUL 4c, FADD/SUB 5c, FDIV 15c) ---> fpu_out[31:0] ----------+
        |         Instructions: FADD.S, FSUB.S, FMUL.S, FDIV.S (fpu_busy handshaking)            [fpu_busy to Hazard]   |
        |                                                                                                              |
        +---> [5] FEATURE 9: BIT-MANIPULATION UNIT (Zbb Extension) --------------------------> zbb_out[31:0] ----------+
@@ -544,10 +555,10 @@ Legend:
 | `memory_stage` | Memory interface with byte/halfword alignment masking | `feature_1/modules/memory_stage.v` | Hardware (Verilog HDL) |
 | `mem_wb_reg` | Pipeline register passing final load data and ALU result to WB | `feature_1/modules/mem_wb_reg.v` | Hardware (Verilog HDL) |
 | `writeback_stage` | Writeback multiplexer selecting memory, ALU, link PC, or CSR | `feature_1/modules/writeback_stage.v` | Hardware (Verilog HDL) |
-| `multiplier_unit` | **Feature 2**: Radix-4 Booth / DSP multiplier (`MUL`/`MULH`) | `feature_2/multiplier_unit.v` | Hardware (Verilog HDL) |
-| `icache_controller`| **Feature 3**: Direct-mapped 2 KB L1 Instruction Cache & FSM | `feature_3/icache_controller.v` | Hardware (Verilog HDL) |
-| `fpu_single_core` | **Feature 4**: IEEE 754 single-precision FPU (`FADD`, `FMUL`) | `feature_4/fpu_single_core.v` | Hardware (Verilog HDL) |
-| `divider_unit` | **Feature 5**: Radix-2 non-restoring divider with stall handshaking | `feature_5/divider_unit.v` | Hardware (Verilog HDL) |
+| `multiplier_unit` | **Feature 2**: Dual-Mode Multiplier (1-cycle Artix-7 DSP48E1 & Radix-4 Booth) | `feature_2/modules/multiplier_unit.v` | Hardware (Verilog HDL) |
+| `icache_controller`| **Feature 3**: Direct-mapped 2 KB L1 Instruction Cache & 10-cyc miss FSM | `feature_3/icache_controller.v` | Hardware (Verilog HDL) |
+| `fpu_single_core` | **Feature 4**: IEEE 754 FPU (FMUL 4c DSP; FADD/SUB 5c logic; FDIV 15c NR with BRAM) | `feature_4/fpu_single_core.v` | Hardware (Verilog HDL) |
+| `divider_unit` | **Feature 5**: 32-cycle Shift-and-Subtract integer divider (Standard Logic, no DSPs) | `feature_5/divider_unit.v` | Hardware (Verilog HDL) |
 | `dcache_controller`| **Feature 6**: Direct-mapped 2 KB L1 Data Cache & write buffer | `feature_6/dcache_controller.v` | Hardware (Verilog HDL) |
 | `btb_branch_pred` | **Feature 7**: Static 32-entry Branch Target Buffer (BTB) | `feature_7/btb_branch_pred.v` | Hardware (Verilog HDL) |
 | `csr_perf_counters`| **Feature 8**: Passive performance CSR monitoring registers | `feature_8/csr_perf_counters.v` | Hardware (Verilog HDL) |
@@ -561,10 +572,10 @@ Target FPGA Architecture: **Xilinx Artix-7 XC7A100T-1CSG324C** (Digilent Nexys A
 
 | Hardware Resource | Maximum Available on XC7A100T | Estimated Core Usage | % Utilization | Engineering Justification |
 |---|:---:|:---:|:---:|---|
-| **LUTs (Look-Up Tables)** | **63,400** | **9,450** | **14.9 %** | Base 5-stage core (2,100), FPU arithmetic (3,800), Divider (950), Bit-manip (800), Caches (1,800) |
-| **FF (Flip-Flops)** | **126,800** | **6,820** | **5.4 %** | Pipeline registers (1,200), FPU registers (1,024), Cache tags/data (2,500), CSR counters (640) |
-| **BRAM (36Kb Blocks)** | **135 blocks** (4,860 Kb) | **8 blocks** | **5.9 %** | 4 BRAMs for L1 I-Cache data array, 4 BRAMs for L1 D-Cache data array |
-| **DSP48E1 Slices** | **240 slices** | **4 slices** | **1.7 %** | Dedicated to high-speed single-cycle 32-bit integer multiplication (`MUL`/`MULH`) and FPU mantissa |
+| **LUTs (Look-Up Tables)** | **63,400** | **4,850** | **7.6 %** | Base core (2,100), 5-cycle FADD/FSUB standard logic adders/shifters (1,800), 32-cycle DIV shift-and-subtract (450), Booth/CSRs (500) |
+| **FF (Flip-Flops)** | **126,800** | **4,200** | **3.3 %** | Pipeline registers (1,200), FPU registers (1,024), Cache tags/data (1,336), CSR counters (640) |
+| **BRAM (36Kb Blocks)** | **135 blocks** (4,860 Kb) | **8 blocks** | **5.9 %** | 4 BRAMs for L1 I-Cache, 3 BRAMs for L1 D-Cache, 1 BRAM for FDIV.S Newton-Raphson initial guess lookup |
+| **DSP48E1 Slices** | **240 slices** | **4 slices** | **1.7 %** | Dedicated to 1-cycle integer MUL, 4-cycle FMUL.S mantissa multiply, and 15-cycle FDIV.S iterative multiply. *No DSPs for FADD/SUB/DIV.* |
 
 ---
 
