@@ -604,24 +604,37 @@ Target FPGA Architecture: **Xilinx Artix-7 XC7A100T-1CSG324C** (Digilent Nexys A
 
 | # | Concrete Testable Activity | Owner | Duration | Oct 01–10 | Oct 11–18 | Oct 19–25 | Oct 26–Nov 01 | Nov 02–08 |
 |:---:|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| 1 | Baseline 5-stage pipeline registers & datapath integration | S5 | Oct 01–07 | [DONE] | | | | |
-| 2 | Hazard Detection Unit & forwarding multiplexers implementation | S5 | Oct 04–08 | [DONE] | | | | |
-| 3 | Full-system testbench & C compiler automation toolchain | S5 | Oct 06–09 | [DONE] | | | | |
-| 4 | Timing analysis, stall verification & reservation charts | S1 | Oct 07–09 | [DONE] | | | | |
-| 5 | Radix-4 Booth Multiplier RTL implementation & testbench | S3 | Oct 10–15 | | [ACTIVE]| | | |
-| 6 | Direct-mapped L1 Instruction Cache & refill FSM design | S1 | Oct 11–17 | | [ACTIVE]| | | |
-| 7 | Multiplier EX stage integration & `MUL`/`MULH` C validation | S3 | Oct 16–20 | | | [PLANNED]| | |
-| 8 | Multi-cycle Radix-2 Hardware Divider & stall controller | S2 | Oct 14–21 | | | [PLANNED]| | |
-| 9 | Direct-mapped L1 Data Cache & write-through controller | S4 | Oct 18–24 | | | [PLANNED]| | |
-| 10| **Milestone 1 Review: Pipeline + Caches + Math Modules** | **ALL** | **Oct 25** | | | **[MS 1]** | | |
-| 11| Static 32-entry Branch Target Buffer (BTB) RTL & fetch hook | S5 | Oct 22–28 | | | | [PLANNED]| |
-| 12| IEEE 754 single-precision FPU (`FADD`, `FMUL`, `FDIV`) core design | S3 | Oct 24–30 | | | | [PLANNED]| |
-| 13| Passive CSR Performance Counters implementation | S4 | Oct 26–31 | | | | [PLANNED]| |
-| 14| Zbb Bit-Manipulation ALU instructions integration | S4 | Oct 28–Nov 01| | | | [PLANNED]| |
-| 15| **Minimum System Commitment: All 9 Features Integrated**| **ALL** | **Nov 01** | | | | **[COMMIT]**| |
-| 16| Vivado synthesis & timing closure at 100 MHz on Artix-7 | S5 | Nov 01–04 | | | | | [PLANNED]|
-| 17| FPGA bitstream generation, UART & 7-segment display hookup | S1 | Nov 03–06 | | | | | [PLANNED]|
-| 18| Final system benchmark verification & project demonstration | ALL | Nov 06–08 | | | | | [FINAL]  |
+| 1 | IF & ID pipeline register logic & instruction fetch | S1 | Oct 02–08 | [DONE] | | | | |
+| 2 | Direct-mapped L1 Instruction Cache & 10-cycle FSM | S1 | Oct 09–17 | | [ACTIVE] | | | |
+| 3 | Cache hit/miss testbenches & burst memory model | S1 | Oct 18–25 | | | [PLANNED] | | |
+| 4 | EX/MEM pipeline registers & store byte-enable masking | S2 | Oct 04–10 | [DONE] | | | | |
+| 5 | Multi-cycle Radix-2 Non-Restoring Divider RTL | S2 | Oct 12–20 | | [ACTIVE] | [PLANNED] | | |
+| 6 | Divider stall handshaking & divide-by-zero handling | S2 | Oct 19–26 | | | [PLANNED] | [PLANNED] | |
+| 7 | Artix-7 DSP48E1 hardware multiplier instantiation | S3 | Oct 08–14 | [DONE] | [ACTIVE] | | | |
+| 8 | Synthesizable Radix-4 Modified Booth Multiplier RTL | S3 | Oct 12–18 | | [ACTIVE] | | | |
+| 9 | Dual-mode multiplier unit wrapper (sw[3] selection) | S3 | Oct 16–21 | | [ACTIVE] | [PLANNED] | | |
+| 10| IEEE 754 single-precision FPU core (FADD, FMUL, FDIV) | S3 | Oct 20–30 | | | [PLANNED] | [PLANNED] | |
+| 11| Control Unit instruction decoder & stall logic | S4 | Oct 03–09 | [DONE] | | | | |
+| 12| Direct-mapped L1 Data Cache & write buffer FSM | S4 | Oct 14–22 | | [ACTIVE] | [PLANNED] | | |
+| 13| Performance Counter CSRs (cycle, instret, misses) | S4 | Oct 23–29 | | | [PLANNED] | [PLANNED] | |
+| 14| Zbb Bit-Manipulation ALU (CLZ, CTZ, POPCNT) | S4 | Oct 28–Nov 02| | | | [PLANNED] | [PLANNED] |
+| 15| 5-Stage base pipeline registers & datapath integration | S5 | Oct 01–07 | [DONE] | | | | |
+| 16| Hazard Detection Unit & forwarding multiplexers RTL | S5 | Oct 04–10 | [DONE] | | | | |
+| 17| Static 32-entry Branch Target Buffer (BTB) RTL | S5 | Oct 18–25 | | | [PLANNED] | | |
+| 18| Automated C trace suite & full-system testbench | S5 | Oct 24–31 | | | [PLANNED] | [PLANNED] | |
+| 19| **Pipeline Subsystem Integration & Stall Interlocking** | **ALL** | **Oct 11–17** | | **[ACTIVE]** | | | |
+| 20| **★ MILESTONE 1: Core Subsystem Review & Integration Check** | **ALL** | **Oct 25** | | | **[◆ MS 1]** | | |
+| 21| **Full-System 9-Feature Datapath Integration & Interconnect** | **ALL** | **Oct 26–31** | | | | **[PLANNED]** | |
+| 22| **★ MILESTONE 2: Minimum System Commitment Met (All 9 Features)**| **ALL** | **Nov 01** | | | | **[◆ COMMIT]**| |
+| 23| Nexys A7 FPGA Demo: 7-Seg, LEDs, 1Hz Clk, UART streaming | ALL | Nov 01–06 | | | | | [PLANNED]|
+| 24| **★ FINAL MILESTONE: Timing Closure & Project Grading Demo** | **ALL** | **Nov 05–08** | | | | | **[★ FINAL]**|
+
+### Gantt Chart Legend & Milestone Highlights:
+- **Active Work Period (`[ACTIVE]` / `[DONE]`):** Scheduled RTL design, logic synthesis, unit testbench verification, and FPGA prototyping.
+- **Mid-Project Subsystem Integration (`ALL`, Oct 11–17):** Collaborative whole-team integration window where all members (especially pipeline and hazard leads) integrate incoming math units (DSP48E1 / Booth Multipliers) and L1 I-Cache into the 5-stage datapath with multi-cycle stall interlocking.
+- **◆ MILESTONE 1 (Oct 25):** Core functionality milestone satisfied. 5-Stage pipeline, Hazard Detection Unit, operand forwarding, dual-mode multiplier, Radix-2 divider base, and L1 I-Cache fully functional and verified.
+- **◆ MINIMUM SYSTEM COMMITMENT (Nov 01):** All 9 required project features (32-entry BTB, DSP/Booth Multipliers, Radix-2 Divider, IEEE 754 FPU, L1 I-Cache, L1 D-Cache, CSR counters, Zbb ALU, and Hazard Unit) fully integrated into core.
+- **★ FINAL MILESTONE (Nov 08):** Full-speed 100 MHz timing closure achieved on Artix-7 FPGA fabric, bitstream generated, UART / 7-segment / LED diagnostics active, and final TA grading demonstration.
 
 ---
 
