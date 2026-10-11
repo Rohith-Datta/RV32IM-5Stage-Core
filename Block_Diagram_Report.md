@@ -4,11 +4,11 @@
 **Group Number:** Group 13  
 **Target Device:** Xilinx Artix-7 XC7A100T-1CSG324C (Digilent Nexys A7-100T FPGA)  
 **Authors / Team Members:**
-- Sigilipelli Praneeth Sai Bharath (`praneethsaibharath`)
-- Bandaru Rohith Datta (`Rohith-Datta`)
-- Siddharth Misro (`sidmisro`)
 - Pisini Ramana (`thisispisiniramana`)
 - Chimbili Sahithi (`chimbilisahithi`)
+- Siddharth Misro (`sidmisro`)
+- Bandaru Rohith Datta (`Rohith-Datta`)
+- Sigilipelli Praneeth Sai Bharath (`praneethsaibharath`)
 
 ---
 
@@ -591,11 +591,11 @@ Target FPGA Architecture: **Xilinx Artix-7 XC7A100T-1CSG324C** (Digilent Nexys A
 ## 6. Project Gantt Chart & Milestone Schedule
 
 **Team Members (Group 13):**
-- **Student 1 (S1):** Sigilipelli Praneeth Sai Bharath
-- **Student 2 (S2):** Bandaru Rohith Datta
+- **Student 1 (S1):** Pisini Ramana
+- **Student 2 (S2):** Chimbili Sahithi
 - **Student 3 (S3):** Siddharth Misro
-- **Student 4 (S4):** Pisini Ramana
-- **Student 5 (S5):** Sahithi Chimbili
+- **Student 4 (S4):** Bandaru Rohith Datta
+- **Student 5 (S5):** Sigilipelli Praneeth Sai Bharath
 
 **Key Deadlines:**
 - **Milestone 1 Core Completion:** October 25, 2026
@@ -604,23 +604,23 @@ Target FPGA Architecture: **Xilinx Artix-7 XC7A100T-1CSG324C** (Digilent Nexys A
 
 | # | Concrete Testable Activity | Owner | Duration | Oct 01–10 | Oct 11–18 | Oct 19–25 | Oct 26–Nov 01 | Nov 02–08 |
 |:---:|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| 1 | Baseline 5-stage pipeline registers & datapath integration | S1 | Oct 01–07 | [DONE] | | | | |
-| 2 | Hazard Detection Unit & forwarding multiplexers implementation | S2 | Oct 04–08 | [DONE] | | | | |
-| 3 | Full-system testbench & C compiler automation toolchain | S1 | Oct 06–09 | [DONE] | | | | |
-| 4 | Timing analysis, stall verification & reservation charts | S4 | Oct 07–09 | [DONE] | | | | |
-| 5 | Radix-4 Booth Multiplier RTL implementation & testbench | S2 | Oct 10–15 | | [ACTIVE]| | | |
-| 6 | Direct-mapped L1 Instruction Cache & refill FSM design | S3 | Oct 11–17 | | [ACTIVE]| | | |
-| 7 | Multiplier EX stage integration & `MUL`/`MULH` C validation | S1 | Oct 16–20 | | | [PLANNED]| | |
-| 8 | Multi-cycle Radix-2 Hardware Divider & stall controller | S4 | Oct 14–21 | | | [PLANNED]| | |
-| 9 | Direct-mapped L1 Data Cache & write-through controller | S3 | Oct 18–24 | | | [PLANNED]| | |
+| 1 | Baseline 5-stage pipeline registers & datapath integration | S5 | Oct 01–07 | [DONE] | | | | |
+| 2 | Hazard Detection Unit & forwarding multiplexers implementation | S5 | Oct 04–08 | [DONE] | | | | |
+| 3 | Full-system testbench & C compiler automation toolchain | S5 | Oct 06–09 | [DONE] | | | | |
+| 4 | Timing analysis, stall verification & reservation charts | S1 | Oct 07–09 | [DONE] | | | | |
+| 5 | Radix-4 Booth Multiplier RTL implementation & testbench | S3 | Oct 10–15 | | [ACTIVE]| | | |
+| 6 | Direct-mapped L1 Instruction Cache & refill FSM design | S1 | Oct 11–17 | | [ACTIVE]| | | |
+| 7 | Multiplier EX stage integration & `MUL`/`MULH` C validation | S3 | Oct 16–20 | | | [PLANNED]| | |
+| 8 | Multi-cycle Radix-2 Hardware Divider & stall controller | S2 | Oct 14–21 | | | [PLANNED]| | |
+| 9 | Direct-mapped L1 Data Cache & write-through controller | S4 | Oct 18–24 | | | [PLANNED]| | |
 | 10| **Milestone 1 Review: Pipeline + Caches + Math Modules** | **ALL** | **Oct 25** | | | **[MS 1]** | | |
 | 11| Static 32-entry Branch Target Buffer (BTB) RTL & fetch hook | S5 | Oct 22–28 | | | | [PLANNED]| |
-| 12| IEEE 754 single-precision FPU (`FADD`, `FMUL`) core design | S2 | Oct 24–30 | | | | [PLANNED]| |
+| 12| IEEE 754 single-precision FPU (`FADD`, `FMUL`, `FDIV`) core design | S3 | Oct 24–30 | | | | [PLANNED]| |
 | 13| Passive CSR Performance Counters implementation | S4 | Oct 26–31 | | | | [PLANNED]| |
-| 14| Zbb Bit-Manipulation ALU instructions integration | S5 | Oct 28–Nov 01| | | | [PLANNED]| |
+| 14| Zbb Bit-Manipulation ALU instructions integration | S4 | Oct 28–Nov 01| | | | [PLANNED]| |
 | 15| **Minimum System Commitment: All 9 Features Integrated**| **ALL** | **Nov 01** | | | | **[COMMIT]**| |
-| 16| Vivado synthesis & timing closure at 100 MHz on Artix-7 | S1 | Nov 01–04 | | | | | [PLANNED]|
-| 17| FPGA bitstream generation, UART & 7-segment display hookup | S3 | Nov 03–06 | | | | | [PLANNED]|
+| 16| Vivado synthesis & timing closure at 100 MHz on Artix-7 | S5 | Nov 01–04 | | | | | [PLANNED]|
+| 17| FPGA bitstream generation, UART & 7-segment display hookup | S1 | Nov 03–06 | | | | | [PLANNED]|
 | 18| Final system benchmark verification & project demonstration | ALL | Nov 06–08 | | | | | [FINAL]  |
 
 ---
