@@ -319,7 +319,12 @@ def build_instruction_tags(imem_map, text_end=None):
     return inst_tags
 
 def print_banner(target_name, chosen_feature=1):
-    feat_title = "FEATURE 2: RV32IM HARDWARE MULTIPLIER" if chosen_feature == 2 else "FEATURE 1: RV32I 5-STAGE PIPELINE"
+    if chosen_feature == 3:
+        feat_title = "FEATURE 3: RV32IM HARDWARE MULTIPLIER & DIVIDER"
+    elif chosen_feature == 2:
+        feat_title = "FEATURE 2: RV32IM HARDWARE MULTIPLIER"
+    else:
+        feat_title = "FEATURE 1: RV32I 5-STAGE PIPELINE"
     print("=" * 116)
     print(f"       RV32I/RV32M 5-STAGE PIPELINE CYCLE-BY-CYCLE TRACE VISUALIZER ({target_name.upper()})")
     print(f"       Core Engine: {feat_title} | Hazards, Forwarding, Flushes, FPGA Telemetry")
@@ -519,9 +524,9 @@ def print_fpga_mapping_summary(records, ret_val, imem_map, retired_list=None, ch
 def main():
     parser = argparse.ArgumentParser(description="5-Stage RV32I/RV32M Processor Pipeline Trace Visualizer")
     parser.add_argument("target", nargs="?", default="addition",
-                        help="Target test (addition, multiplication, fibonacci, sort, negative, xor, or custom file .c / .s / .hex)")
-    parser.add_argument("--feature", "-f", choices=["1", "2", "auto"], default="auto",
-                        help="Target core feature: 1 (RV32I baseline), 2 (RV32IM multiplier), or auto (default)")
+                        help="Target test (addition, multiplication, division, fibonacci, sort, negative, xor, or custom file .c / .s / .hex)")
+    parser.add_argument("--feature", "-f", choices=["1", "2", "3", "auto"], default="auto",
+                        help="Target core feature: 1 (RV32I baseline), 2 (RV32IM multiplier), 3 (RV32IM divider), or auto (default)")
     parser.add_argument("--asm", type=str, default=None,
                         help="Direct assembly string (e.g. 'addi x1, x0, 10; addi x2, x0, 2; add x3, x1, x2; ret')")
     parser.add_argument("--bitstream", action="store_true",
@@ -530,14 +535,19 @@ def main():
     args = parser.parse_args()
     target = args.target
 
+    FEATURE3_DIR = os.path.join(ROOT_DIR, "feature_3")
     f1_mem = os.path.join(FEATURE1_DIR, "mem")
     f2_mem = os.path.join(FEATURE2_DIR, "mem")
+    f3_mem = os.path.join(FEATURE3_DIR, "mem")
     os.makedirs(f1_mem, exist_ok=True)
     os.makedirs(f2_mem, exist_ok=True)
+    os.makedirs(f3_mem, exist_ok=True)
     f1_imem_hex = os.path.join(f1_mem, "imem.hex")
     f1_dmem_hex = os.path.join(f1_mem, "dmem.hex")
     f2_imem_hex = os.path.join(f2_mem, "imem.hex")
     f2_dmem_hex = os.path.join(f2_mem, "dmem.hex")
+    f3_imem_hex = os.path.join(f3_mem, "imem.hex")
+    f3_dmem_hex = os.path.join(f3_mem, "dmem.hex")
 
     # 1. Prepare Hex / Program
     if args.asm:
@@ -545,15 +555,20 @@ def main():
         compile_custom_asm(args.asm, f1_imem_hex, f1_dmem_hex)
         shutil.copy2(f1_imem_hex, f2_imem_hex)
         shutil.copy2(f1_dmem_hex, f2_dmem_hex)
+        shutil.copy2(f1_imem_hex, f3_imem_hex)
+        shutil.copy2(f1_dmem_hex, f3_dmem_hex)
     elif target.endswith(".c") or target.endswith(".s"):
         print(f"[*] Compiling custom source file: {target}...")
         compile_c_or_asm_file(target, f1_imem_hex, f1_dmem_hex)
         shutil.copy2(f1_imem_hex, f2_imem_hex)
         shutil.copy2(f1_dmem_hex, f2_dmem_hex)
+        shutil.copy2(f1_imem_hex, f3_imem_hex)
+        shutil.copy2(f1_dmem_hex, f3_dmem_hex)
     elif target.endswith(".hex"):
         print(f"[*] Using custom hex file: {target}...")
         shutil.copy2(target, f1_imem_hex)
         shutil.copy2(target, f2_imem_hex)
+        shutil.copy2(target, f3_imem_hex)
     else:
         # Standard benchmark program
         build_script = os.path.join(C_TESTS_DIR, "build_hex.py")
@@ -565,9 +580,13 @@ def main():
     symbols, text_end = load_symbols()
     inst_tags = build_instruction_tags(imem_map, text_end)
 
-    # Auto-detect Feature 1 vs Feature 2
+    # Auto-detect Feature 1 vs Feature 2 vs Feature 3
+    has_div = any(d in mnem for _, mnem in imem_map.values() for d in ['div', 'rem']) or ("division" in target)
     has_mul = any("mul" in mnem for _, mnem in imem_map.values()) or ("multiplication" in target)
-    if args.feature == "2" or (args.feature == "auto" and has_mul):
+    if args.feature == "3" or (args.feature == "auto" and has_div):
+        chosen_feature = 3
+        sim_dir = os.path.join(FEATURE3_DIR, "simulation")
+    elif args.feature == "2" or (args.feature == "auto" and has_mul):
         chosen_feature = 2
         sim_dir = os.path.join(FEATURE2_DIR, "simulation")
     else:

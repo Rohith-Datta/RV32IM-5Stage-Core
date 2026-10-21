@@ -7,6 +7,7 @@ C_TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(C_TESTS_DIR)
 F1_MEM_DIR = os.path.join(ROOT_DIR, "feature_1", "mem")
 F2_MEM_DIR = os.path.join(ROOT_DIR, "feature_2", "mem")
+F3_MEM_DIR = os.path.join(ROOT_DIR, "feature_3", "mem")
 
 CC      = "riscv-none-elf-gcc"
 OBJCOPY = "riscv-none-elf-objcopy"
@@ -20,6 +21,9 @@ PROGRAMS = {
     "multiplication":      "multiplication.c",
     "code_multiplication": "multiplication.c",
     "multiplication.c":    "multiplication.c",
+    "division":            "division.c",
+    "code_division":       "division.c",
+    "division.c":          "division.c",
     "fibonacci":           "fibonacci.c",
     "code_fibonacci":      "code_fibonacci.c",
     "fibonacci.c":         "fibonacci.c",
@@ -73,7 +77,7 @@ def build(prog_name):
     
     obj_file = os.path.join(C_TESTS_DIR, "code.o")
     linker_ld = os.path.join(C_TESTS_DIR, "linker.ld")
-    march = "rv32im" if "multiplication" in prog_name else "rv32i"
+    march = "rv32im" if ("multiplication" in prog_name or "division" in prog_name) else "rv32i"
     cflags = ["-march=" + march, "-mabi=ilp32", "-O0"]
     print(f"[*] Compiling {PROGRAMS[prog_name]} ({march}) -> code.o...")
     subprocess.check_call([CC, "-c", src_file, "-o", obj_file, "-I", C_TESTS_DIR, "-ffunction-sections"] + cflags)
@@ -95,8 +99,8 @@ def build(prog_name):
     bin2hex(imem_bin, imem_hex)
     bin2hex(dmem_bin, dmem_hex)
     
-    # Copy to feature_1/mem and feature_2/mem
-    for mem_dir in [F1_MEM_DIR, F2_MEM_DIR]:
+    # Copy to feature_1/mem, feature_2/mem, and feature_3/mem
+    for mem_dir in [F1_MEM_DIR, F2_MEM_DIR, F3_MEM_DIR]:
         os.makedirs(mem_dir, exist_ok=True)
         shutil.copy2(imem_hex, os.path.join(mem_dir, "imem.hex"))
         shutil.copy2(dmem_hex, os.path.join(mem_dir, "dmem.hex"))
@@ -104,7 +108,7 @@ def build(prog_name):
         shutil.copy2(elf_file, os.path.join(mem_dir, "code.elf"))
         shutil.copy2(src_file, os.path.join(mem_dir, PROGRAMS[prog_name]))
     
-    print(f"[+] Successfully built and deployed {prog_name} to feature_1/mem/ and feature_2/mem/")
+    print(f"[+] Successfully built and deployed {prog_name} to feature_1/mem/, feature_2/mem/, and feature_3/mem/")
 
 if __name__ == "__main__":
     prog = sys.argv[1] if len(sys.argv) > 1 else "addition"
