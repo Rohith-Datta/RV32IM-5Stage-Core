@@ -15,9 +15,20 @@ XVLOG = xvlog
 XELAB = xelab
 XSIM  = xsim
 
-.PHONY: all clean sim_pipeline multiplication addition fibonacci sort negative xor
+.PHONY: all clean sim_pipeline sim_uart multiplication addition fibonacci sort negative xor
 
-all: sim_pipeline
+all: sim_pipeline sim_uart
+
+# ----------------------------------------------------------------------------
+# Unit UART Subsystem Testbench
+# ----------------------------------------------------------------------------
+sim_uart:
+	@echo "=== [1/3] Compiling tb_uart.v ==="
+	$(XVLOG) $(XVLOG_FLG) $(TB_DIR)/tb_uart.v
+	@echo "=== [2/3] Elaborating tb_uart ==="
+	$(XELAB) -top tb_uart -snapshot sim_uart_snap -debug typical
+	@echo "=== [3/3] Simulating tb_uart ==="
+	$(XSIM) sim_uart_snap -runall -log sim_uart.log
 
 # ----------------------------------------------------------------------------
 # Base Pipeline Full-System Testbench

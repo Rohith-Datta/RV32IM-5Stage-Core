@@ -115,7 +115,12 @@ xelab -debug typical tb_feature2_pipeline -s sim_f2_pipe
 xsim sim_f2_pipe -R
 ```
 
-### 3. Interactive Terminal Simulation & Trace Visualizer
+### 3. UART Subsystem Testbench (`tb_uart.v`)
+- Verifies MMIO character writes (`0x8000_0000`), 64-byte FIFO queuing, 115,200 baud serialization, and boot banner transmission.
+- Automatically monitors `uart_tx` serial framing with a behavioral receiver model.
+- **Result:** **100% Passed**.
+
+### 4. Interactive Terminal Simulation & Trace Visualizer
 A compiled C multiplication benchmark is available:
 ```powershell
 python run_pipeline_trace.py multiplication

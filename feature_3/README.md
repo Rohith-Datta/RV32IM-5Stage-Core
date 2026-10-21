@@ -153,3 +153,8 @@ feature_3/
   return q + r;   // 16 (0x10)
   ```
 - Result: Returns **16 (`0x00000010`)** in register `a0` (`x10`).
+
+### 4. UART Subsystem Verification (`tb_uart.v`)
+- Verifies MMIO character writes (`0x8000_0000`), 64-byte FIFO queuing, 115,200 baud serialization, and boot banner transmission.
+- Automatically monitors `uart_tx` serial framing with a behavioral receiver model.
+- Result: **100% Pass Rate**.

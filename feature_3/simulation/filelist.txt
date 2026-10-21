@@ -22,3 +22,4 @@
 ../testbench/tb_feature3_pipeline.v
 ../testbench/tb_divider.v
 ../testbench/tb_multiplier.v
+../testbench/tb_uart.v
