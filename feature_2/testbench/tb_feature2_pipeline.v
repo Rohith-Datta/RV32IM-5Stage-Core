@@ -16,10 +16,10 @@ module tb_feature2_pipeline;
     reg clk;
     reg reset_n;
 
-    // 100 MHz clock
+    // 50 MHz clock (20 ns period)
     initial begin
         clk = 0;
-        forever #5 clk = ~clk;
+        forever #10 clk = ~clk;
     end
 
     // Interconnects

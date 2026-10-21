@@ -5,6 +5,7 @@
 *.pb
 *.wdb
 *.vcd
+*.backup.*
 xsim.dir/
 .Xil/
 *dfx_runtime.txt
@@ -18,6 +19,7 @@ Desktop.ini
 .DS_Store
 ~$*
 # Compiler intermediate binaries
+*.o
 *.elf
 *.bin
 _tmp_*

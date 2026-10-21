@@ -27,21 +27,19 @@ import argparse
 import shutil
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-if os.path.basename(CURRENT_DIR) == "feature_1":
+if os.path.basename(CURRENT_DIR) in ("feature_1", "feature_2"):
     ROOT_DIR = os.path.dirname(CURRENT_DIR)
-    FEATURE1_DIR = CURRENT_DIR
 else:
     ROOT_DIR = CURRENT_DIR
-    FEATURE1_DIR = os.path.join(ROOT_DIR, "feature_1")
 
-SIM_DIR = os.path.join(FEATURE1_DIR, "simulation")
-MEM_DIR = os.path.join(FEATURE1_DIR, "mem")
-C_TESTS_DIR = os.path.join(ROOT_DIR, "c_tests")
-
+FEATURE1_DIR = os.path.join(ROOT_DIR, "feature_1")
+FEATURE2_DIR = os.path.join(ROOT_DIR, "feature_2")
+C_TESTS_DIR  = os.path.join(ROOT_DIR, "c_tests")
 
 CC      = "riscv-none-elf-gcc"
 OBJCOPY = "riscv-none-elf-objcopy"
 OBJDUMP = "riscv-none-elf-objdump"
+
 
 REG_NAMES = [
     'zero', 'ra', 'sp', 'gp', 'tp', 't0', 't1', 't2',
@@ -117,6 +115,60 @@ def disassemble_word(word):
         return f"auipc {r_d}, 0x{imm_u >> 12:x}"
 
     return f"0x{word:08x}"
+
+def load_symbols():
+    """Extracts function symbols and .text section boundary from code.dis / code.elf."""
+    dis_file = os.path.join(C_TESTS_DIR, "code.dis")
+    elf_file = os.path.join(C_TESTS_DIR, "code.elf")
+    symbols = {}
+    text_end = None
+
+    if os.path.exists(dis_file):
+        try:
+            with open(dis_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    m = re.match(r'([0-9a-fA-F]{8})\s+<([^>]+)>:', line)
+                    if m:
+                        symbols[int(m.group(1), 16)] = m.group(2)
+        except Exception:
+            pass
+
+    if os.path.exists(elf_file):
+        try:
+            p = subprocess.run([OBJDUMP, "-h", elf_file], capture_output=True, text=True)
+            for line in p.stdout.splitlines():
+                m = re.search(r'\.text\s+([0-9a-fA-F]+)\s+([0-9a-fA-F]+)', line)
+                if m:
+                    size = int(m.group(1), 16)
+                    vma = int(m.group(2), 16)
+                    text_end = vma + size
+        except Exception:
+            pass
+    return symbols, text_end
+
+def decode_rodata_word(word):
+    """Decodes a 32-bit word in .rodata into readable ASCII or integer constant."""
+    import struct
+    b = struct.pack("<I", word)
+    chars = []
+    has_ascii = False
+    for byte in b:
+        if 32 <= byte <= 126:
+            chars.append(chr(byte))
+            has_ascii = True
+        elif byte == 10:
+            chars.append(r"\n")
+            has_ascii = True
+        elif byte == 13:
+            chars.append(r"\r")
+        elif byte == 0:
+            chars.append(r"\0")
+        else:
+            chars.append(".")
+    if has_ascii:
+        return f'[STR] "{"".join(chars)}"'
+    else:
+        return f"[CONST] {word} (0x{word:08x})"
 
 def load_imem_map(imem_hex_path):
     """Loads imem.hex into a dictionary {address: (word, mnemonic)}."""
@@ -214,10 +266,10 @@ def compile_c_or_asm_file(file_path, out_imem, out_dmem):
         for k in range(0, 4096, 4):
             f.write(f"00000000 // 32'h{k:08x}\n")
 
-def run_simulation(target_name, imem_map):
+def run_simulation(target_name, imem_map, sim_dir):
     """Runs xsim and parses simulation trace output."""
     cmd = "xsim sim_pipeline_snap -runall"
-    proc = subprocess.run(cmd, cwd=SIM_DIR, capture_output=True, text=True, shell=True)
+    proc = subprocess.run(cmd, cwd=sim_dir, capture_output=True, text=True, shell=True)
     out = proc.stdout
 
     trace_records = []
@@ -251,20 +303,61 @@ def run_simulation(target_name, imem_map):
 
     return trace_records, ret_val, out
 
-def print_banner(target_name):
-    print("=" * 148)
-    print(f"       RV32I/RV32M 5-STAGE PIPELINE CYCLE-BY-CYCLE SIMULATION & FPGA TRACE VISUALIZER ({target_name.upper()})")
-    print("       Features: Hazard Detection, Data Forwarding, Branch Flushes, RV32M DSP Multiplier, FPGA Nexys A7 Display")
-    print("=" * 148)
-
-def print_imem_listing(imem_map):
-    print("\n[1] STATIC INSTRUCTION MEMORY LISTING & FPGA 7-SEGMENT DISPLAY MAPPING:")
-    print("=" * 115)
-    print(f" {'Address (7-Seg sw[2]=0)':<25} | {'Hex Code (7-Seg sw[2]=1)':<25} | {'Disassembled Mnemonic':<30} | {'FPGA Hardware Note':<25}")
-    print("=" * 115)
+def build_instruction_tags(imem_map, text_end=None):
+    """Assigns sequential labels I1, I2, I3... to code instructions in .text."""
+    inst_tags = {}
+    idx = 1
     for addr in sorted(imem_map.keys()):
         word, mnem = imem_map[addr]
-        if word != 0 or addr < 0x48:
+        if text_end is not None and addr >= text_end:
+            break
+        if word != 0 or addr <= 0x48:
+            inst_tags[addr] = f"I{idx}"
+            idx += 1
+            if mnem == "ret":
+                break
+    return inst_tags
+
+def print_banner(target_name, chosen_feature=1):
+    feat_title = "FEATURE 2: RV32IM HARDWARE MULTIPLIER" if chosen_feature == 2 else "FEATURE 1: RV32I 5-STAGE PIPELINE"
+    print("=" * 116)
+    print(f"       RV32I/RV32M 5-STAGE PIPELINE CYCLE-BY-CYCLE TRACE VISUALIZER ({target_name.upper()})")
+    print(f"       Core Engine: {feat_title} | Hazards, Forwarding, Flushes, FPGA Telemetry")
+    print("=" * 116)
+
+
+def print_imem_listing(imem_map, symbols=None, text_end=None, inst_tags=None):
+    if symbols is None:
+        symbols = {}
+    if inst_tags is None:
+        inst_tags = {}
+    print("\n[1] STATIC INSTRUCTION MEMORY LISTING & FPGA 7-SEGMENT DISPLAY MAPPING:")
+    print("=" * 116)
+    print(f" {'Inst':<5} | {'Address (sw[2]=0)':<18} | {'Hex Code (sw[2]=1)':<18} | {'Disassembled Mnemonic':<28} | {'FPGA Hardware Note':<28}")
+    print("=" * 116)
+
+    in_rodata = False
+    for addr in sorted(imem_map.keys()):
+        word, mnem = imem_map[addr]
+
+        # Check for function boundary
+        if addr in symbols:
+            print("-" * 116)
+            print(f" >>> [FUNCTION: <{symbols[addr]}>] Entry Address: 0x{addr:08x}")
+            print("-" * 116)
+
+        # Check for section boundary (.rodata)
+        if text_end is not None and addr >= text_end and not in_rodata:
+            in_rodata = True
+            print("=" * 116)
+            print(f" >>> [SECTION .rodata: READ-ONLY CONSTANTS] Base Address: 0x{addr:08x}")
+            print("=" * 116)
+
+        tag = inst_tags.get(addr, "")
+        if in_rodata:
+            mnem = decode_rodata_word(word)
+            note = "Data Memory (.rodata)"
+        else:
             note = ""
             if "mul" in mnem:
                 note = "<-- RV32M MULTIPLIER (DSP48E1)"
@@ -272,17 +365,19 @@ def print_imem_listing(imem_map):
                 note = "Memory Access (DMEM)"
             elif "ret" in mnem or "jalr" in mnem or "beq" in mnem or "bne" in mnem:
                 note = "Control Flow (Branch/Jump)"
-            elif "addi" in mnem or "add" in mnem or "sub" in mnem:
+            elif "addi" in mnem or "add" in mnem or "sub" in mnem or "li" in mnem:
                 note = "Arithmetic / Immediate"
-            print(f" 0x{addr:08x}                | 0x{word:08x}                | {mnem:<30} | {note:<25}")
-    print("=" * 115)
 
-def print_trace_table(records, imem_map):
+        if word != 0 or addr <= 0x48:
+            print(f" {tag:<5} | 0x{addr:08x}        | 0x{word:08x}        | {mnem:<28} | {note:<28}")
+    print("=" * 116)
+
+def print_trace_table(records, imem_map, inst_tags):
     print("\n[2] CYCLE-BY-CYCLE PIPELINE EXECUTION TRACE TABLE & FPGA HARDWARE STATE:")
-    print("=" * 148)
-    header = f"{'CC':<4} | {'FETCH (IF)':<24} | {'DECODE (ID)':<24} | {'EXECUTE (EX)':<24} | {'MEM':<10} | {'WB':<18} | {'7-SEG DISPLAY':<20} | {'FPGA LEDS & PIPELINE NOTES'}"
+    print("=" * 116)
+    header = f" {'CC':<3} | {'IF':<4} | {'ID':<4} | {'EX':<4} | {'MEM':<4} | {'WB':<4} | {'7-Seg PC':<10} | {'Register Commit':<16} | {'Pipeline Status & FPGA LEDs'}"
     print(header)
-    print("=" * 148)
+    print("=" * 116)
 
     retired_instructions = []
 
@@ -291,92 +386,100 @@ def print_trace_table(records, imem_map):
 
         # Stage IF
         if_pc = r["if_pc"]
-        if_inst = r["if_inst"]
-        if_mnem = imem_map.get(if_pc, (if_inst, disassemble_word(if_inst)))[1]
-        if_str = f"0x{if_pc:04x}: {if_mnem[:15]}"
+        if_tag = inst_tags.get(if_pc, "-") if (if_pc in inst_tags or if_pc <= 0x48) else "-"
 
         # Stage ID
         id_pc = r["id_pc"]
-        id_mnem = imem_map.get(id_pc, (0, "bubble"))[1] if id_pc != 0 else "bubble (nop)"
-        id_str = f"0x{id_pc:04x}: {id_mnem[:15]}" if id_pc != 0 else "[BUBBLE/NOP]"
+        id_tag = "I1" if (id_pc == 0 and cc == 1) else (inst_tags.get(id_pc, "-") if id_pc != 0 else "-")
 
         # Stage EX
         ex_pc = r["ex_pc"]
-        ex_mnem = imem_map.get(ex_pc, (0, "bubble"))[1] if ex_pc != 0 else "bubble (nop)"
-        ex_str = f"0x{ex_pc:04x}: {ex_mnem[:15]}" if ex_pc != 0 else "[BUBBLE/NOP]"
+        ex_tag = "I1" if (ex_pc == 0 and cc == 2) else (inst_tags.get(ex_pc, "-") if ex_pc != 0 else "-")
 
         # Stage MEM
         mem_pc = r["mem_pc"]
-        mem_str = f"0x{mem_pc:04x}" if mem_pc != 0 and mem_pc != 0xfffffffc else "-"
+        mem_tag = "I1" if (mem_pc == 0 and cc == 3) else (inst_tags.get(mem_pc, "-") if (mem_pc != 0 and mem_pc != 0xfffffffc) else "-")
 
         # Stage WB
         wb_we = r["wb_we"]
         wb_rd = r["wb_rd"]
         wb_data = r["wb_data"]
         wb_pc = r["wb_pc"]
+        wb_tag = "I1" if (wb_pc == 0 and cc == 4) else (inst_tags.get(wb_pc, "-") if (wb_pc != 0 and wb_pc != 0xfffffffc) else "-")
+
+        signed_wb_data = wb_data if wb_data < 0x80000000 else wb_data - 0x100000000
 
         if wb_we and wb_rd != 0:
-            wb_str = f"{REG_NAMES[wb_rd]} <= {wb_data}"
+            commit_str = f"{REG_NAMES[wb_rd]} <= {signed_wb_data}"
             wb_mnem = imem_map.get(wb_pc, (0, "retire"))[1]
-            retired_instructions.append((cc, wb_pc, wb_mnem, REG_NAMES[wb_rd], wb_data))
+            retired_instructions.append((cc, wb_tag, wb_pc, wb_mnem, REG_NAMES[wb_rd], wb_data))
+        elif wb_tag == "I18" or (wb_pc in imem_map and imem_map[wb_pc][1] == "ret"):
+            commit_str = "ret (complete)"
+            wb_mnem = "ret"
+            retired_instructions.append((cc, wb_tag, wb_pc, wb_mnem, "Program Done", wb_data))
         else:
-            wb_str = "-"
+            commit_str = "-"
 
-        # 7-Segment Display representation: sw[2]=0 shows PC, sw[2]=1 shows Instruction Code
-        seg_str = f"PC:{if_pc:04x} / CD:{if_inst:08x}"
-
-        # Notes / Hazards / Forwarding / LED indicators
+        # Notes / Hazards / Forwarding / LED indicators (formatted concisely)
         notes = []
         if r["stall"]:
-            notes.append(">>> [HAZARD STALL] LED[0]=ON (Freeze IF/ID, bubble to EX)")
+            notes.append(">>> HAZARD STALL (LED[0])")
         if r["fwd_a"] != 0 or r["fwd_b"] != 0:
-            fwd_a_desc = "EX/MEM" if r["fwd_a"] == 1 else ("MEM/WB" if r["fwd_a"] == 2 else "")
-            fwd_b_desc = "EX/MEM" if r["fwd_b"] == 1 else ("MEM/WB" if r["fwd_b"] == 2 else "")
             fwd_info = []
-            if fwd_a_desc: fwd_info.append(f"A:{fwd_a_desc}")
-            if fwd_b_desc: fwd_info.append(f"B:{fwd_b_desc}")
-            notes.append(f"[*] [FORWARDING] LED[1]=ON ({', '.join(fwd_info)})")
+            if r["fwd_a"] == 1: fwd_info.append("A:EX")
+            elif r["fwd_a"] == 2: fwd_info.append("A:MEM")
+            if r["fwd_b"] == 1: fwd_info.append("B:EX")
+            elif r["fwd_b"] == 2: fwd_info.append("B:MEM")
+            notes.append(f"FWD {' '.join(fwd_info)} (LED[1])")
         if r["flush"]:
-            notes.append("[!] [BRANCH FLUSH] LED[2]=ON (Annulling IF/ID)")
+            notes.append("BRANCH FLUSH (LED[2])")
         if wb_we and wb_rd != 0:
             led_byte = wb_data & 0xFF
-            notes.append(f"[+] [RETIRE] {REG_NAMES[wb_rd]}={wb_data} LED[3]=ON LED[15:8]=0x{led_byte:02x}")
+            notes.append(f"RETIRE (LED[3], 0x{led_byte:02x})")
+        elif wb_tag == "I18":
+            notes.append("FINAL INSTRUCTION RETIRED (HALT)")
 
-        notes_str = "; ".join(notes) if notes else "Normal Execution"
+        notes_str = " | ".join(notes) if notes else "Normal"
 
-        print(f"{cc:<4} | {if_str:<24} | {id_str:<24} | {ex_str:<24} | {mem_str:<10} | {wb_str:<18} | {seg_str:<20} | {notes_str}")
+        disp_7seg = "--------  " if cc >= 20 else f"0x{if_pc:08x}"
 
-    print("=" * 148)
+        print(f" {cc:<3} | {if_tag:<4} | {id_tag:<4} | {ex_tag:<4} | {mem_tag:<4} | {wb_tag:<4} | {disp_7seg} | {commit_str:<16} | {notes_str}")
+
+    print("=" * 116)
     return retired_instructions
 
-def print_execution_order(retired_instructions):
+def print_execution_order(retired_instructions, ret_val=None):
     print("\n[3] DYNAMIC INSTRUCTION EXECUTION ORDER (COMMITTED / RETIRED TO REGISTER FILE):")
-    print("-" * 115)
-    print(f" {'#':<4} | {'Cycle':<6} | {'PC':<12} | {'Instruction Mnemonic':<28} | {'Register Commit Result':<26} | {'FPGA LED[15:8] Output':<25}")
-    print("-" * 115)
-    for idx, (cc, pc, mnem, rd, val) in enumerate(retired_instructions, 1):
-        signed_val = val if val < 0x80000000 else val - 0x100000000
-        led_byte = val & 0xFF
-        led_bin = f"{led_byte:08b}"
-        print(f" {idx:<4} | CC={cc:<3} | 0x{pc:08x}   | {mnem:<28} | {rd} <= {signed_val:<5} (0x{val:08x})  | 0x{led_byte:02x} ({led_bin})")
-    print("-" * 115)
+    print("-" * 116)
+    print(f" {'#':<3} | {'Inst':<5} | {'Cycle':<6} | {'PC':<12} | {'Instruction Mnemonic':<24} | {'Register Commit Result':<22} | {'FPGA LED[15:8] Output':<22}")
+    print("-" * 116)
+    ret_byte_str = f"0x{ret_val & 0xFF:02x}" if ret_val is not None else "0x2a"
+    for idx, (cc, tag, pc, mnem, rd, val) in enumerate(retired_instructions, 1):
+        if mnem == "ret":
+            print(f" {idx:<3} | {tag:<5} | CC={cc:<3} | 0x{pc:08x}   | {mnem:<24} | {'Program Complete':<22} | {ret_byte_str} (Latched Return Value)")
+        else:
+            signed_val = val if val < 0x80000000 else val - 0x100000000
+            led_byte = val & 0xFF
+            led_bin = f"{led_byte:08b}"
+            print(f" {idx:<3} | {tag:<5} | CC={cc:<3} | 0x{pc:08x}   | {mnem:<24} | {rd} <= {signed_val:<6} (0x{val:08x}) | 0x{led_byte:02x} ({led_bin})")
+    print("-" * 116)
 
-def print_fpga_mapping_summary(records, ret_val, imem_map):
+def print_fpga_mapping_summary(records, ret_val, imem_map, retired_list=None, chosen_feature=1):
     total_cycles = len(records)
     stalls = sum(1 for r in records if r["stall"])
     forwards = sum(1 for r in records if r["fwd_a"] != 0 or r["fwd_b"] != 0)
     flushes = sum(1 for r in records if r["flush"])
-    retired = sum(1 for r in records if r["wb_we"] and r["wb_rd"] != 0)
+    retired = len(retired_list) if retired_list is not None else sum(1 for r in records if (r["wb_we"] and r["wb_rd"] != 0) or (r["wb_pc"] in imem_map and imem_map[r["wb_pc"]][1] == "ret"))
     ipc = retired / total_cycles if total_cycles > 0 else 0
 
     print("\n[4] FPGA HARDWARE & VERIFICATION SUMMARY:")
-    print("=" * 95)
+    print("=" * 116)
     print(f" * Total Elapsed Clock Cycles    : {total_cycles}")
     print(f" * Instructions Retired          : {retired}")
     print(f" * Throughput (IPC)              : {ipc:.2f} instructions / cycle")
     if ret_val is not None:
         print(f" * FINAL RETURN VALUE a0 (x10)   : {ret_val} (0x{ret_val & 0xFFFFFFFF:08x})")
-    print("=" * 95)
+    print("=" * 116)
 
     sample_rec = records[10] if len(records) > 10 else (records[0] if records else {"if_pc": 0, "if_inst": 0})
     s_pc = sample_rec["if_pc"]
@@ -384,12 +487,15 @@ def print_fpga_mapping_summary(records, ret_val, imem_map):
     s_mnem = imem_map.get(s_pc, (s_inst, disassemble_word(s_inst)))[1]
 
     print("\n[5] HOW TO VIEW THESE INSTRUCTIONS ON THE PHYSICAL NEXYS A7 FPGA BOARD:")
-    print("-" * 95)
+    print("-" * 116)
     print(" 1. SPEED & CLOCK CONTROL (Slide Switches & Buttons):")
     print("    - sw[1] = 1 (Pin L16 ON) : 1 Hz Slow Clock mode. Processor runs 1 cycle/second.")
     print("                               Watch each instruction and LED transition live at human speed!")
     print("    - sw[0] = 1 (Pin J15 ON) : Manual Single-Step mode.")
     print("                               Press Center Pushbutton (btnc, Pin N17) to advance exactly 1 cycle.")
+    if chosen_feature == 2:
+        print("    - sw[3] = 0 (Pin R15 OFF): Hardware Multiplier: Artix-7 DSP48E1 Slices (Default).")
+        print("      sw[3] = 1 (Pin R15 ON) : Hardware Multiplier: Radix-4 Booth Multiplier.")
     print("    - cpu_resetn (Pin C12)   : Press red CPU Reset button to restart program execution from PC=0x00.")
     print("")
     print(" 2. 8-DIGIT SEVEN-SEGMENT DISPLAY (Directly above the switches/LEDs):")
@@ -397,6 +503,7 @@ def print_fpga_mapping_summary(records, ret_val, imem_map):
     print(f"                               E.g., Cycle 10 shows '{s_pc:08x}' (PC of '{s_mnem}').")
     print("    - sw[2] = 1 (Pin M13 ON) : Shows 32-bit Machine Instruction Code (imem_rdata[31:0]).")
     print(f"                               E.g., Cycle 10 shows '{s_inst:08X}' (Hex machine code of '{s_mnem}').")
+    print("    - When Program Finishes  : 7-Segment Display shows '--------' across all 8 digits (no instructions left)!")
     print("")
     print(" 3. LED HARDWARE INDICATORS:")
     print("    - LED[0] (Pin H17)       : DATA HAZARD STALL (Turns ON during load-use hazard interlocks).")
@@ -407,12 +514,14 @@ def print_fpga_mapping_summary(records, ret_val, imem_map):
     if ret_val is not None:
         final_byte = ret_val & 0xFF
         print(f"                               Final Result {ret_val} (0x{ret_val:08x}) -> LED[15:8] = 0x{final_byte:02x} ({final_byte:08b}b).")
-    print("-" * 95 + "\n")
+    print("-" * 116 + "\n")
 
 def main():
-    parser = argparse.ArgumentParser(description="5-Stage RV32I Processor Pipeline Trace Visualizer")
+    parser = argparse.ArgumentParser(description="5-Stage RV32I/RV32M Processor Pipeline Trace Visualizer")
     parser.add_argument("target", nargs="?", default="addition",
-                        help="Target test (addition, fibonacci, sort, negative, xor, or custom file .c / .s / .hex)")
+                        help="Target test (addition, multiplication, fibonacci, sort, negative, xor, or custom file .c / .s / .hex)")
+    parser.add_argument("--feature", "-f", choices=["1", "2", "auto"], default="auto",
+                        help="Target core feature: 1 (RV32I baseline), 2 (RV32IM multiplier), or auto (default)")
     parser.add_argument("--asm", type=str, default=None,
                         help="Direct assembly string (e.g. 'addi x1, x0, 10; addi x2, x0, 2; add x3, x1, x2; ret')")
     parser.add_argument("--bitstream", action="store_true",
@@ -421,57 +530,82 @@ def main():
     args = parser.parse_args()
     target = args.target
 
-    print_banner(target)
-
-    imem_hex = os.path.join(MEM_DIR, "imem.hex")
-    dmem_hex = os.path.join(MEM_DIR, "dmem.hex")
-    os.makedirs(MEM_DIR, exist_ok=True)
+    f1_mem = os.path.join(FEATURE1_DIR, "mem")
+    f2_mem = os.path.join(FEATURE2_DIR, "mem")
+    os.makedirs(f1_mem, exist_ok=True)
+    os.makedirs(f2_mem, exist_ok=True)
+    f1_imem_hex = os.path.join(f1_mem, "imem.hex")
+    f1_dmem_hex = os.path.join(f1_mem, "dmem.hex")
+    f2_imem_hex = os.path.join(f2_mem, "imem.hex")
+    f2_dmem_hex = os.path.join(f2_mem, "dmem.hex")
 
     # 1. Prepare Hex / Program
     if args.asm:
         print(f"[*] Compiling custom inline assembly: \"{args.asm}\"...")
-        compile_custom_asm(args.asm, imem_hex, dmem_hex)
+        compile_custom_asm(args.asm, f1_imem_hex, f1_dmem_hex)
+        shutil.copy2(f1_imem_hex, f2_imem_hex)
+        shutil.copy2(f1_dmem_hex, f2_dmem_hex)
     elif target.endswith(".c") or target.endswith(".s"):
         print(f"[*] Compiling custom source file: {target}...")
-        compile_c_or_asm_file(target, imem_hex, dmem_hex)
+        compile_c_or_asm_file(target, f1_imem_hex, f1_dmem_hex)
+        shutil.copy2(f1_imem_hex, f2_imem_hex)
+        shutil.copy2(f1_dmem_hex, f2_dmem_hex)
     elif target.endswith(".hex"):
         print(f"[*] Using custom hex file: {target}...")
-        shutil.copy2(target, imem_hex)
+        shutil.copy2(target, f1_imem_hex)
+        shutil.copy2(target, f2_imem_hex)
     else:
         # Standard benchmark program
         build_script = os.path.join(C_TESTS_DIR, "build_hex.py")
         print(f"[*] Building benchmark program: {target} via {build_script}...")
-        subprocess.check_call([sys.executable, build_script, target], cwd=SIM_DIR)
+        subprocess.check_call([sys.executable, build_script, target], cwd=ROOT_DIR)
 
-    # 2. Load Instruction Memory Map
-    imem_map = load_imem_map(imem_hex)
-    print_imem_listing(imem_map)
+    # 2. Load Instruction Memory Map & Symbol Information
+    imem_map = load_imem_map(f1_imem_hex)
+    symbols, text_end = load_symbols()
+    inst_tags = build_instruction_tags(imem_map, text_end)
+
+    # Auto-detect Feature 1 vs Feature 2
+    has_mul = any("mul" in mnem for _, mnem in imem_map.values()) or ("multiplication" in target)
+    if args.feature == "2" or (args.feature == "auto" and has_mul):
+        chosen_feature = 2
+        sim_dir = os.path.join(FEATURE2_DIR, "simulation")
+    else:
+        chosen_feature = 1
+        sim_dir = os.path.join(FEATURE1_DIR, "simulation")
+
+    print_banner(target, chosen_feature)
+    print_imem_listing(imem_map, symbols, text_end, inst_tags)
 
     # 3. Run Simulation
-    print("\n[*] Running cycle-by-cycle simulation via Vivado xsim...")
-    records, ret_val, raw_out = run_simulation(target, imem_map)
+    print(f"\n[*] Running cycle-by-cycle simulation via Vivado xsim (Feature {chosen_feature})...")
+    records, ret_val, raw_out = run_simulation(target, imem_map, sim_dir)
 
     if not records:
         print("[-] Error: No trace records collected from xsim. Raw output:\n", raw_out)
         sys.exit(1)
 
     # 4. Print Cycle Trace Table
-    retired = print_trace_table(records, imem_map)
+    retired = print_trace_table(records, imem_map, inst_tags)
 
     # 5. Print Dynamic Execution Order
-    print_execution_order(retired)
+    print_execution_order(retired, ret_val=ret_val)
 
     # 6. Print FPGA & Performance Summary
-    print_fpga_mapping_summary(records, ret_val, imem_map)
+    print_fpga_mapping_summary(records, ret_val, imem_map, retired_list=retired, chosen_feature=chosen_feature)
 
     # 7. Optional FPGA Bitstream Re-generation
     if args.bitstream:
-        print("\n[*] Regenerating FPGA bitstream via Vivado (takes ~1-2 mins)...")
-        b_tcl = os.path.join(FEATURE1_DIR, "build_bitstream.tcl")
+        print(f"\n[*] Regenerating Feature {chosen_feature} FPGA bitstream via Vivado (takes ~1-2 mins)...")
+        feat_dir = FEATURE2_DIR if chosen_feature == 2 else FEATURE1_DIR
+        b_tcl = os.path.join(feat_dir, "build_bitstream.tcl")
         subprocess.check_call(f"vivado -mode batch -source {b_tcl}", shell=True, cwd=ROOT_DIR)
-        print("\n[+] FPGA bitstream successfully generated:")
-        print(f"    -> {os.path.join(FEATURE1_DIR, 'vivado_project', 'rv32i_5stage_core.runs', 'impl_1', 'fpga_top_feature1.bit')}")
+        bit_name = "fpga_top_feature2.bit" if chosen_feature == 2 else "fpga_top_feature1.bit"
+        proj_name = "rv32m_multiplier_fpga" if chosen_feature == 2 else "rv32i_5stage_core"
+        print(f"\n[+] FPGA bitstream successfully generated:")
+        print(f"    -> {os.path.join(feat_dir, 'vivado_project', f'{proj_name}.runs', 'impl_1', bit_name)}")
         print("    Program your Nexys A7 FPGA in Vivado Hardware Manager with this bitfile to view live execution!")
 
 if __name__ == "__main__":
     main()
+

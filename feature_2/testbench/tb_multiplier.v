@@ -52,10 +52,10 @@ module tb_multiplier;
         .mul_busy   ()
     );
 
-    // Clock generation (100 MHz)
+    // Clock generation (50 MHz, 20 ns period)
     initial begin
         clk = 0;
-        forever #5 clk = ~clk;
+        forever #10 clk = ~clk;
     end
 
     integer test_count;

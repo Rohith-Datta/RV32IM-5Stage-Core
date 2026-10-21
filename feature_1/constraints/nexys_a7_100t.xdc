@@ -23,12 +23,14 @@ set_property -dict { PACKAGE_PIN N17   IOSTANDARD LVCMOS33 } [get_ports { btnc }
 ## ----------------------------------------------------------------------------
 ## Slide Switches
 ## sw[0]: Mode select (0 = Normal Run, 1 = Manual Single-Step via btnc)
-## sw[1]: Speed select (0 = 100 MHz full speed, 1 = 1 Hz slow visual clock)
+## sw[1]: Speed select (0 = 50 MHz core speed, 1 = 1 Hz slow visual clock)
 ## sw[2]: Display select (0 = PC Address, 1 = 32-bit Instruction Machine Code)
+## sw[3]: UART mode (0 = MMIO printf, 1 = Auto-Telemetry Stream)
 ## ----------------------------------------------------------------------------
 set_property -dict { PACKAGE_PIN J15   IOSTANDARD LVCMOS33 } [get_ports { sw[0] }];
 set_property -dict { PACKAGE_PIN L16   IOSTANDARD LVCMOS33 } [get_ports { sw[1] }];
 set_property -dict { PACKAGE_PIN M13   IOSTANDARD LVCMOS33 } [get_ports { sw[2] }];
+set_property -dict { PACKAGE_PIN R15   IOSTANDARD LVCMOS33 } [get_ports { sw[3] }];
 
 ## ----------------------------------------------------------------------------
 ## 8-Digit Seven-Segment Display (Directly ABOVE the 16 LEDs)
@@ -80,6 +82,12 @@ set_property -dict { PACKAGE_PIN V15   IOSTANDARD LVCMOS33 } [get_ports { led[12
 set_property -dict { PACKAGE_PIN V14   IOSTANDARD LVCMOS33 } [get_ports { led[13] }]; # wb_data[5]
 set_property -dict { PACKAGE_PIN V12   IOSTANDARD LVCMOS33 } [get_ports { led[14] }]; # wb_data[6]
 set_property -dict { PACKAGE_PIN V11   IOSTANDARD LVCMOS33 } [get_ports { led[15] }]; # wb_data[7] (Far Left LED)
+
+## ----------------------------------------------------------------------------
+## USB-RS232 Serial Interface (FTDI FT2232HQ)
+## ----------------------------------------------------------------------------
+set_property -dict { PACKAGE_PIN D4    IOSTANDARD LVCMOS33 } [get_ports { uart_tx }]; # FPGA Transmit (TXD) to FTDI
+set_property -dict { PACKAGE_PIN C4    IOSTANDARD LVCMOS33 } [get_ports { uart_rx }]; # FPGA Receive (RXD) from FTDI
 
 ## ----------------------------------------------------------------------------
 ## Configuration and Voltage

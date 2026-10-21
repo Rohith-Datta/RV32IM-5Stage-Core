@@ -71,17 +71,21 @@ def build(prog_name):
     imem_hex = os.path.join(C_TESTS_DIR, "imem.hex")
     dmem_hex = os.path.join(C_TESTS_DIR, "dmem.hex")
     
-    print(f"[*] Compiling {PROGRAMS[prog_name]} -> code.elf...")
-    subprocess.check_call([CC, "-c", src_file, "-o", elf_file] + CFLAGS)
+    obj_file = os.path.join(C_TESTS_DIR, "code.o")
+    linker_ld = os.path.join(C_TESTS_DIR, "linker.ld")
+    march = "rv32im" if "multiplication" in prog_name else "rv32i"
+    cflags = ["-march=" + march, "-mabi=ilp32", "-O0"]
+    print(f"[*] Compiling {PROGRAMS[prog_name]} ({march}) -> code.o...")
+    subprocess.check_call([CC, "-c", src_file, "-o", obj_file, "-I", C_TESTS_DIR, "-ffunction-sections"] + cflags)
     
-    print(f"[*] Extracting text section -> imem.bin...")
+    print(f"[*] Linking code.o -> code.elf (Entry=main at 0x00000000 via linker.ld)...")
+    subprocess.check_call(["riscv-none-elf-ld", "-T", linker_ld, obj_file, "-o", elf_file])
+    
+    print(f"[*] Extracting full memory image -> imem.bin & dmem.bin...")
     subprocess.check_call([OBJCOPY, "-O", "binary", elf_file, imem_bin])
-    
-    print(f"[*] Extracting data section -> dmem.bin...")
-    # Some programs may not have .data, so don't fail if section missing
-    res = subprocess.run([OBJCOPY, "-j", ".data", "-O", "binary", elf_file, dmem_bin], capture_output=True)
-    if not os.path.exists(dmem_bin) or res.returncode != 0:
-        open(dmem_bin, "wb").close()
+    # In Harvard architecture with separate BRAMs, DMEM must contain .rodata & .data
+    # at their linked addresses so loads (lbu, lw) find strings and constants.
+    shutil.copyfile(imem_bin, dmem_bin)
         
     print(f"[*] Generating disassembly -> code.dis...")
     with open(dis_file, "w") as df:

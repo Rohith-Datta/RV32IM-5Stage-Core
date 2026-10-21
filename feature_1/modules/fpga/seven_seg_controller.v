@@ -12,6 +12,7 @@ module seven_seg_controller (
     input  wire        clk,        // 100 MHz board clock
     input  wire        reset_n,    // Active-low synchronous reset
     input  wire [31:0] data_in,    // 32-bit value to display (Fetch PC: pc_if[31:0])
+    input  wire        show_dashes,// 1: Show "--------" across all 8 digits when halted
     output reg  [7:0]  an,         // Active-low digit anodes (AN7 down to AN0)
     output reg  [6:0]  seg,        // Active-low segment cathodes: {cg, cf, ce, cd, cc, cb, ca}
     output wire        dp          // Active-low decimal point
@@ -83,30 +84,36 @@ module seven_seg_controller (
     // ------------------------------------------------------------------------
     // Hex-to-Seven-Segment Active-Low Decoder
     // Mapping: seg[0]=CA, seg[1]=CB, seg[2]=CC, seg[3]=CD, seg[4]=CE, seg[5]=CF, seg[6]=CG
+    // When show_dashes is 1, lights up segment G alone (middle horizontal bar '-')
     // ------------------------------------------------------------------------
     always @(*) begin
-        case (hex_digit)
-            4'h0: seg = 7'b100_0000; // '0'
-            4'h1: seg = 7'b111_1001; // '1'
-            4'h2: seg = 7'b010_0100; // '2'
-            4'h3: seg = 7'b011_0000; // '3'
-            4'h4: seg = 7'b001_1001; // '4'
-            4'h5: seg = 7'b001_0010; // '5'
-            4'h6: seg = 7'b000_0010; // '6'
-            4'h7: seg = 7'b111_1000; // '7'
-            4'h8: seg = 7'b000_0000; // '8'
-            4'h9: seg = 7'b001_0000; // '9'
-            4'hA: seg = 7'b000_1000; // 'A'
-            4'hB: seg = 7'b000_0011; // 'b'
-            4'hC: seg = 7'b100_0110; // 'C'
-            4'hD: seg = 7'b010_0001; // 'd'
-            4'hE: seg = 7'b000_0110; // 'E'
-            4'hF: seg = 7'b000_1110; // 'F'
-            default: seg = 7'b111_1111; // Off
-        endcase
+        if (show_dashes) begin
+            seg = 7'b011_1111; // Dash '-' (CG active, CA..CF inactive)
+        end else begin
+            case (hex_digit)
+                4'h0: seg = 7'b100_0000; // '0'
+                4'h1: seg = 7'b111_1001; // '1'
+                4'h2: seg = 7'b010_0100; // '2'
+                4'h3: seg = 7'b011_0000; // '3'
+                4'h4: seg = 7'b001_1001; // '4'
+                4'h5: seg = 7'b001_0010; // '5'
+                4'h6: seg = 7'b000_0010; // '6'
+                4'h7: seg = 7'b111_1000; // '7'
+                4'h8: seg = 7'b000_0000; // '8'
+                4'h9: seg = 7'b001_0000; // '9'
+                4'hA: seg = 7'b000_1000; // 'A'
+                4'hB: seg = 7'b000_0011; // 'b'
+                4'hC: seg = 7'b100_0110; // 'C'
+                4'hD: seg = 7'b010_0001; // 'd'
+                4'hE: seg = 7'b000_0110; // 'E'
+                4'hF: seg = 7'b000_1110; // 'F'
+                default: seg = 7'b111_1111; // Off
+            endcase
+        end
     end
 
     // Turn on decimal point on digit 4 as a visual separator between upper and lower halfwords
-    assign dp = (active_digit == 3'd4) ? 1'b0 : 1'b1;
+    // When showing dashes, turn decimal point off
+    assign dp = (show_dashes) ? 1'b1 : ((active_digit == 3'd4) ? 1'b0 : 1'b1);
 
 endmodule

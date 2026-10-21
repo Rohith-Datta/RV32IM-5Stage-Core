@@ -53,7 +53,7 @@ $$P_{raw} = \$signed(A_{ext}) \times \$signed(B_{ext}) \quad (66\text{ bits})$$
 ### FPGA Resource Budget:
 - Synthesized using the `(* use_dsp = "yes" *)` attribute.
 - Utilizes **<= 4 DSP48E1 slices**, adhering to the project specification budget.
-- Executes within **1 single clock cycle** at 100 MHz on the Artix-7 board without multi-cycle pipeline stalls.
+- Executes within **1 single clock cycle** at 50 MHz on the Artix-7 board (20 ns clock period ensures positive setup timing slack across the cascading DSP path without requiring multi-cycle pipeline stalls).
 
 ---
 
@@ -138,7 +138,7 @@ Feature 2 has its own standalone FPGA top-level wrapper ([`feature_2/modules/fpg
 | **8-Digit 7-Segment Display** | Located directly **ABOVE the 16 LEDs** | `imem_addr` / `imem_rdata` | **Dual Display Mode:**<br>• `sw[2]=0`: Shows Fetch PC Address (e.g. `00000028` for `mul`).<br>• `sw[2]=1`: Shows 32-bit Machine Code (e.g. `02F707B3` for `mul a5, a4, a5`). |
 | **Switch `sw[3]`** | Slide Switch 3 (Pin `R15`) | Multiplier Engine Select | • `0` = **Xilinx Artix-7 DSP48E1 Slices** (High-speed single-cycle DSP multiplication).<br>• `1` = **Radix-4 Modified Booth Multiplier RTL**. |
 | **Switch `sw[2]`** | Slide Switch 2 (Pin `M13`) | 7-Seg Display Select | • `0` = Shows **Fetch PC Address** (`pc_if[31:0]`).<br>• `1` = Shows **32-bit Machine Instruction Code** (`imem_rdata[31:0]`). |
-| **Switch `sw[1]`** | Slide Switch 1 (Pin `L16`) | Clock Speed Select | • `0` = 100 MHz oscillator.<br>• `1` = **1 Hz Slow Clock mode** for live visual tracking (1 instruction/cycle per second). |
+| **Switch `sw[1]`** | Slide Switch 1 (Pin `L16`) | Clock Speed Select | • `0` = 50 MHz core clock (derived from 100 MHz board oscillator).<br>• `1` = **1 Hz Slow Clock mode** for live visual tracking (1 instruction/cycle per second). |
 | **Switch `sw[0]`** | Slide Switch 0 (Pin `J15`) | Step Clock Mode | • `0` = Continuous execution.<br>• `1` = **Manual Single-Step Mode** via Center Pushbutton (`btnc`). |
 | **Button `btnc`** | Center Pushbutton (Pin `N17`)| Manual Step Advance | In step mode (`sw[0]=1`), advances pipeline by exactly 1 clock cycle per press. |
 | **Button `reset`**| CPU Reset (Pin `C12`, red) | `cpu_resetn` | Active-low master synchronous reset. Restarts execution from `PC=0x00`. |

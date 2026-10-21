@@ -106,17 +106,29 @@ module tb_pipeline_base;
     );
 
     // ------------------------------------------------------------------------
-    // Data Memory (DMEM)
+    // Data Memory (DMEM) & UART MMIO Interconnect
     // ------------------------------------------------------------------------
+    wire uart_mmio_match = (dmem_addr[31:16] == 16'h8000);
+    wire [31:0] dmem_ram_rdata;
+    // Status reg (0x80000004): Bit 0 = 0 (transmitter ready / idle)
+    assign dmem_rdata = uart_mmio_match ? 32'h0000_0000 : dmem_ram_rdata;
+
+    always @(posedge clk) begin
+        if (dmem_we && uart_mmio_match && (dmem_addr[3:0] == 4'h0)) begin
+            $write("%c", dmem_wdata[7:0]);
+            $fflush();
+        end
+    end
+
     data_mem #(
         .HEX_FILE("C:/CS2202L/RISCV/feature_1/mem/dmem.hex"),
         .WORDS(1024)
     ) DMEM (
         .clk  (clk),
-        .re   (dmem_re),
+        .re   (dmem_re && !uart_mmio_match),
         .raddr(dmem_addr),
-        .rdata(dmem_rdata),
-        .we   (dmem_we),
+        .rdata(dmem_ram_rdata),
+        .we   (dmem_we && !uart_mmio_match),
         .waddr(dmem_addr),
         .wdata(dmem_wdata),
         .wstrb(dmem_wstrb)

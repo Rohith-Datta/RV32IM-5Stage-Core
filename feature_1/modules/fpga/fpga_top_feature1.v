@@ -17,8 +17,9 @@
 // 6. LED[15:8]:
 //    Displays the low 8 bits of the committed result (wb_data[7:0]).
 // 7. Clocking & Step Modes:
-//    - sw[0] = 0: Continuous execution (100 MHz or divided clock via sw[1]).
-//    - sw[0] = 1: Single-step execution via Center Pushbutton (btnc).
+//    - sw[0] = 0, sw[1] = 0: Paced real-time streaming with UART (~70ms for 20 cycles)
+//    - sw[0] = 0, sw[1] = 1: Slow 1 Hz auto-stepping
+//    - sw[0] = 1: Single-step execution via Center Pushbutton (btnc)
 // ============================================================================
 
 `timescale 1ns/1ps
@@ -27,11 +28,17 @@ module fpga_top_feature1 (
     input  wire        clk_100mhz,  // 100 MHz primary oscillator (Pin E3)
     input  wire        cpu_resetn,  // Active-low CPU reset pushbutton (Pin C12)
     input  wire        btnc,        // Center pushbutton for single-stepping (Pin N17)
-    input  wire [2:0]  sw,          // Slide switches: sw[0]=Step mode, sw[1]=1Hz slow clk, sw[2]=Display select (0=PC, 1=Instruction)
+    input  wire [3:0]  sw,          // Slide switches:
+                                    //   sw[0]=Step mode (0=Continuous, 1=Manual step via btnc)
+                                    //   sw[1]=1Hz slow clock (0=Auto-paced, 1=1Hz)
+                                    //   sw[2]=Display select (0=PC Address, 1=Instruction Code)
+                                    //   sw[3]=Unused / spare switch
     output wire [7:0]  an,          // 8-digit Seven-Segment Anodes (Pins J17..U13)
     output wire [6:0]  seg,         // 7-segment Cathodes (Pins T10..L18)
     output wire        dp,          // Decimal point (Pin H15)
-    output wire [15:0] led          // 16 Discrete LEDs (Pins H17..R18)
+    output wire [15:0] led,         // 16 Discrete LEDs (Pins H17..R18)
+    output wire        uart_tx,     // UART TX pin (Pin D4 -> FTDI USB-UART)
+    input  wire        uart_rx      // UART RX pin (Pin C4 <- FTDI USB-UART)
 );
 
     // ------------------------------------------------------------------------
@@ -73,25 +80,26 @@ module fpga_top_feature1 (
     assign btn_pulse = btn_state && !btn_prev;
 
     // ------------------------------------------------------------------------
-    // Clock Generation: 100 MHz, Slow Clock (1 Hz), or Manual Step
+    // Step Generation Logic: Manual (btnc), Slow 1Hz, or Paced Auto-Stream
     // ------------------------------------------------------------------------
-    reg [25:0] clk_div_cnt;
-    reg        slow_clk;
+    // 1 Hz slow step generator (sw[1]=1):
+    reg [26:0] clk_div_cnt;
+    reg        slow_step_pulse;
     always @(posedge clk_100mhz or negedge sys_reset_n) begin
         if (!sys_reset_n) begin
-            clk_div_cnt <= 26'd0;
-            slow_clk    <= 1'b0;
-        end else if (clk_div_cnt == 26'd49_999_999) begin
-            clk_div_cnt <= 26'd0;
-            slow_clk    <= ~slow_clk;
+            clk_div_cnt     <= 27'd0;
+            slow_step_pulse <= 1'b0;
+        end else if (clk_div_cnt == 27'd99_999_999) begin
+            clk_div_cnt     <= 27'd0;
+            slow_step_pulse <= 1'b1;
         end else begin
-            clk_div_cnt <= clk_div_cnt + 26'd1;
+            clk_div_cnt     <= clk_div_cnt + 27'd1;
+            slow_step_pulse <= 1'b0;
         end
     end
 
-    // Core Clock Selection
-    wire core_clk;
-    assign core_clk = (sw[0]) ? btn_pulse : ((sw[1]) ? slow_clk : clk_100mhz);
+    wire uart_busy;
+    wire banner_done;
 
     // ------------------------------------------------------------------------
     // Core Interconnect Buses
@@ -123,17 +131,94 @@ module fpga_top_feature1 (
     wire [1:0]  forward_b;
     wire        exception;
 
+    // Automatic Halt on Program Completion:
+    // When the C program executes `ret` (32'h00008067) from main, allows remaining
+    // instructions in pipeline to drain through WB, then halts cleanly so the processor does not loop infinitely.
+    reg       saw_ret;
+    reg [2:0] drain_cnt;
+    reg       prog_done;
+    wire      core_step_pulse;
+
+    always @(posedge clk_100mhz or negedge sys_reset_n) begin
+        if (!sys_reset_n) begin
+            saw_ret   <= 1'b0;
+            drain_cnt <= 3'd0;
+            prog_done <= 1'b0;
+        end else begin
+            if (imem_rdata == 32'h0000_8067 && imem_addr != 32'h0 && core_step_pulse && !hazard_stall)
+                saw_ret <= 1'b1;
+            if (saw_ret && core_step_pulse && !prog_done) begin
+                if (!hazard_stall) begin
+                    if (drain_cnt < 3'd3)
+                        drain_cnt <= drain_cnt + 3'd1;
+                    else
+                        prog_done <= 1'b1;
+                end
+            end
+        end
+    end
+
+    // Auto-stream step generator (sw[0]=0, sw[1]=0):
+    // Advances the CPU by exactly 1 cycle each time UART finishes transmitting a line:
+    reg auto_step_pending;
+    reg auto_step_pulse;
+    always @(posedge clk_100mhz or negedge sys_reset_n) begin
+        if (!sys_reset_n) begin
+            auto_step_pending <= 1'b0;
+            auto_step_pulse   <= 1'b0;
+        end else if (!sw[0] && !sw[1]) begin // Auto continuous stream mode
+            if (!uart_busy && banner_done && !prog_done && !auto_step_pending) begin
+                auto_step_pulse   <= 1'b1;
+                auto_step_pending <= 1'b1;
+            end else begin
+                auto_step_pulse <= 1'b0;
+                if (uart_busy)
+                    auto_step_pending <= 1'b0;
+            end
+        end else begin
+            auto_step_pending <= 1'b0;
+            auto_step_pulse   <= 1'b0;
+        end
+    end
+
+    // Unified step pulse:
+    // sw[0] = 1 : Manual step via Center Pushbutton (btnc)
+    // sw[0] = 0, sw[1] = 1 : Slow 1 Hz auto-step
+    // sw[0] = 0, sw[1] = 0 : Paced real-time streaming with UART
+    assign core_step_pulse = (sw[0]) ? btn_pulse :
+                             ((sw[1]) ? slow_step_pulse : auto_step_pulse);
+
+    wire core_clk = core_step_pulse && !prog_done;
+
+    // ------------------------------------------------------------------------
+    // Final Return PC Latch & Telemetry Clamping
+    // Latches the address of `ret` so UART and 7-seg never broadcast rodata
+    // or branch flush addresses (0x00) during pipeline drain cycles (CC=20..22).
+    // ------------------------------------------------------------------------
+    reg [31:0] final_ret_pc;
+    always @(posedge clk_100mhz or negedge sys_reset_n) begin
+        if (!sys_reset_n)
+            final_ret_pc <= 32'd0;
+        else if (imem_rdata == 32'h0000_8067 && imem_addr != 32'h0)
+            final_ret_pc <= imem_addr;
+    end
+
+    wire [31:0] uart_fetch_pc   = (saw_ret || prog_done) ? final_ret_pc : imem_addr;
+    wire [31:0] uart_fetch_inst = (saw_ret || prog_done) ? 32'h0000_8067 : imem_rdata;
+
     // ------------------------------------------------------------------------
     // 5-Stage RV32I Processor Core Instance
     // ------------------------------------------------------------------------
+    wire [31:0] imem_rdata_core = saw_ret ? 32'h0000_0013 : imem_rdata; // Feed NOP into pipeline during drain
+
     pipeline_5stage #(
         .RESET_PC(32'h0000_0000)
     ) u_core (
         .clk            (core_clk),
         .reset_n        (sys_reset_n),
-        .stall_ext      (1'b0),
+        .stall_ext      (prog_done),
         .imem_addr      (imem_addr),
-        .imem_rdata     (imem_rdata),
+        .imem_rdata     (imem_rdata_core),
         .dmem_addr      (dmem_addr),
         .dmem_wdata     (dmem_wdata),
         .dmem_wstrb     (dmem_wstrb),
@@ -168,15 +253,50 @@ module fpga_top_feature1 (
         .instr(imem_rdata)
     );
 
+    // ------------------------------------------------------------------------
+    // UART Subsystem (Memory-Mapped I/O + Telemetry + Boot Banner)
+    // MMIO Address Range: 0x8000_0000 (TX Data), 0x8000_0004 (Status)
+    // ------------------------------------------------------------------------
+    wire [31:0] uart_rdata;
+    wire        uart_addr_match;
+
+    uart_unit #(
+        .CLK_FREQ  (100_000_000), // Clocked by 100 MHz oscillator for rock-solid baud
+        .BAUD_RATE (115_200),
+        .FIFO_DEPTH(64)
+    ) u_uart (
+        .clk            (clk_100mhz),
+        .reset_n        (sys_reset_n),
+        .dmem_addr      (dmem_addr),
+        .dmem_wdata     (dmem_wdata),
+        .dmem_we        (dmem_we),
+        .dmem_re        (dmem_re),
+        .uart_rdata     (uart_rdata),
+        .uart_addr_match(uart_addr_match),
+        .fetch_pc       (uart_fetch_pc),
+        .fetch_inst     (uart_fetch_inst),
+        .hazard_stall   (hazard_stall),
+        .step_trigger   (core_step_pulse && !prog_done),
+        .uart_tx        (uart_tx),
+        .uart_busy      (uart_busy),
+        .banner_done_o  (banner_done)
+    );
+
+    // RAM vs MMIO Data Multiplexing
+    wire [31:0] dmem_ram_rdata;
+    assign dmem_rdata = uart_addr_match ? uart_rdata : dmem_ram_rdata;
+    wire dmem_ram_we  = dmem_we && !uart_addr_match;
+    wire dmem_ram_re  = dmem_re && !uart_addr_match;
+
     data_mem #(
         .HEX_FILE("dmem.hex"),
         .WORDS(1024)
     ) u_dmem (
         .clk  (core_clk),
-        .re   (dmem_re),
+        .re   (dmem_ram_re),
         .raddr(dmem_addr),
-        .rdata(dmem_rdata),
-        .we   (dmem_we),
+        .rdata(dmem_ram_rdata),
+        .we   (dmem_ram_we),
         .waddr(dmem_addr),
         .wdata(dmem_wdata),
         .wstrb(dmem_wstrb)
@@ -187,15 +307,21 @@ module fpga_top_feature1 (
     // sw[2] = 0: Shows current Fetch Address (pc_if[31:0] / imem_addr, e.g. 00000028)
     // sw[2] = 1: Shows 32-bit Machine Instruction (imem_rdata, e.g. 00F707B3 for ADD)
     // ------------------------------------------------------------------------
-    wire [31:0] display_data = (sw[2]) ? imem_rdata : imem_addr;
+    wire [31:0] display_pc   = (prog_done || saw_ret) ? final_ret_pc : imem_addr;
+    wire [31:0] display_inst = (prog_done || saw_ret) ? 32'h0000_8067 : imem_rdata;
+    wire [31:0] display_data = (sw[2]) ? display_inst : display_pc;
+
+    // After the last instruction (ret) is fetched and moves to ID stage, display "--------"
+    wire show_dashes = saw_ret || prog_done;
 
     seven_seg_controller u_seven_seg (
-        .clk     (clk_100mhz),
-        .reset_n (sys_reset_n),
-        .data_in (display_data), // Address (sw[2]=0) or Instruction Machine Code (sw[2]=1)
-        .an      (an),
-        .seg     (seg),
-        .dp      (dp)
+        .clk        (clk_100mhz),
+        .reset_n    (sys_reset_n),
+        .data_in    (display_data), // Address (sw[2]=0) or Instruction Machine Code (sw[2]=1)
+        .show_dashes(show_dashes),
+        .an         (an),
+        .seg        (seg),
+        .dp         (dp)
     );
 
     // ------------------------------------------------------------------------
@@ -235,7 +361,16 @@ module fpga_top_feature1 (
         end
     end
 
-    // Direct or Stretched LED driving (Direct in step mode sw[0] or 1Hz slow mode sw[1]; stretched at 100MHz)
+    // Latch final return value a0 (x10) when it commits to register file
+    reg [7:0] final_result_a0;
+    always @(posedge clk_100mhz or negedge sys_reset_n) begin
+        if (!sys_reset_n)
+            final_result_a0 <= 8'd0;
+        else if (wb_reg_write && wb_dest_reg == 5'd10) // a0 (x10)
+            final_result_a0 <= wb_data[7:0];
+    end
+
+    // Direct or Stretched LED driving (Direct in step mode sw[0] or 1Hz slow mode sw[1]; stretched in auto mode)
     wire led_hazard = (sw[0] || sw[1]) ? hazard_stall : (hazard_stretch_cnt > 0);
     wire led_fwd    = (sw[0] || sw[1]) ? fwd_active   : (fwd_stretch_cnt > 0);
     wire led_flush  = (sw[0] || sw[1]) ? hazard_flush_id : (flush_stretch_cnt > 0);
@@ -247,6 +382,8 @@ module fpga_top_feature1 (
     assign led[3]    = wb_reg_write;          // LED[3]: Instruction Writeback Commit
     assign led[5:4]  = forward_a;             // LED[5:4]: Raw Forward A code
     assign led[7:6]  = forward_b;             // LED[7:6]: Raw Forward B code
-    assign led[15:8] = wb_data[7:0];          // LED[15:8]: Low byte of committed result
+    // Show live writeback data during execution (changes to 0x00 on CC=20, 21, 22),
+    // and restore the final computation return value (0x66 = 102) when halted.
+    assign led[15:8] = prog_done ? final_result_a0 : wb_data[7:0];
 
 endmodule

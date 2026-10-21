@@ -38,9 +38,9 @@ An interactive, high-resolution vector visualizer is available in [block_diagram
 
 ===================================================================================================================================================================================
  GLOBAL CLOCK & SYNCHRONOUS ACTIVE-LOW RESET DISTRIBUTION BUS:
-   clk     (100 MHz) --------+--------------------+---------------------+--------------------+--------------------+--------------------+--------------------+----------------->
-                             |                    |                     |                    |                    |                    |                    |
-   reset_n (Active-Low) -----+--------------------+---------------------+--------------------+--------------------+--------------------+--------------------+----------------->
+   clk     (50 MHz Core) --------+--------------------+---------------------+--------------------+--------------------+--------------------+--------------------+----------------->
+   [Derived from 100MHz osc]     |                    |                     |                    |                    |                    |                    |
+   reset_n (Active-Low) ---------+--------------------+---------------------+--------------------+--------------------+--------------------+--------------------+----------------->
                              |                    |                     |                    |                    |                    |                    |
                              v                    v                     v                    v                    v                    v                    v
                         +---------+          +---------+           +---------+          +---------+          +---------+          +---------+          +---------+
@@ -231,7 +231,7 @@ An interactive, high-resolution vector visualizer is available in [block_diagram
 flowchart TD
     %% Global Network
     subgraph CLK_TREE ["Global Clock & Reset Distribution Bus"]
-        CLK["clk: 100 MHz Master Oscillator"]
+        CLK["clk: 50 MHz Core Clock (from 100 MHz Osc)"]
         RST["reset_n: Synchronous Active-Low Reset"]
     end
 
@@ -399,7 +399,7 @@ flowchart TD
 
 | Signal Name | Source Module | Destination Module(s) | Bit Width | Hardware Function / Operational Description |
 |---|---|---|:---:|---|
-| `clk` | Master Clock Generator | All Sequential Elements (PC, RegFile, Pipeline Registers, Caches, Divider, FPU, BTB, CSRs) | 1 bit | 100 MHz primary synchronous clock edge |
+| `clk` | Master Clock Generator (MMCM/Divider) | All Sequential Elements (PC, RegFile, Pipeline Registers, Caches, Divider, FPU, BTB, CSRs) | 1 bit | 50 MHz primary synchronous core clock (20 ns period; derived from 100 MHz board oscillator to ensure timing closure across DSP48E1 paths) |
 | `reset_n` | Reset Synchronizer | All Sequential Elements | 1 bit | Active-low global synchronous system reset |
 | `pc` | PC Register | L1 I-Cache, Adder (+4), Feature 7 BTB, IF/ID Reg | 32 bits | Current program counter instruction address |
 | `pc_plus_4` | Adder (+4) | PC Multiplexer (input `00`), IF/ID Pipeline Register | 32 bits | Sequential next instruction address ($pc + 4$) |
@@ -586,7 +586,7 @@ Target FPGA Architecture: **Xilinx Artix-7 XC7A100T-1CSG324C** (Digilent Nexys A
 - **Automated C Benchmark Suite**: Validate full-system processor execution across arithmetic, iterative loops, memory arrays, and logic operations using standalone bare-metal C programs (`addition.c`, `fibonacci.c`, `sort.c`, `negative.c`, `xor.c`) running on Vivado Simulator (`xsim`).
 - **Targeted Unit Math Testbenches**: Exhaustively verify the Hardware Multiplier (Feature 2) and Divider (Feature 5) across signed/unsigned boundary conditions, division by zero ($rs2 = 0$), and overflow ($\text{INT\_MIN} / -1$).
 - **Cache Hit/Miss Assertion Framework**: Verify L1 I-Cache and D-Cache refill state machines using memory access patterns that provoke sequential hits, cold misses, capacity evictions, and byte-enable store masking.
-- **Hardware-in-the-Loop FPGA Validation**: Synthesize the core with a UART diagnostic interface and 7-segment display on the Nexys A7 FPGA to verify real-time performance counters and retired instruction metrics at 100 MHz.
+- **Hardware-in-the-Loop FPGA Validation**: Synthesize the core with a UART diagnostic interface and 7-segment display on the Nexys A7 FPGA to verify real-time performance counters and retired instruction metrics at 50 MHz core frequency (derived cleanly from the 100 MHz board oscillator).
 
 ---
 
@@ -636,14 +636,14 @@ Target FPGA Architecture: **Xilinx Artix-7 XC7A100T-1CSG324C** (Digilent Nexys A
 - **Mid-Project Subsystem Integration (`ALL`, Oct 11–17):** Collaborative whole-team integration window where all members (especially pipeline and hazard leads) integrate incoming math units (DSP48E1 / Booth Multipliers) and L1 I-Cache into the 5-stage datapath with multi-cycle stall interlocking.
 - **◆ MILESTONE 1 (Oct 25):** Core functionality milestone satisfied. 5-Stage pipeline, Hazard Detection Unit, operand forwarding, dual-mode multiplier, Radix-2 divider base, and L1 I-Cache fully functional and verified.
 - **◆ MINIMUM SYSTEM COMMITMENT (Nov 01):** All 9 required project features (32-entry BTB, DSP/Booth Multipliers, Radix-2 Divider, IEEE 754 FPU, L1 I-Cache, L1 D-Cache, CSR counters, Zbb ALU, and Hazard Unit) fully integrated into core.
-- **★ FINAL MILESTONE (Nov 08):** Full-speed 100 MHz timing closure achieved on Artix-7 FPGA fabric, bitstream generated, UART / 7-segment / LED diagnostics active, and final TA grading demonstration.
+- **★ FINAL MILESTONE (Nov 08):** 50 MHz timing closure achieved on Artix-7 FPGA fabric, bitstream generated, UART / 7-segment / LED diagnostics active, and final TA grading demonstration.
 
 ---
 
 ## 7. Risks and Challenges
 
 1. **Multi-Cycle Stall Interlocking**: Coordinating concurrent stall requests from the divider, FPU, and cache misses without causing deadlock in the hazard unit.
-2. **FPGA Timing Closure on DSP Paths**: Critical path timing violations through cascading 32-bit multiply-accumulate and FPU mantissa normalization stages at 100 MHz.
+2. **FPGA Timing Closure on DSP Paths**: Critical path timing analysis reveals that cascading 32-bit multiply-accumulate (DSP48E1) and forwarding multiplexer logic yields a maximum propagation delay exceeding 10 ns (~12–14 ns on Artix-7 -1 speed grade). To achieve robust timing closure with positive slack without introducing artificial multi-cycle multiplier latency bubbles, the synchronous processor core targets **50 MHz** ($T_{clk} = 20\text{ ns}$), derived from the 100 MHz board oscillator.
 3. **Cache Coherency During Refills**: Ensuring instruction fetch and data memory accesses serialize correctly without stale data when reading recently modified lines.
 4. **IEEE 754 Corner Case Compliance**: Accurately handling edge cases including NaN propagation, subnormal numbers, signed zeros, and rounding modes.
 5. **Branch Penalty Overheads**: Preventing excessive speculative fetch flushes on unpredictable control flows by tuning the BTB indexing and tag match logic.

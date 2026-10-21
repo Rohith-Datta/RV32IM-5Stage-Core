@@ -1,8 +1,8 @@
 // ============================================================================
 // File: tb_pipeline_base.v
-// Description: Full System Integration Testbench for 5-Stage RV32I Processor
-// Project: Pipelined RV32IM RISC-V Core (Feature 1: 5-Stage Upgrade)
-// Runs: Compiled RISC-V Programs (Addition, Fibonacci, Sort, Negative, XOR)
+// Description: Full System Integration Testbench for 5-Stage RV32IM Processor (Feature 2)
+// Project: Pipelined RV32IM RISC-V Core (Feature 2: Hardware Multiplier)
+// Runs: Compiled RISC-V Programs (Addition, Multiplication, Fibonacci, Sort, Negative, XOR)
 // Features: Terminal result logging, Hazard tracking, IPC throughput measurement
 // ============================================================================
 
@@ -58,10 +58,11 @@ module tb_pipeline_base;
     wire        hazard_flush_ex;
     wire [1:0]  forward_a;
     wire [1:0]  forward_b;
+    wire        mul_active;
     wire        exception;
 
     // ------------------------------------------------------------------------
-    // DUT: 5-Stage Pipelined RV32I Core
+    // DUT: 5-Stage Pipelined RV32IM Core
     // ------------------------------------------------------------------------
     pipeline_5stage #(
         .RESET_PC(32'h0000_0000)
@@ -69,6 +70,7 @@ module tb_pipeline_base;
         .clk            (clk),
         .reset_n        (reset_n),
         .stall_ext      (1'b0),
+        .use_dsp_i      (1'b1),
         .imem_addr      (imem_addr),
         .imem_rdata     (imem_rdata),
         .dmem_addr      (dmem_addr),
@@ -90,6 +92,7 @@ module tb_pipeline_base;
         .hazard_flush_ex(hazard_flush_ex),
         .forward_a      (forward_a),
         .forward_b      (forward_b),
+        .mul_active     (mul_active),
         .exception      (exception)
     );
 
@@ -97,7 +100,7 @@ module tb_pipeline_base;
     // Instruction Memory (IMEM)
     // ------------------------------------------------------------------------
     instr_mem #(
-        .HEX_FILE("C:/CS2202L/RISCV/feature_1/mem/imem.hex"),
+        .HEX_FILE("C:/CS2202L/RISCV/feature_2/mem/imem.hex"),
         .WORDS(1024)
     ) IMEM (
         .clk  (clk),
@@ -106,17 +109,29 @@ module tb_pipeline_base;
     );
 
     // ------------------------------------------------------------------------
-    // Data Memory (DMEM)
+    // Data Memory (DMEM) & UART MMIO Interconnect
     // ------------------------------------------------------------------------
+    wire uart_mmio_match = (dmem_addr[31:16] == 16'h8000);
+    wire [31:0] dmem_ram_rdata;
+    // Status reg (0x80000004): Bit 0 = 0 (transmitter ready / idle)
+    assign dmem_rdata = uart_mmio_match ? 32'h0000_0000 : dmem_ram_rdata;
+
+    always @(posedge clk) begin
+        if (dmem_we && uart_mmio_match && (dmem_addr[3:0] == 4'h0)) begin
+            $write("%c", dmem_wdata[7:0]);
+            $fflush();
+        end
+    end
+
     data_mem #(
-        .HEX_FILE("C:/CS2202L/RISCV/feature_1/mem/dmem.hex"),
+        .HEX_FILE("C:/CS2202L/RISCV/feature_2/mem/dmem.hex"),
         .WORDS(1024)
     ) DMEM (
         .clk  (clk),
-        .re   (dmem_re),
+        .re   (dmem_re && !uart_mmio_match),
         .raddr(dmem_addr),
-        .rdata(dmem_rdata),
-        .we   (dmem_we),
+        .rdata(dmem_ram_rdata),
+        .we   (dmem_we && !uart_mmio_match),
         .waddr(dmem_addr),
         .wdata(dmem_wdata),
         .wstrb(dmem_wstrb)
@@ -171,7 +186,7 @@ module tb_pipeline_base;
             // Detect return instruction (ret = 32'h00008067: jalr x0, ra, 0)
             if (imem_rdata == 32'h00008067 && cycle_count > 5) begin
                 if (ret_drain_cycles == 0)
-                    ret_drain_cycles <= cycle_count + 6; // drain remaining pipeline stages
+                    ret_drain_cycles <= cycle_count + 4; // drain remaining pipeline stages to CC=23 (last instruction completes)
             end
 
             if (ret_drain_cycles != 0 && cycle_count >= ret_drain_cycles) begin

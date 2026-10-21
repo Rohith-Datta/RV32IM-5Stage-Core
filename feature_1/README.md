@@ -191,10 +191,13 @@ The 5-stage core has a dedicated FPGA top-level wrapper (`modules/fpga_top_featu
 | **LED[7:6]** | Discrete LEDs 7:6 | `forward_b[1:0]` | Raw Forwarding code for Operand B (`01`: EX/MEM, `10`: MEM/WB). |
 | **LED[15:8]** | Discrete LEDs 15:8 | `wb_data[7:0]` | Displays low byte of retired register result (e.g. `102` = `0x66`). |
 | **Switch sw[0]** | Slide Switch 0 (Pin `J15`) | Clock Mode | `0` = Continuous Execution, `1` = Manual Single-Step Clock Mode via `btnc`. |
-| **Switch sw[1]** | Slide Switch 1 (Pin `L16`) | Speed Select | `0` = 100 MHz full speed, `1` = 1 Hz slow clock for live visual tracking (1 instruction/cycle per second). |
+| **Switch sw[1]** | Slide Switch 1 (Pin `L16`) | Speed Select | `0` = 50 MHz core speed, `1` = 1 Hz slow clock for live visual tracking (1 instruction/cycle per second). |
 | **Switch sw[2]** | Slide Switch 2 (Pin `M13`) | Display Select | `0` = 7-Segment shows **Fetch PC Address** (e.g. `00000028`), `1` = Shows **32-bit Machine Instruction Code** (e.g. `00F707B3` for `add`). |
+| **Switch sw[3]** | Slide Switch 3 (Pin `R15`) | UART Mode | `0` = Standard CPU MMIO `printf` mode, `1` = **Auto-Telemetry Step Streamer** (dumps PC and committed register over serial on every step). |
+| **UART TX Pin**  | USB-UART Bridge (Pin `D4`) | `uart_tx` | **115,200 Baud Serial Stream** (8-N-1): Connect micro-USB cable to PC; open PuTTY/Tera Term at 115200 baud to see live diagnostics and program text. |
+| **UART RX Pin**  | USB-UART Bridge (Pin `C4`) | `uart_rx` | Serial Receive from Host PC terminal. |
 | **Button btnc** | Center Pushbutton (Pin `N17`)| Step Clock | In step mode (`sw[0]=1`), advances pipeline by exactly 1 clock cycle per press. |
-| **Button reset**| CPU Reset (Pin `C12`) | `cpu_resetn` | Active-low master synchronous reset. |
+| **Button reset**| CPU Reset (Pin `C12`) | `cpu_resetn` | Active-low master synchronous reset. Restarts execution from `PC=0x00` and emits UART boot banner. |
 
 ---
 
@@ -253,3 +256,52 @@ The project files and scripts are housed directly within `feature_1`:
      ```
 3. **Direct Project File:**
    - Double-click `feature_1/vivado_project/rv32i_5stage_core.xpr`.
+
+---
+
+## 10. UART Diagnostic & Telemetry Subsystem (115,200 Baud)
+
+Feature 1 includes a full-duplex capable **Universal Asynchronous Receiver-Transmitter (UART)** subsystem connected to the onboard FTDI FT2232HQ USB-to-UART bridge on the Nexys A7:
+
+* **Hardware Transmitter (`uart_tx.v`):** Standard 8-N-1 framing (1 start bit, 8 data bits, 1 stop bit) clocked by the stable 100 MHz oscillator.
+* **Buffer Architecture:** 64-byte circular FIFO buffer preventing character loss during rapid CPU burst writes.
+* **FPGA Pins:** 
+  * `uart_tx`: Pin `D4` (FPGA transmit $\rightarrow$ FTDI chip $\rightarrow$ PC Terminal).
+  * `uart_rx`: Pin `C4` (FPGA receive $\leftarrow$ FTDI chip $\leftarrow$ PC Terminal).
+
+### Memory-Mapped I/O (MMIO) Register Map
+
+| Register Name | Byte Address | Access | Bit Field Description |
+|---|:---:|:---:|---|
+| **`UART_TX_DATA`** | `0x8000_0000` | Write-Only | `[7:0]`: ASCII character byte written into UART TX FIFO. |
+| **`UART_STATUS`**  | `0x8000_0004` | Read-Only  | `[0]`: `uart_busy` (1 = Transmitting or FIFO not empty)<br>`[1]`: `fifo_full` (1 = FIFO full, wait before write)<br>`[2]`: `fifo_empty` (1 = All characters transmitted) |
+
+### Bare-Metal C Usage (`c_tests/uart.h`)
+
+```c
+#include "uart.h"
+
+int main(void) {
+    uart_puts("RV32I Core Initialized on Nexys A7!\n");
+    uart_puts("Committed Result: ");
+    uart_puthex(102);
+    uart_putc('\n');
+    return 102;
+}
+```
+
+### Live Terminal Verification on Host PC
+1. Connect the Nexys A7 micro-USB cable to your laptop.
+2. Open any serial terminal (e.g., **PuTTY**, **Tera Term**, or `minicom`).
+3. Set the port to the board's virtual COM port (e.g. `COM3` on Windows) at **115200 Baud, 8 Data Bits, 1 Stop Bit, No Parity**.
+4. Press the red **CPU Reset Button (`C12`)**: The terminal immediately displays:
+   ```text
+   ===================================================
+    RV32I Core (Group 13) Active @ 115200 Baud
+   ===================================================
+   ```
+5. In Single-Step Mode (`sw[0]=1, sw[3]=1`), every press of the center button `btnc` dumps the execution state:
+   ```text
+   [PC:0x00000028 | WB:x14=0x00000066 | OK]
+   ```
+
