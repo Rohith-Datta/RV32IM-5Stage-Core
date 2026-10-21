@@ -20,10 +20,10 @@ module tb_feature1_pipeline;
     reg clk;
     reg reset_n;
 
-    // 100 MHz clock generation
+    // 50 MHz clock generation (20 ns period)
     initial begin
         clk = 0;
-        forever #5 clk = ~clk;
+        forever #10 clk = ~clk;
     end
 
     // Memory wires
@@ -218,12 +218,12 @@ module tb_feature1_pipeline;
         $display("=================================================================");
 
         reset_n = 0;
-        #25;
+        #50;
         reset_n = 1;
         $display("[TB @ %0t ps] Master Reset released. Pipeline starting...", $time);
 
-        // Run sufficient cycles for complete execution and drain
-        #500;
+        // Run sufficient cycles for complete execution and drain (50 cycles @ 20ns = 1000ns)
+        #1000;
 
         $display("\n=================================================================");
         $display("                   VERIFICATION RESULTS SUMMARY                  ");

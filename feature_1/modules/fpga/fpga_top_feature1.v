@@ -80,6 +80,17 @@ module fpga_top_feature1 (
     assign btn_pulse = btn_state && !btn_prev;
 
     // ------------------------------------------------------------------------
+    // 50 MHz Synchronous Core Clock Generator (Derived from 100 MHz Oscillator)
+    // ------------------------------------------------------------------------
+    (* keep = "true" *) reg clk_50mhz;
+    always @(posedge clk_100mhz or negedge sys_reset_n) begin
+        if (!sys_reset_n)
+            clk_50mhz <= 1'b0;
+        else
+            clk_50mhz <= ~clk_50mhz;
+    end
+
+    // ------------------------------------------------------------------------
     // Step Generation Logic: Manual (btnc), Slow 1Hz, or Paced Auto-Stream
     // ------------------------------------------------------------------------
     // 1 Hz slow step generator (sw[1]=1):

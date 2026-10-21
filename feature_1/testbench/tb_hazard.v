@@ -19,8 +19,8 @@ module tb_hazard;
     reg clk;
     reg reset_n;
 
-    // 100 MHz clock generation
-    always #5 clk = ~clk;
+    // 50 MHz clock generation (20 ns period)
+    always #10 clk = ~clk;
 
     // Memory wires
     wire [31:0] imem_addr;
@@ -207,12 +207,12 @@ module tb_hazard;
         $display("   TESTBENCH: tb_hazard (Feature 1: 5-Stage Hazard & Forwarding) ");
         $display("=================================================================");
 
-        #25;
+        #50;
         reset_n = 1;
         $display("[TB] Reset de-asserted at %0t ps. Core execution started.", $time);
 
-        // Run sufficient cycles for all 20 instructions + pipeline latency
-        #450;
+        // Run sufficient cycles for all instructions + pipeline latency (50 cycles @ 20ns = 1000ns)
+        #1000;
 
         $display("\n=================================================================");
         $display("                 VERIFICATION RESULTS CHECK                       ");

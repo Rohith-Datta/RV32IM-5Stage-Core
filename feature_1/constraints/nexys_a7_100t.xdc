@@ -5,10 +5,11 @@
 ## ============================================================================
 
 ## ----------------------------------------------------------------------------
-## 100 MHz Master Oscillator Clock
+## 100 MHz Master Oscillator Clock & 50 MHz Derived Core Clock
 ## ----------------------------------------------------------------------------
 set_property -dict { PACKAGE_PIN E3    IOSTANDARD LVCMOS33 } [get_ports { clk_100mhz }];
 create_clock -add -name sys_clk_pin -period 10.000 -waveform {0 5} [get_ports { clk_100mhz }];
+create_generated_clock -name clk_50mhz -source [get_ports clk_100mhz] -divide_by 2 [get_pins -hier -filter {NAME =~ *clk_50mhz_reg/Q}]
 
 ## ----------------------------------------------------------------------------
 ## Reset Button (CPU_RESETN - Red Pushbutton, Active-Low)

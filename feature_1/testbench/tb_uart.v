@@ -12,10 +12,10 @@ module tb_uart;
     reg clk;
     reg reset_n;
 
-    // 100 MHz board clock (10 ns period)
+    // 50 MHz clock (20 ns period)
     initial begin
         clk = 0;
-        forever #5 clk = ~clk;
+        forever #10 clk = ~clk;
     end
 
     // Interconnects to uart_unit
@@ -29,15 +29,15 @@ module tb_uart;
     wire        uart_busy;
 
     // Fast baud rate for quick simulation (or standard 115200)
-    // 100 MHz / 1,000,000 baud = 100 cycles per bit (fast simulation)
+    // 50 MHz / 1,000,000 baud = 50 cycles per bit (fast simulation)
     localparam SIM_BAUD = 1_000_000;
     localparam BIT_PERIOD_NS = 1_000_000_000 / SIM_BAUD; // 1000 ns
     localparam BANNER_WAIT_TIME = 1000;
 
     uart_unit #(
-        .CLK_FREQ  (100_000_000),
+        .CLK_FREQ  (50_000_000),
         .BAUD_RATE (SIM_BAUD),
-        .FIFO_DEPTH(16)
+        .FIFO_DEPTH(64)
     ) dut (
         .clk            (clk),
         .reset_n        (reset_n),

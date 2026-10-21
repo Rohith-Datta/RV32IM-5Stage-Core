@@ -4,9 +4,10 @@
 ## Project: Feature 2 - Hardware Multiplier with DSP48E1 & Booth RTL
 ## ============================================================================
 
-## Clock signal (100 MHz oscillator)
+## Clock signal (100 MHz oscillator & 50 MHz Derived Core Clock)
 set_property -dict { PACKAGE_PIN E3    IOSTANDARD LVCMOS33 } [get_ports { clk_100mhz }];
 create_clock -add -name sys_clk_pin -period 10.00 -waveform {0 5} [get_ports { clk_100mhz }];
+create_generated_clock -name clk_50mhz -source [get_ports clk_100mhz] -divide_by 2 [get_pins -hier -filter {NAME =~ *clk_50mhz_reg/Q}]
 
 ## CPU Reset Button (Active-low red pushbutton, Pin C12)
 set_property -dict { PACKAGE_PIN C12   IOSTANDARD LVCMOS33 } [get_ports { cpu_resetn }];
