@@ -79,7 +79,7 @@ An interactive, high-resolution vector visualizer is available in [block_diagram
        v                       | |                      | rdata1[31:0]  | rdata2[31:0]   | imm[31:0]     |               | - id_rs1, id_rs2  | |
   +---------+                  v |                      v               v                v               |               | - id_ex_rd, mem_rd| |
   | Add (+4)|    +-------------------------------+      |               |                |               |               | - div_busy        | |
-  +---------+    | Feature 3: L1 I-Cache         |      |               |                |               |               | - fpu_busy        | |
+  +---------+    | Feature 6: L1 I-Cache         |      |               |                |               |               | - fpu_busy        | |
        |         | - 2 KB Direct-Mapped (16B L)  |      |               |                |               |               | - icache_stall    | |
        | pc+4    | - 1-Cycle Hit SRAM            |      |               |                |               |               | - dcache_stall    | |
        | [31:0]  | - Burst Refill FSM to Memory  |      |               |                |               |               | - branch_taken    | |
@@ -126,7 +126,7 @@ An interactive, high-resolution vector visualizer is available in [block_diagram
        +---> [2] FEATURE 2: HARDWARE MULTIPLIER (Artix-7 DSP48E1 / Booth) --------------------> mul_out[31:0] ----------+
        |         Instructions: MUL, MULH, MULHSU, MULHU (1-Cycle Latency via DSP Slices)                              |
        |                                                                                                              |
-       +---> [3] FEATURE 5: HARDWARE DIVIDER (32-Cycle Shift-and-Subtract Standard Logic) ----> div_out[31:0] ----------+
+       +---> [3] FEATURE 3: HARDWARE DIVIDER (32-Cycle Radix-2 Restoring Logic) -------------> div_out[31:0] ----------+
        |         Instructions: DIV, DIVU, REM, REMU (32 cycles, div_busy handshaking)           [div_busy to Hazard]   |
        |                                                                                                              |
        +---> [4] FEATURE 4: IEEE 754 SINGLE-PRECISION FPU (FMUL 4c, FADD/SUB 5c, FDIV 15c) ---> fpu_out[31:0] ----------+
@@ -175,7 +175,7 @@ An interactive, high-resolution vector visualizer is available in [block_diagram
         | dmem_wstrb[3:0]                                      |
         v                                                      |
   +----------------------------------------------------+       |
-  | FEATURE 6: L1 DATA CACHE (Direct-Mapped, 2 KB)     |       |
+  | FEATURE 5: L1 DATA CACHE (Direct-Mapped, 2 KB)     |       |
   | - Tag SRAM Array & 16B Line Data BRAMs             |       |
   | - Write-Through Policy with Write Buffer           |       |
   | - Memory Refill Bus (Burst 128-bit) to BRAM/DDR    |       |
@@ -241,7 +241,7 @@ flowchart TD
         PCMUX{"PC Multiplexer (4:1)"}
         PCREG["PC Register [31:0]"]
         ADD4["Adder (+4)"]
-        ICACHE["Feature 3: L1 I-Cache (2 KB Direct-Mapped)"]
+        ICACHE["Feature 6: L1 I-Cache (2 KB Direct-Mapped)"]
         BTB["Feature 7: Static 32-Entry BTB"]
     end
 
@@ -277,7 +277,7 @@ flowchart TD
         ALU_SRCB{"ALUSrcB Mux"}
         BASE_ALU["Base ALU (RV32I)"]
         F2_MUL["Feature 2: Radix-4 Booth Multiplier"]
-        F5_DIV["Feature 5: Radix-2 Non-Restoring Divider"]
+        F3_DIV["Feature 3: Radix-2 Restoring Divider"]
         F4_FPU["Feature 4: IEEE 754 Single-Precision FPU"]
         F9_ZBB["Feature 9: Bit-Manipulation Unit (Zbb)"]
         BRANCH_UNIT["Branch & Jump Evaluation Unit"]
@@ -294,7 +294,7 @@ flowchart TD
     subgraph STAGE_MEM ["Stage 4: Memory Access (MEM)"]
         direction TB
         STRB_GEN["Store Byte-Enable Generator"]
-        DCACHE["Feature 6: L1 D-Cache (2 KB Direct-Mapped)"]
+        DCACHE["Feature 5: L1 D-Cache (2 KB Direct-Mapped)"]
         LOAD_EXT["Load Sign/Zero Extender & Formatter"]
     end
 
@@ -409,8 +409,8 @@ flowchart TD
 | `update_pc` | Branch/Jump Unit (EX) | Feature 7 BTB Update Port | 32 bits | Branch instruction PC passed to update BTB entry |
 | `actual_target` | Branch/Jump Unit (EX) | PC Multiplexer (input `10`), Feature 7 BTB | 32 bits | Actual evaluated branch/jump target address |
 | `actual_taken` | Branch/Jump Unit (EX) | Feature 7 BTB, Hazard Detection Unit | 1 bit | Asserted when conditional branch evaluates TRUE |
-| `instr` | Feature 3 L1 I-Cache | IF/ID Pipeline Register | 32 bits | 32-bit RISC-V machine instruction word fetched from I-Cache |
-| `icache_stall` | Feature 3 L1 I-Cache | Hazard Detection Unit | 1 bit | Hold request asserted during I-Cache miss 16-byte burst refill |
+| `instr` | Feature 6 L1 I-Cache | IF/ID Pipeline Register | 32 bits | 32-bit RISC-V machine instruction word fetched from I-Cache |
+| `icache_stall` | Feature 6 L1 I-Cache | Hazard Detection Unit | 1 bit | Hold request asserted during I-Cache miss 16-byte burst refill |
 | `if_id_pc` | IF/ID Pipeline Register | ID/EX Pipeline Register, Branch Adder | 32 bits | Registered program counter of instruction in Decode stage |
 | `if_id_pc_plus_4` | IF/ID Pipeline Register | ID/EX Pipeline Register | 32 bits | Registered sequential link address ($pc + 4$) in Decode |
 | `if_id_instr` | IF/ID Pipeline Register | Control Unit, RegFile, ImmGen, Hazard Unit | 32 bits | Registered instruction word currently being decoded |
@@ -437,7 +437,7 @@ flowchart TD
 | `Branch` | Control Unit | ID/EX ➔ Branch/Jump Evaluation Unit | 1 bit | Asserted for conditional branch instructions (`B-type`) |
 | `Jump` | Control Unit | ID/EX ➔ Branch/Jump Evaluation Unit | 1 bit | Asserted for unconditional jump instructions (`JAL`, `JALR`) |
 | `is_mul` | Control Unit | ID/EX ➔ Feature 2 Multiplier Unit | 1 bit | Multiplier operation enable strobe |
-| `is_div` | Control Unit | ID/EX ➔ Feature 5 Divider Unit, Hazard Unit | 1 bit | Divider start request strobe initiating 32-cycle FSM |
+| `is_div` | Control Unit | ID/EX ➔ Feature 3 Divider Unit, Hazard Unit | 1 bit | Divider start request strobe initiating 32-cycle FSM |
 | `is_fpu` | Control Unit | ID/EX ➔ Feature 4 FPU Unit, Hazard Unit | 1 bit | Single-precision FPU start request strobe |
 | `is_zbb` | Control Unit | ID/EX ➔ Feature 9 Zbb Unit | 1 bit | Zbb bit-manipulation operation enable strobe |
 | `is_csr` | Control Unit | ID/EX ➔ EX/MEM ➔ MEM/WB ➔ Feature 8 CSR Unit | 1 bit | Performance counter CSR read enable |
@@ -449,17 +449,17 @@ flowchart TD
 | `alu_in_b` | ALUSrcB Multiplexer | Base ALU Input B | 32 bits | Final arithmetic operand B (rs2 data or immediate) |
 | `base_alu_out` | Base ALU (RV32I) | EX Result Multiplexer (input `000`) | 32 bits | RV32I base arithmetic and logic result |
 | `mul_out` | Feature 2 Multiplier | EX Result Multiplexer (input `001`) | 32 bits | Hardware multiplier output (`MUL`, `MULH`, `MULHSU`, `MULHU`) |
-| `div_out` | Feature 5 Divider | EX Result Multiplexer (input `010`) | 32 bits | Hardware divider quotient or remainder output |
-| `div_busy` | Feature 5 Divider | Hazard Detection Unit | 1 bit | Multi-cycle stall request holding pipeline during 32 division cycles |
+| `div_out` | Feature 3 Divider | EX Result Multiplexer (input `010`) | 32 bits | Hardware divider quotient or remainder output |
+| `div_busy` | Feature 3 Divider | Hazard Detection Unit | 1 bit | Multi-cycle stall request holding pipeline during 32 division cycles |
 | `fpu_out` | Feature 4 IEEE 754 FPU | EX Result Multiplexer (input `011`) | 32 bits | IEEE 754 float result (`FADD.S`, `FSUB.S`, `FMUL.S`, `FDIV.S`) |
 | `fpu_busy` | Feature 4 IEEE 754 FPU | Hazard Detection Unit | 1 bit | FPU multi-cycle stall request signal |
 | `zbb_out` | Feature 9 Zbb Unit | EX Result Multiplexer (input `100`) | 32 bits | Bit manipulation result (`CLZ`, `CTZ`, `CPOP`, `MIN`, `MAX`) |
 | `ex_result` | EX Result Multiplexer | EX/MEM Reg, Forwarding Distance-1 Bus | 32 bits | Selected execution result (memory address or computational data) |
 | `branch_taken` | Branch/Jump Unit (EX) | PC Multiplexer, Hazard Unit, Feature 7 BTB | 1 bit | Asserted when branch condition is evaluated TRUE |
 | `mem_wdata` | ID/EX Register (`op_b_fwd`)| EX/MEM Register ➔ L1 D-Cache Write Data | 32 bits | Store data operand forwarded from EX stage |
-| `dmem_wstrb` | Store Byte-Enable Gen | Feature 6 L1 D-Cache | 4 bits | Byte write enable mask generated from `funct3` (`SB`, `SH`, `SW`) |
-| `raw_rdata` | Feature 6 L1 D-Cache | Load Sign/Zero Extender & Formatter | 32 bits | Raw 32-bit data word read from L1 D-Cache SRAM array |
-| `dcache_stall` | Feature 6 L1 D-Cache | Hazard Detection Unit | 1 bit | Stall request asserted during D-Cache miss burst refill |
+| `dmem_wstrb` | Store Byte-Enable Gen | Feature 5 L1 D-Cache | 4 bits | Byte write enable mask generated from `funct3` (`SB`, `SH`, `SW`) |
+| `raw_rdata` | Feature 5 L1 D-Cache | Load Sign/Zero Extender & Formatter | 32 bits | Raw 32-bit data word read from L1 D-Cache SRAM array |
+| `dcache_stall` | Feature 5 L1 D-Cache | Hazard Detection Unit | 1 bit | Stall request asserted during D-Cache miss burst refill |
 | `formatted_mem_data`| Load Sign Extender | MEM/WB Pipeline Register | 32 bits | Aligned and sign/zero-extended load data (`LB`, `LH`, `LW`, etc.) |
 | `csr_rdata` | Feature 8 CSR Counters | Writeback Multiplexer (input `11`) | 32 bits | Passive performance counter value (`cycle`, `instret`, `misses`) |
 | `wb_data` | Writeback Multiplexer (4:1) | Register File `wdata`, Forwarding Distance-2 Bus | 32 bits | Final retirement result written back to destination register |
@@ -558,10 +558,10 @@ flowchart TD
 | `mem_wb_reg` | Pipeline register passing final load data and ALU result to WB | `feature_1/modules/mem_wb_reg.v` | Hardware (Verilog HDL) |
 | `writeback_stage` | Writeback multiplexer selecting memory, ALU, link PC, or CSR | `feature_1/modules/writeback_stage.v` | Hardware (Verilog HDL) |
 | `multiplier_unit` | **Feature 2**: Dual-Mode Multiplier (1-cycle Artix-7 DSP48E1 & Radix-4 Booth) | `feature_2/modules/multiplier_unit.v` | Hardware (Verilog HDL) |
-| `icache_controller`| **Feature 3**: Direct-mapped 2 KB L1 Instruction Cache & 10-cyc miss FSM | `feature_3/icache_controller.v` | Hardware (Verilog HDL) |
+| `divider_unit`    | **Feature 3**: 32-cycle Shift-and-Subtract integer divider (Standard Logic, no DSPs) | `feature_3/modules/stages/divider_unit.v` | Hardware (Verilog HDL) |
 | `fpu_single_core` | **Feature 4**: IEEE 754 FPU (FMUL 4c DSP; FADD/SUB 5c logic; FDIV 15c NR with BRAM) | `feature_4/fpu_single_core.v` | Hardware (Verilog HDL) |
-| `divider_unit` | **Feature 5**: 32-cycle Shift-and-Subtract integer divider (Standard Logic, no DSPs) | `feature_5/divider_unit.v` | Hardware (Verilog HDL) |
-| `dcache_controller`| **Feature 6**: Direct-mapped 2 KB L1 Data Cache & write buffer | `feature_6/dcache_controller.v` | Hardware (Verilog HDL) |
+| `dcache_controller`| **Feature 5**: Direct-mapped 2 KB L1 Data Cache & write buffer | `feature_5/modules/dcache_controller.v` | Hardware (Verilog HDL) |
+| `icache_controller`| **Feature 6**: Direct-mapped 2 KB L1 Instruction Cache & 10-cyc miss FSM | `feature_6/modules/icache_controller.v` | Hardware (Verilog HDL) |
 | `btb_branch_pred` | **Feature 7**: Static 32-entry Branch Target Buffer (BTB) | `feature_7/btb_branch_pred.v` | Hardware (Verilog HDL) |
 | `csr_perf_counters`| **Feature 8**: Passive performance CSR monitoring registers | `feature_8/csr_perf_counters.v` | Hardware (Verilog HDL) |
 | `bitmanip_unit` | **Feature 9**: Zbb bit manipulation ALU (`CLZ`, `CPOP`, `MIN`, `MAX`)| `feature_9/bitmanip_unit.v` | Hardware (Verilog HDL) |
@@ -584,7 +584,7 @@ Target FPGA Architecture: **Xilinx Artix-7 XC7A100T-1CSG324C** (Digilent Nexys A
 ## 5. Verification Plans
 
 - **Automated C Benchmark Suite**: Validate full-system processor execution across arithmetic, iterative loops, memory arrays, and logic operations using standalone bare-metal C programs (`addition.c`, `fibonacci.c`, `sort.c`, `negative.c`, `xor.c`) running on Vivado Simulator (`xsim`).
-- **Targeted Unit Math Testbenches**: Exhaustively verify the Hardware Multiplier (Feature 2) and Divider (Feature 5) across signed/unsigned boundary conditions, division by zero ($rs2 = 0$), and overflow ($\text{INT\_MIN} / -1$).
+- **Targeted Unit Math Testbenches**: Exhaustively verify the Hardware Multiplier (Feature 2) and Divider (Feature 3) across signed/unsigned boundary conditions, division by zero ($rs2 = 0$), and overflow ($\text{INT\_MIN} / -1$).
 - **Cache Hit/Miss Assertion Framework**: Verify L1 I-Cache and D-Cache refill state machines using memory access patterns that provoke sequential hits, cold misses, capacity evictions, and byte-enable store masking.
 - **Hardware-in-the-Loop FPGA Validation**: Synthesize the core with a UART diagnostic interface and 7-segment display on the Nexys A7 FPGA to verify real-time performance counters and retired instruction metrics at 50 MHz core frequency (derived cleanly from the 100 MHz board oscillator).
 

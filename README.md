@@ -24,7 +24,7 @@ This repository contains the design, implementation, verification, and full-syst
        |                                            |                       |                   |
        v                                            |                       v                   v
 +--------------+                                    |                +--------------+    +--------------+
-|  Feature 3:  |                                    |                |  Feature 6:  |    |  Reg File /  |
+|  Feature 6:  |                                    |                |  Feature 5:  |    |  Reg File /  |
 |  L1 I-Cache  |                                    |                |  L1 D-Cache  |    |  Writeback   |
 | (Direct-Map) |                                    |                | (Direct-Map) |    |              |
 +--------------+                                    |                +--------------+    +--------------+
@@ -33,10 +33,10 @@ This repository contains the design, implementation, verification, and full-syst
              |                      |                      |                      |        |
              v                      v                      v                      v        v
       +--------------+       +--------------+       +--------------+       +------------+ +-------------+
-      |  Feature 2:  |       |  Feature 4:  |       |  Feature 5:  |       | Feature 9: | | Feature 8:  |
-      |   Hardware   |       |   IEEE 754   |       |   Hardware   |       |    Bit-    | | Performance |
-      |  Multiplier  |       |     FPU      |       |   Divider    |       |Manipulation| |  Counters   |
-      |   (RV32M)    |       |   (RV32F)    |       |   (RV32M)    |       |   (Zbb)    | |(Passive CSR)|
+      |  Feature 2:  |       |  Feature 3:  |       |  Feature 4:  |       | Feature 9: | | Feature 8:  |
+      |   Hardware   |       |   Hardware   |       |   IEEE 754   |       |    Bit-    | | Performance |
+      |  Multiplier  |       |   Divider    |       |     FPU      |       |Manipulation| |  Counters   |
+      |   (RV32M)    |       |   (RV32M)    |       |   (RV32F)    |       |   (Zbb)    | |(Passive CSR)|
       +--------------+       +--------------+       +--------------+       +------------+ +-------------+
 ```
 
@@ -47,11 +47,11 @@ This repository contains the design, implementation, verification, and full-syst
 | # | Directory | Feature Name | Description & Deliverables |
 |:---:|---|---|---|
 | **1** | [`feature_1/`](feature_1/) | **5-Stage Pipeline: with Hazard Detection and Forwarding** | **Completed & Verified**: 5-stage core (`IF`, `ID`, `EX`, `MEM`, `WB`), Hazard Detection & Forwarding Unit, C test suite, cycle-by-cycle timing analyses |
-| **2** | [`feature_2/`](feature_2/) | **Hardware Multiplier** | Radix-4 Booth / DSP multiplier supporting `MUL`, `MULH`, `MULHSU`, `MULHU` integrated in the EX stage |
-| **3** | [`feature_3/`](feature_3/) | **L1 I-Cache: Direct-Mapped** | Direct-mapped L1 Instruction Cache with single-cycle hit latency and burst memory refill FSM |
+| **2** | [`feature_2/`](feature_2/) | **Hardware Multiplier** | **Completed & Verified**: Radix-4 Booth / DSP multiplier supporting `MUL`, `MULH`, `MULHSU`, `MULHU` integrated in the EX stage |
+| **3** | [`feature_3/`](feature_3/) | **Hardware Divider (RV32M)** | **Completed & Verified**: 32-cycle Radix-2 Restoring hardware divider for `DIV`, `DIVU`, `REM`, `REMU`, multi-cycle hazard stall interlock, Vivado project, and test suite |
 | **4** | [`feature_4/`](feature_4/) | **IEEE754 FPU (FADD.S, FSUB.S, FMUL.S, FDIV.S)** | Single-precision 32-bit Floating Point Unit with dedicated 32-entry FP register file and stall control |
-| **5** | [`feature_5/`](feature_5/) | **Hardware Divider** | Multi-cycle Radix-2 non-restoring hardware divider for `DIV`, `DIVU`, `REM`, `REMU` with stall handshaking |
-| **6** | [`feature_6/`](feature_6/) | **L1 D-Cache: Direct-Mapped** | Direct-mapped L1 Data Cache with write-through/write-back policy and byte alignment support (`SB`, `SH`, `SW`) |
+| **5** | [`feature_5/`](feature_5/) | **L1 D-Cache: Direct-Mapped** | Direct-mapped 2 KB L1 Data Cache with single-cycle hit, write-through/write-back policy, and byte alignment support (`SB`, `SH`, `SW`) |
+| **6** | [`feature_6/`](feature_6/) | **L1 I-Cache: Direct-Mapped** | Direct-mapped 2 KB L1 Instruction Cache with single-cycle hit latency and burst memory refill FSM |
 | **7** | [`feature_7/`](feature_7/) | **Branch Prediction: Static 32-Entry BTB** | Static 32-entry Branch Target Buffer (BTB) to eliminate control hazard penalty on predicted branches |
 | **8** | [`feature_8/`](feature_8/) | **Performance Counters: Passive CSRs** | Hardware performance monitoring CSRs (`cycle`, `instret`, stall counter, branch mispredict, cache misses) |
 | **9** | [`feature_9/`](feature_9/) | **Bit-Manipulation (Zbb)** | Standard RISC-V Zbb instructions: `CLZ`, `CTZ`, `CPOP`, `MIN`/`MAX`, `ROL`/`ROR`, `ANDN`, `ORN`, `XNOR` |
