@@ -73,6 +73,7 @@ if {[file exists $xdc_file]} {
 # 4. Add Simulation Sources & Testbenches
 set sim_files [list \
     [file normalize "$script_dir/testbench/tb_pipeline_base.v"] \
+    [file normalize "$script_dir/testbench/tb_feature1_pipeline.v"] \
     [file normalize "$script_dir/testbench/tb_hazard.v"] \
     [file normalize "$script_dir/testbench/tb_uart.v"] \
     [file normalize "$script_dir/mem/imem.hex"] \

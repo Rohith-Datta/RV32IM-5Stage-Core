@@ -15,9 +15,9 @@ XVLOG = xvlog
 XELAB = xelab
 XSIM  = xsim
 
-.PHONY: all clean sim_hazard sim_pipeline sim_uart addition fibonacci sort negative xor
+.PHONY: all clean sim_hazard sim_feature1 sim_pipeline sim_uart addition fibonacci sort negative xor
 
-all: sim_hazard sim_pipeline sim_uart
+all: sim_feature1 sim_pipeline sim_uart
 
 # ----------------------------------------------------------------------------
 # Unit UART Subsystem Testbench
@@ -40,6 +40,17 @@ sim_hazard:
 	$(XELAB) -top tb_hazard -snapshot sim_hazard_snap -debug typical
 	@echo "=== [3/3] Simulating tb_hazard ==="
 	$(XSIM) sim_hazard_snap -runall -log sim_hazard.log
+
+# ----------------------------------------------------------------------------
+# Feature 1 Pipeline Integration Testbench
+# ----------------------------------------------------------------------------
+sim_feature1:
+	@echo "=== [1/3] Compiling tb_feature1_pipeline.v ==="
+	$(XVLOG) $(XVLOG_FLG) $(TB_DIR)/tb_feature1_pipeline.v
+	@echo "=== [2/3] Elaborating tb_feature1_pipeline ==="
+	$(XELAB) -top tb_feature1_pipeline -snapshot sim_feature1_snap -debug typical
+	@echo "=== [3/3] Simulating tb_feature1_pipeline ==="
+	$(XSIM) sim_feature1_snap -runall -log sim_feature1.log
 
 # ----------------------------------------------------------------------------
 # Base Pipeline Full-System Testbench

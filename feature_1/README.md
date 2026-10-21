@@ -134,16 +134,16 @@ feature_1/
 
 Both testbenches were fully verified using **Vivado Simulator 2025.2 (`xvlog`, `xelab`, `xsim`)**:
 
-### Testbench 1: `tb_hazard.v`
+### Testbench 1: `tb_feature1_pipeline.v` (also `tb_hazard.v`)
 Validates 7 targeted hazard scenarios with automated self-checking assertions:
 - `[PASS] Test 1: EX-to-EX Forwarding verified! (x2 = 15, expected 15)`
 - `[PASS] Test 2: MEM-to-EX Forwarding verified! (x4 = 27, expected 27)`
-- `[PASS] Test 3: Back-to-Back Hazard Priority verified! (x6 = 6, expected 6)`
-- `[PASS] Test 4: Load-Use Hazard 1-cycle stall verified! (x8 = 20, stalls = 1)`
-- `[PASS] Test 5: Store Data Forwarding verified! (x10 = 42, expected 42)`
-- `[PASS] Test 6: Branch 2-cycle flush verified! (x11=0, x12=0, x13=100, flushes = 1)`
+- `[PASS] Test 3: Back-to-Back Hazard Priority verified! (x6 = 12, expected 12)`
+- `[PASS] Test 4: Load-Use Hazard 1-cycle stall verified! (x10 = 100, stalls = 1)`
+- `[PASS] Test 5: Store Data Forwarding verified! (x16 = 77, expected 77)`
+- `[PASS] Test 6: Branch 2-cycle flush verified! (x11=0, x12=0, x13=42, flushes = 1)`
 - `[PASS] Test 7: Register x0 hardwired zero verified! (x14 = 5, expected 5)`
-- **Result:** `>>> ALL 7 HAZARD & FORWARDING TESTS PASSED (100% SUCCESS) <<<`
+- **Result:** `>>> ALL 7 FEATURE 1 PIPELINE TESTS PASSED (100% SUCCESS) <<<`
 
 ### Testbench 2: `tb_pipeline_base.v`
 Executes the bare-metal compiled RISC-V Fibonacci benchmark (`fibonacci(5)`):
@@ -152,6 +152,10 @@ Executes the bare-metal compiled RISC-V Fibonacci benchmark (`fibonacci(5)`):
 - Computes final Fibonacci value `a5 (x15) = 8`.
 - Achieves continuous execution throughput with flawless pipeline advance.
 
+### Testbench 3: `tb_uart.v`
+Verifies memory-mapped I/O UART transmissions, 115,200 baud serial framing, and boot banner output.
+- **Result:** `>>> [PASS] UART TRANSMISSION TEST COMPLETED SUCCESSFULLY! <<<`
+
 ---
 
 ## 6. How to Run Simulations
@@ -159,13 +163,19 @@ Executes the bare-metal compiled RISC-V Fibonacci benchmark (`fibonacci(5)`):
 From the `feature_1/simulation/` directory:
 
 ```powershell
+# Run Feature 1 Pipeline Integration Testbench
+make sim_feature1
+
 # Run Hazard Unit Testbench
 make sim_hazard
 
 # Run Full System Base Pipeline Testbench
 make sim_pipeline
 
-# Run Both Testbenches
+# Run UART Subsystem Testbench
+make sim_uart
+
+# Run All Testbenches
 make all
 
 # Clean Simulation Artifacts
