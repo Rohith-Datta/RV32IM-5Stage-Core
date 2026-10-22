@@ -4,10 +4,10 @@
 <!-- Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.                   -->
 <!-- Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.   -->
 
-<Project Product="Vivado" Version="7" Minor="71" Path="C:/CS2202L/RISCV/feature_6/vivado_project/rv32imf_harv_fpga.xpr">
+<Project Product="Vivado" Version="7" Minor="71" Path="C:/CS2202L/RISCV/feature_6/vivado_project/rv32imf_icache_fpga.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
-    <Option Name="Id" Val="bbf5eca0e9544401b8c3b065f3658e6c"/>
+    <Option Name="Id" Val="8ac88b7f59f14313aaf6436c0263c8eb"/>
     <Option Name="Part" Val="xc7a100tcsg324-1"/>
     <Option Name="CompiledLibDir" Val="$PCACHEDIR/compile_simlib"/>
     <Option Name="CompiledLibDirXSim" Val=""/>
@@ -99,13 +99,6 @@
       <File Path="$PPRDIR/../mem/imem.hex"/>
       <File Path="$PPRDIR/../mem/dmem.hex"/>
       <File Path="$PPRDIR/../modules/stages/booth_radix4_multiplier.v">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../modules/stages/dcache_controller.v">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>

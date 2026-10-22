@@ -1,14 +1,14 @@
 // ============================================================================
 // File: fpga_top_feature6.v
 // Module: fpga_top_feature6
-// Description: Synthesizable FPGA Top-Level Module for Feature 6 (L1 Harvard Caches)
+// Description: Synthesizable FPGA Top-Level Module for Feature 6 (L1 I-Cache Core)
 //              Target Board: Digilent Nexys A7-100T (Xilinx Artix-7 XC7A100T-1CSG324C)
 //              Features:
 //              - 50 MHz Core Clock Derived from 100 MHz Oscillator
-//              - RV32IMF Core with 2 KB L1 I-Cache & 2 KB L1 D-Cache
+//              - RV32IMF Core with 2 KB L1 I-Cache & Direct DMEM Access (No D-Cache)
 //              - 115200 Baud UART Subsystem (Boot Banner, Telemetry, MMIO)
 //              - 8-Digit Multiplexed 7-Segment Display with Multiple Diagnostic Modes
-//              - Real-Time Cache Hit/Miss Pulse Stretchers on Diagnostic LEDs
+//              - Real-Time I-Cache Hit/Miss Pulse Stretchers on Diagnostic LEDs
 // ============================================================================
 
 `timescale 1ns/1ps
@@ -58,15 +58,12 @@ module fpga_top_feature6 (
     wire [31:0] dmem_wdata;
     wire [3:0]  dmem_wstrb;
     wire        dmem_we;
-    wire        dmem_req;
+    wire        dmem_re;
     wire [31:0] dmem_rdata;
 
-    wire [31:0] mmio_addr;
-    wire [31:0] mmio_wdata;
-    wire        mmio_we;
-    wire        mmio_re;
-    wire [31:0] mmio_rdata;
-    wire        mmio_match;
+    wire [31:0] uart_rdata;
+    wire        uart_addr_match;
+    wire [31:0] dmem_ram_rdata;
 
     // Pipeline telemetry
     wire [31:0] pc_if;
@@ -91,25 +88,19 @@ module fpga_top_feature6 (
     wire        fpu_busy;
     wire        exception;
 
-    // Cache Diagnostics
+    // L1 I-Cache Diagnostics
     wire        icache_stall;
     wire        icache_hit;
     wire        icache_miss;
     wire [31:0] icache_hit_count;
     wire [31:0] icache_miss_count;
 
-    wire        dcache_stall;
-    wire        dcache_hit;
-    wire        dcache_miss;
-    wire [31:0] dcache_hit_count;
-    wire [31:0] dcache_miss_count;
-
     wire        uart_tx;
     wire        uart_busy;
     wire        banner_done;
 
     // ========================================================================
-    // 3. Backing Memories (4 KB IMEM & 4 KB DMEM)
+    // 3. Instruction & Data Memories (4 KB IMEM & 4 KB DMEM)
     // ========================================================================
     instr_mem #(
         .HEX_FILE ("imem.hex"),
@@ -120,22 +111,25 @@ module fpga_top_feature6 (
         .instr (imem_rdata)
     );
 
+    // RAM vs UART MMIO Data Read Multiplexing
+    assign dmem_rdata = uart_addr_match ? uart_rdata : dmem_ram_rdata;
+
     data_mem #(
         .HEX_FILE ("dmem.hex"),
         .WORDS    (1024)
     ) u_backing_dmem (
         .clk   (clk_50mhz),
-        .re    (dmem_req),
+        .re    (dmem_re && !uart_addr_match),
         .raddr (dmem_addr),
-        .rdata (dmem_rdata),
-        .we    (dmem_we),
+        .rdata (dmem_ram_rdata),
+        .we    (dmem_we && !uart_addr_match),
         .waddr (dmem_addr),
         .wdata (dmem_wdata),
         .wstrb (dmem_wstrb)
     );
 
     // ========================================================================
-    // 4. Pipelined RV32IMF Core with L1 Harvard Caches
+    // 4. Pipelined RV32IMF Core with L1 I-Cache (No D-Cache)
     // ========================================================================
     pipeline_5stage #(
         .RESET_PC(32'h0000_0000)
@@ -152,14 +146,8 @@ module fpga_top_feature6 (
         .dmem_wdata        (dmem_wdata),
         .dmem_wstrb        (dmem_wstrb),
         .dmem_we           (dmem_we),
-        .dmem_req          (dmem_req),
+        .dmem_re           (dmem_re),
         .dmem_rdata        (dmem_rdata),
-        .mmio_addr_o       (mmio_addr),
-        .mmio_wdata_o      (mmio_wdata),
-        .mmio_we_o         (mmio_we),
-        .mmio_re_o         (mmio_re),
-        .mmio_rdata_i      (mmio_rdata),
-        .mmio_match_i      (mmio_match),
         .pc_if             (pc_if),
         .pc_id             (pc_id),
         .pc_ex             (pc_ex),
@@ -183,12 +171,7 @@ module fpga_top_feature6 (
         .icache_hit        (icache_hit),
         .icache_miss       (icache_miss),
         .icache_hit_count  (icache_hit_count),
-        .icache_miss_count (icache_miss_count),
-        .dcache_stall      (dcache_stall),
-        .dcache_hit        (dcache_hit),
-        .dcache_miss       (dcache_miss),
-        .dcache_hit_count  (dcache_hit_count),
-        .dcache_miss_count (dcache_miss_count)
+        .icache_miss_count (icache_miss_count)
     );
 
     // ========================================================================
@@ -201,12 +184,12 @@ module fpga_top_feature6 (
     ) u_uart (
         .clk             (clk_50mhz),
         .reset_n         (reset_n),
-        .dmem_addr       (mmio_addr),
-        .dmem_wdata      (mmio_wdata),
-        .dmem_we         (mmio_we),
-        .dmem_re         (mmio_re),
-        .uart_rdata      (mmio_rdata),
-        .uart_addr_match (mmio_match),
+        .dmem_addr       (dmem_addr),
+        .dmem_wdata      (dmem_wdata),
+        .dmem_we         (dmem_we),
+        .dmem_re         (dmem_re),
+        .uart_rdata      (uart_rdata),
+        .uart_addr_match (uart_addr_match),
         .fetch_pc        (pc_if),
         .fetch_inst      (imem_rdata),
         .hazard_stall    (hazard_stall),
@@ -219,12 +202,10 @@ module fpga_top_feature6 (
     assign UART_TXD_IN = uart_tx;
 
     // ========================================================================
-    // 6. Pulse Stretchers for Cache Hit/Miss Observation on LEDs
+    // 6. Pulse Stretchers for I-Cache Hit/Miss Observation on LEDs
     // ========================================================================
     reg [21:0] icache_hit_timer  = 22'd0;
     reg [21:0] icache_miss_timer = 22'd0;
-    reg [21:0] dcache_hit_timer  = 22'd0;
-    reg [21:0] dcache_miss_timer = 22'd0;
 
     localparam STRETCH_CYCLES = 22'd2_500_000; // ~50 ms pulse at 50 MHz
 
@@ -232,8 +213,6 @@ module fpga_top_feature6 (
         if (!reset_n) begin
             icache_hit_timer  <= 22'd0;
             icache_miss_timer <= 22'd0;
-            dcache_hit_timer  <= 22'd0;
-            dcache_miss_timer <= 22'd0;
         end else begin
             if (icache_hit)
                 icache_hit_timer <= STRETCH_CYCLES;
@@ -244,16 +223,6 @@ module fpga_top_feature6 (
                 icache_miss_timer <= STRETCH_CYCLES;
             else if (icache_miss_timer != 0)
                 icache_miss_timer <= icache_miss_timer - 1'b1;
-
-            if (dcache_hit)
-                dcache_hit_timer <= STRETCH_CYCLES;
-            else if (dcache_hit_timer != 0)
-                dcache_hit_timer <= dcache_hit_timer - 1'b1;
-
-            if (dcache_miss)
-                dcache_miss_timer <= STRETCH_CYCLES;
-            else if (dcache_miss_timer != 0)
-                dcache_miss_timer <= dcache_miss_timer - 1'b1;
         end
     end
 
@@ -265,8 +234,8 @@ module fpga_top_feature6 (
     assign LED[7:0]   = pc_wb[9:2];                             // Retired PC word index
     assign LED[8]     = (icache_hit_timer != 0);                // I-Cache Hit pulse (Green)
     assign LED[9]     = (icache_miss_timer != 0);               // I-Cache Miss pulse (Orange)
-    assign LED[10]    = (dcache_hit_timer != 0);                // D-Cache Hit pulse
-    assign LED[11]    = (dcache_miss_timer != 0);               // D-Cache Miss pulse
+    assign LED[10]    = 1'b0;                                   // Reserved (future D-Cache integration)
+    assign LED[11]    = 1'b0;                                   // Reserved (future D-Cache integration)
     assign LED[12]    = div_busy || fpu_busy;                   // Math engine busy
     assign LED[13]    = hazard_stall;                           // Pipeline stall active
     assign LED[14]    = uart_busy;                              // UART transmitter active
@@ -282,10 +251,10 @@ module fpga_top_feature6 (
             3'b001: display_data = wb_data;                                   // Mode 1: Writeback Data
             3'b010: display_data = {16'h0, icache_hit_count[15:0]};           // Mode 2: I-Cache Hit Count
             3'b011: display_data = {16'h0, icache_miss_count[15:0]};          // Mode 3: I-Cache Miss Count
-            3'b100: display_data = {16'h0, dcache_hit_count[15:0]};           // Mode 4: D-Cache Hit Count
-            3'b101: display_data = {16'h0, dcache_miss_count[15:0]};          // Mode 5: D-Cache Miss Count
-            3'b110: display_data = imem_rdata;                                // Mode 6: Fetched Instruction
-            3'b111: display_data = {27'h0, wb_dest_reg};                      // Mode 7: Writeback Destination Reg
+            3'b100: display_data = imem_rdata;                                // Mode 4: Fetched Instruction
+            3'b101: display_data = {27'h0, wb_dest_reg};                      // Mode 5: Writeback Destination Reg
+            3'b110: display_data = {14'h0, div_busy, fpu_busy, 16'h0};       // Mode 6: Math Busy Flags
+            3'b111: display_data = 32'h0000_0006;                             // Mode 7: Feature 6 Tag
         endcase
     end
 

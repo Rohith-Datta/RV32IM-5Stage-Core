@@ -1,7 +1,7 @@
-# Feature 6: Pipelined RV32IMF Processor Core with L1 Harvard Caches
+# Feature 6: Pipelined RV32IMF Processor Core with L1 Instruction Cache
 
 ## 1. Overview & Architectural Scope
-Feature 6 integrates a high-performance **2 KB Direct-Mapped L1 Instruction Cache (L1 I-Cache)** into the 5-stage pipelined RV32IMF processor core. Working alongside the **2 KB Direct-Mapped L1 Data Cache (L1 D-Cache)** established in Feature 5, the core implements a complete **L1 Harvard Cache Architecture**, allowing concurrent single-cycle instruction fetching and data memory access without structural hazards or bus contention at the standard **50 MHz system clock**.
+Feature 6 integrates a high-performance **2 KB Direct-Mapped L1 Instruction Cache (L1 I-Cache)** into the 5-stage pipelined RV32IMF processor core. Data memory (DMEM) uses direct memory access without a D-Cache (per modular development flow; unified caching integration is reserved for the final system integration phase). All operations run synchronously at the standard **50 MHz system clock**.
 
 ---
 
@@ -52,50 +52,31 @@ Feature 6 integrates a high-performance **2 KB Direct-Mapped L1 Instruction Cach
   - Tag storage array: 128 lines $\times$ 21 bits.
   - Valid storage array: 128 lines $\times$ 1 bit.
 - **Hardware Flush Support**: Active-high `flush_i` resets the refill FSM immediately to `STATE_IDLE` upon branch/jump redirection in the EX stage, canceling orphaned fetches.
-- **Cache Bypass Mode**: Active-high `cache_bypass_i` bypasses cache line allocation for diagnostic latency analysis.
+- **Cache Bypass Mode**: Active-high `cache_bypass_i` (`SW[1]`) bypasses cache line allocation for diagnostic latency analysis.
 
 ---
 
-## 3. L1 Harvard Cache Hierarchy
-
-| Feature | L1 Instruction Cache (I-Cache) | L1 Data Cache (D-Cache) |
-|---|:---:|:---:|
-| **Capacity** | 2 KB (128 lines $\times$ 16 bytes) | 2 KB (128 lines $\times$ 16 bytes) |
-| **Pipeline Stage** | IF (Instruction Fetch) | MEM (Memory Access) |
-| **Associativity** | Direct-Mapped | Direct-Mapped |
-| **Line Size** | 16 Bytes (4 words) | 16 Bytes (4 words) |
-| **Write Policy** | N/A (Read-Only) | Write-Through, No-Write-Allocate |
-| **Hit Latency** | 1 clock cycle (0 stall) | 1 clock cycle (0 stall) |
-| **Miss Penalty** | 10 clock cycles (burst refill) | 10 clock cycles (burst refill) |
-| **Concurrent Access** | **Yes** (independent backing ports) | **Yes** (independent backing ports) |
-
----
-
-## 4. Centralized Multi-Level Hazard Prioritization
+## 3. Centralized Multi-Level Hazard Prioritization
 
 The hazard unit (`hazard_unit.v`) coordinates all stalls, flushes, and bypasses with strict priority:
 
-1. **D-Cache Miss (`dcache_stall`) [Highest Priority]**:
-   - Occurs in MEM stage during an uncached load or cold miss.
-   - Freezes all upstream stages: `stall_if = 1`, `stall_if_id = 1`, `stall_id_ex = 1`, `stall_ex_mem = 1`.
-   - Injects a bubble into writeback: `flush_mem_wb = 1`.
-2. **Multi-Cycle Math Busy (`div_busy || fpu_busy`)**:
+1. **Multi-Cycle Math Busy (`div_busy || fpu_busy`)**:
    - 32-cycle hardware divider or multi-cycle floating-point unit active in EX stage.
    - Freezes PC, IF/ID, and ID/EX; injects bubble into EX/MEM.
-3. **I-Cache Miss (`icache_stall`)**:
+2. **I-Cache Miss (`icache_stall`)**:
    - Occurs in IF stage during cold instruction fetch or conflict miss.
    - Freezes PC: `stall_if = 1`.
-   - Outputs NOP (`0x00000013`) to `IF/ID`, allowing downstream stages to drain naturally.
-   - If a branch/jump redirects in EX (`branch_or_jump_taken`), PC update takes precedence, and `flush_i` aborts the I-Cache refill.
-4. **Load-Use Hazard (`load_use_hazard`)**:
+   - Outputs NOP (`0x0000_0013`) to `IF/ID`, allowing downstream stages to drain naturally.
+   - If a branch/jump redirects in EX (`branch_or_jump_taken`), PC update takes precedence, and `flush_i` aborts the in-flight I-Cache refill.
+3. **Load-Use Hazard (`load_use_hazard`)**:
    - 1-cycle interlock when ID stage needs data from a load currently in EX stage.
    - Freezes PC and IF/ID; injects bubble into ID/EX.
-5. **Control Hazard (Branch / Jump Taken)**:
+4. **Control Hazard (Branch / Jump Taken)**:
    - Flushes `IF/ID` and `ID/EX` (2-cycle branch penalty).
 
 ---
 
-## 5. FPGA Nexys A7-100T Top-Level Configuration
+## 4. FPGA Nexys A7-100T Top-Level Configuration
 
 ### Board Clock & Reset:
 - **`CLK100MHZ`**: Onboard 100 MHz crystal oscillator.
@@ -107,26 +88,25 @@ The hazard unit (`hazard_unit.v`) coordinates all stalls, flushes, and bypasses 
 - **`SW[0]`**: Pipeline Run Enable (`1` = normal execution, `0` = pipeline pause).
 - **`SW[1]`**: I-Cache Bypass Mode (`0` = L1 I-Cache enabled, `1` = bypass cache).
 - **`SW[2]`**: Multiplier Selection (`1` = DSP48E1 slices, `0` = Radix-4 Booth).
-- **`SW[15:13]`**: 7-Segment Display Diagnostic Mode:
+- **`SW[5:3]`**: 7-Segment Display Diagnostic Mode:
   - `3'b000`: Program Counter in Writeback stage (`pc_wb[15:0]`)
   - `3'b001`: Writeback Data (`wb_data[15:0]`)
   - `3'b010`: I-Cache Diagnostic Hit Counter (`icache_hit_count[15:0]`)
   - `3'b011`: I-Cache Diagnostic Miss Counter (`icache_miss_count[15:0]`)
-  - `3'b100`: D-Cache Diagnostic Hit Counter (`dcache_hit_count[15:0]`)
-  - `3'b101`: D-Cache Diagnostic Miss Counter (`dcache_miss_count[15:0]`)
-  - `3'b110`: Math Busy & Hazard Status Word
-  - `3'b111`: Firmware Version / Test Status Code
+  - `3'b100`: Fetched Instruction (`imem_rdata[15:0]`)
+  - `3'b101`: Destination Register (`wb_dest_reg`)
+  - `3'b110`: Math Busy Flags (`div_busy`, `fpu_busy`)
+  - `3'b111`: Feature 6 Tag (`0x0006`)
 
 ### Diagnostic LEDs (`LED[15:0]`):
-- **`LED[7:0]`**: Writeback register destination (`wb_dest_reg[4:0]`) and flags.
+- **`LED[7:0]`**: Writeback PC word index.
 - **`LED[8]`**: I-Cache Hit (pulse stretched for human visibility).
 - **`LED[9]`**: I-Cache Miss (pulse stretched).
-- **`LED[10]`**: D-Cache Hit (pulse stretched).
-- **`LED[11]`**: D-Cache Miss (pulse stretched).
+- **`LED[11:10]`**: Reserved for multi-cache integration.
 - **`LED[12]`**: Multi-Cycle Math Busy (`div_busy || fpu_busy`).
 - **`LED[13]`**: Pipeline Stall Active (`hazard_stall`).
 - **`LED[14]`**: UART Transmitter Active.
-- **`LED[15]`**: Heartbeat Blink Indicator (~1 Hz).
+- **`LED[15]`**: Heartbeat Blink Indicator (~1.5 Hz).
 
 ### Dedicated UART Telemetry Subsystem:
 - **Baud Rate**: 115,200 baud (50 MHz clock / 434 clock divider).
@@ -135,16 +115,16 @@ The hazard unit (`hazard_unit.v`) coordinates all stalls, flushes, and bypasses 
 
 ---
 
-## 6. Simulation & Verification Suite
+## 5. Simulation & Verification Suite
 
 All testbenches run at **50 MHz** ($T_{clk} = 20\text{ ns}$):
 
 1. **`tb_icache.v` (Unit Verification)**:
    - 9 comprehensive tests: cold start compulsory miss, immediate re-hit, spatial locality same-line hits, adjacent line miss, conflict eviction, re-access evicted line, bypass mode, branch flush, and hardware reset.
-2. **`tb_feature6_pipeline.v` (Full Harvard Pipeline)**:
-   - Verifies simultaneous I-Cache and D-Cache operation, cold start miss stalls, spatial hit acceleration, multi-iteration loop temporal locality (0 fetch stalls), UART MMIO, and program termination.
+2. **`tb_feature6_pipeline.v` (Full Pipeline Integration)**:
+   - Verifies 2 KB L1 I-Cache with direct DMEM access: cold start miss stalls, spatial hit acceleration, multi-iteration loop temporal locality (0 fetch stalls), direct data load/store, UART MMIO, and program termination.
 3. **`tb_pipeline_base.v` (Integer ALU Program)**:
-   - Verifies RV32I base instructions, ALU forwarding paths, and pipeline interlocks with caches enabled.
+   - Verifies RV32I base instructions, ALU forwarding paths, and pipeline interlocks with I-Cache enabled.
 4. **`tb_uart.v` (UART Telemetry)**:
    - Verifies 50 MHz baud timing, FIFO queue management, boot banner serialization, and framing.
 

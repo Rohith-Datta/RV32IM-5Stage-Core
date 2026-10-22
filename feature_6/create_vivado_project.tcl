@@ -1,15 +1,15 @@
 # ============================================================================
 # File: create_vivado_project.tcl
-# Description: Generates Standalone Vivado Project for Feature 6 (RV32IMF Core with L1 Harvard Caches)
+# Description: Generates Standalone Vivado Project for Feature 6 (RV32IMF Core with L1 I-Cache)
 # Target Device: Xilinx Artix-7 XC7A100T-1CSG324C (Digilent Nexys A7-100T)
 # ============================================================================
 
 set SCRIPT_DIR [file dirname [file normalize [info script]]]
 set PROJ_DIR [file join $SCRIPT_DIR "vivado_project"]
-set PROJ_NAME "rv32imf_harv_fpga"
+set PROJ_NAME "rv32imf_icache_fpga"
 
 puts "=========================================================="
-puts " Creating Standalone Vivado Project for Feature 6 (Harvard Caches)"
+puts " Creating Standalone Vivado Project for Feature 6 (I-Cache)"
 puts " Project Path: $PROJ_DIR/$PROJ_NAME.xpr"
 puts "=========================================================="
 
@@ -30,7 +30,6 @@ set RTL_FILES [list \
     [file join $SCRIPT_DIR "modules" "stages" "decode_stage.v"] \
     [file join $SCRIPT_DIR "modules" "stages" "execute_stage.v"] \
     [file join $SCRIPT_DIR "modules" "stages" "icache_controller.v"] \
-    [file join $SCRIPT_DIR "modules" "stages" "dcache_controller.v"] \
     [file join $SCRIPT_DIR "modules" "stages" "fpu_single_core.v"] \
     [file join $SCRIPT_DIR "modules" "stages" "memory.v"] \
     [file join $SCRIPT_DIR "modules" "stages" "memory_stage.v"] \

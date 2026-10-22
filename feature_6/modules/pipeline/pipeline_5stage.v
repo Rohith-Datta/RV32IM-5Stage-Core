@@ -1,15 +1,15 @@
 // ============================================================================
-// File: pipeline_5stage.v
-// Module: pipeline_5stage
-// Description: Full 5-Stage RV32IMF Processor Core with L1 Harvard Caches:
-//              - 2 KB Direct-Mapped L1 I-Cache (10-cycle burst refill FSM)
-//              - 2 KB Direct-Mapped L1 D-Cache (Write-Through, No-Write-Allocate)
-//              - RV32I Base Integer ALU & Branch Logic
-//              - RV32M Multiplier (DSP / Booth Radix-4) & Radix-2 Divider (32 cycles)
-//              - RV32F IEEE 754-2008 Single-Precision Floating-Point Unit
-//              - Centralized Multi-Level Hazard Unit & Operand Snooping
-// Project: Pipelined RV32IMF RISC-V Core (Feature 6: L1 Harvard Caches)
-// Standard Clock: 50 MHz (Period: 20 ns)
+// File: pipeline_5stage.v (Feature 6: RV32IMF Core with L1 I-Cache)
+// Description: Top-Level 5-Stage RV32IMF Pipelined Processor Core with L1 I-Cache
+// Project: Pipelined RV32IMF RISC-V Core (Feature 6: L1 I-Cache Core)
+// Integrated Subsystems:
+//   - Feature 1: 5-Stage Pipeline Registers & Hazard Unit
+//   - Feature 2: Dual-Mode Hardware Multiplier (DSP48E1 / Booth Radix-4)
+//   - Feature 3: 32-Cycle Radix-2 Hardware Divider & Remainder Unit
+//   - Feature 4: IEEE 754 Single-Precision FPU (FADD/FSUB 5c, FMUL 4c, FDIV 15c)
+//   - Feature 6: Direct-Mapped 2 KB L1 Instruction Cache (10-cycle burst refill FSM)
+//   - Direct Data Memory Access (No D-Cache)
+// Target: Standard 50 MHz Core Frequency
 // ============================================================================
 
 `timescale 1ns/1ps
@@ -19,30 +19,22 @@ module pipeline_5stage #(
 )(
     input  wire        clk,
     input  wire        reset_n,
-    input  wire        stall_ext,
-    input  wire        use_dsp_i,
-    input  wire        icache_bypass_i, // 1 = Bypass I-Cache, 0 = Enable L1 I-Cache
+    input  wire        stall_ext,     // External freeze
+    input  wire        use_dsp_i,     // 1: DSP48E1, 0: Booth Radix-4 Multiplier
+    input  wire        icache_bypass_i,// 1: Bypass I-Cache, 0: Enable L1 I-Cache
 
-    // Backing Instruction Memory Interface (Refill bus)
+    // Backing Instruction Memory Bus (Burst Refill Bus)
     output wire [31:0] imem_addr,
     input  wire [31:0] imem_rdata,
     output wire        imem_req,
 
-    // Backing Data Memory Interface (Refill & Write-Through bus)
+    // Data Memory Bus (MEM stage - Direct Access, No D-Cache)
     output wire [31:0] dmem_addr,
     output wire [31:0] dmem_wdata,
     output wire [3:0]  dmem_wstrb,
     output wire        dmem_we,
-    output wire        dmem_req,
+    output wire        dmem_re,
     input  wire [31:0] dmem_rdata,
-
-    // Peripheral MMIO Interface (UART & Diagnostic Peripherals)
-    output wire [31:0] mmio_addr_o,
-    output wire [31:0] mmio_wdata_o,
-    output wire        mmio_we_o,
-    output wire        mmio_re_o,
-    input  wire [31:0] mmio_rdata_i,
-    input  wire        mmio_match_i,
 
     // Pipeline Monitoring & Diagnostics
     output wire [31:0] pc_if,
@@ -70,49 +62,37 @@ module pipeline_5stage #(
     output wire        icache_hit,
     output wire        icache_miss,
     output wire [31:0] icache_hit_count,
-    output wire [31:0] icache_miss_count,
-
-    // L1 D-Cache Diagnostics
-    output wire        dcache_stall,
-    output wire        dcache_hit,
-    output wire        dcache_miss,
-    output wire [31:0] dcache_hit_count,
-    output wire [31:0] dcache_miss_count
+    output wire [31:0] icache_miss_count
 );
 
     `include "opcode.vh"
 
-    // Interconnect Controls from Hazard Unit
+    // Interconnect Controls
     wire        stall_if;
     wire        stall_if_id;
     wire        stall_id_ex;
-    wire        stall_ex_mem;
     wire        flush_if_id;
     wire        flush_id_ex;
     wire        flush_ex_mem;
-    wire        flush_mem_wb;
 
     wire        branch_or_jump_taken;
     wire [31:0] target_pc;
 
     // ========================================================================
-    // 1. IF Stage (Instruction Fetch & L1 I-Cache)
+    // 1. IF Stage (Instruction Fetch, PC Update, & 2 KB L1 I-Cache)
     // ========================================================================
     reg  [31:0] pc_reg;
+    wire [31:0] pc_next;
     wire [31:0] pc_plus4;
 
     assign pc_plus4 = pc_reg + 32'd4;
+    assign pc_next  = branch_or_jump_taken ? target_pc : pc_plus4;
 
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             pc_reg <= RESET_PC;
-        end else if (!stall_ext) begin
-            if (stall_if)
-                pc_reg <= pc_reg;
-            else if (branch_or_jump_taken)
-                pc_reg <= target_pc;
-            else
-                pc_reg <= pc_plus4;
+        end else if (!stall_if && !stall_ext) begin
+            pc_reg <= pc_next;
         end
     end
 
@@ -131,7 +111,7 @@ module pipeline_5stage #(
     ) u_icache (
         .clk             (clk),
         .reset_n         (reset_n),
-        .flush_i         (branch_or_jump_taken), // Flush in-flight fetch on branch/jump
+        .flush_i         (branch_or_jump_taken), // Flush in-flight refill on branch/jump
         .counter_reset_i (1'b0),
         .cache_bypass_i  (icache_bypass_i),
         .cpu_addr        (pc_reg),
@@ -157,7 +137,7 @@ module pipeline_5stage #(
         .clk        (clk),
         .reset_n    (reset_n),
         .stall      (stall_if_id || stall_ext),
-        .flush      (flush_if_id),
+        .flush      (flush_if_id || branch_or_jump_taken),
         .pc_i       (pc_reg),
         .pc_plus4_i (pc_plus4),
         .instr_i    (icache_cpu_rdata),
@@ -169,7 +149,7 @@ module pipeline_5stage #(
     assign pc_id = if_id_pc;
 
     // ========================================================================
-    // 2. ID Stage (Decode, Register File, & Hazard Signals)
+    // 2. ID Stage (Decode, Register File, & Hazard Source Signals)
     // ========================================================================
     wire [2:0]  id_alu_op;
     wire        id_arithsubtype;
@@ -187,7 +167,6 @@ module pipeline_5stage #(
     wire        id_is_mul;
     wire        id_is_div;
     wire        id_is_fpu;
-    wire [6:0]  id_funct7;
     wire        id_illegal_inst;
     wire [31:0] id_rdata1;
     wire [31:0] id_rdata2;
@@ -196,6 +175,7 @@ module pipeline_5stage #(
     wire [4:0]  id_rs2;
     wire [4:0]  id_rd;
     wire [2:0]  id_funct3;
+    wire [6:0]  id_funct7;
     wire        id_rs1_used;
     wire        id_rs2_used;
 
@@ -223,7 +203,6 @@ module pipeline_5stage #(
         .is_mul_o       (id_is_mul),
         .is_div_o       (id_is_div),
         .is_fpu_o       (id_is_fpu),
-        .funct7_o       (id_funct7),
         .illegal_inst_o (id_illegal_inst),
         .rdata1_o       (id_rdata1),
         .rdata2_o       (id_rdata2),
@@ -232,12 +211,13 @@ module pipeline_5stage #(
         .rs2_o          (id_rs2),
         .rd_o           (id_rd),
         .funct3_o       (id_funct3),
+        .funct7_o       (id_funct7),
         .id_rs1_used_o  (id_rs1_used),
         .id_rs2_used_o  (id_rs2_used)
     );
 
     // ========================================================================
-    // ID/EX Pipeline Register
+    // ID/EX Pipeline Register (with WB snooping)
     // ========================================================================
     wire [2:0]  id_ex_alu_op;
     wire        id_ex_arithsubtype;
@@ -255,7 +235,6 @@ module pipeline_5stage #(
     wire        id_ex_is_mul;
     wire        id_ex_is_div;
     wire        id_ex_is_fpu;
-    wire [6:0]  id_ex_funct7;
     wire        id_ex_illegal_inst;
     wire [31:0] id_ex_pc;
     wire [31:0] id_ex_pc_plus4;
@@ -266,12 +245,13 @@ module pipeline_5stage #(
     wire [4:0]  id_ex_rs2;
     wire [4:0]  id_ex_rd;
     wire [2:0]  id_ex_funct3;
+    wire [6:0]  id_ex_funct7;
 
     id_ex_reg u_id_ex_reg (
         .clk             (clk),
         .reset_n         (reset_n),
         .stall           (stall_id_ex || stall_ext),
-        .flush           (flush_id_ex),
+        .flush           (flush_id_ex || branch_or_jump_taken),
         .alu_op_i        (id_alu_op),
         .arithsubtype_i  (id_arithsubtype),
         .alu_i           (id_alu),
@@ -289,7 +269,6 @@ module pipeline_5stage #(
         .is_div_i        (id_is_div),
         .is_fpu_i        (id_is_fpu),
         .funct7_i        (id_funct7),
-        .illegal_inst_i  (id_illegal_inst),
         .pc_i            (if_id_pc),
         .pc_plus4_i      (if_id_pc_plus4),
         .rdata1_i        (id_rdata1),
@@ -319,7 +298,6 @@ module pipeline_5stage #(
         .is_div_o        (id_ex_is_div),
         .is_fpu_o        (id_ex_is_fpu),
         .funct7_o        (id_ex_funct7),
-        .illegal_inst_o  (id_ex_illegal_inst),
         .pc_o            (id_ex_pc),
         .pc_plus4_o      (id_ex_pc_plus4),
         .rdata1_o        (id_ex_rdata1),
@@ -334,12 +312,12 @@ module pipeline_5stage #(
     assign pc_ex = id_ex_pc;
 
     // ========================================================================
-    // 3. EX Stage (Execution, Multiplier, Divider, FPU, Branch, & Forwarding)
+    // 3. EX Stage (Execution, ALU, Multiplier, Divider, FPU, & Branch)
     // ========================================================================
     wire [31:0] ex_alu_result;
     wire [31:0] ex_store_data;
     wire        ex_branch_taken;
-    wire [31:0] ex_mem_alu_result;
+    wire [31:0] ex_mem_alu_result; // Forwarded from EX/MEM
 
     execute_stage u_execute_stage (
         .clk                   (clk),
@@ -366,7 +344,7 @@ module pipeline_5stage #(
         .is_mul_i              (id_ex_is_mul),
         .is_div_i              (id_ex_is_div),
         .is_fpu_i              (id_ex_is_fpu),
-        .funct7_i              (id_funct7),
+        .funct7_i              (id_ex_funct7),
         .use_dsp_i             (use_dsp_i),
         .alu_result_o          (ex_alu_result),
         .mem_wdata_o           (ex_store_data),
@@ -397,7 +375,7 @@ module pipeline_5stage #(
     ex_mem_reg u_ex_mem_reg (
         .clk          (clk),
         .reset_n      (reset_n),
-        .stall        (stall_ex_mem || stall_ext),
+        .stall        (stall_ext),
         .flush        (flush_ex_mem),
         .mem_read_i   (id_ex_mem_read),
         .mem_write_i  (id_ex_mem_write),
@@ -424,7 +402,7 @@ module pipeline_5stage #(
     assign pc_mem = ex_mem_pc;
 
     // ========================================================================
-    // 4. MEM Stage (Memory Interface, L1 D-Cache, & MMIO Bypass)
+    // 4. MEM Stage (Memory Access & Direct DMEM / MMIO Interface)
     // ========================================================================
     wire [31:0] dmem_stage_addr;
     wire [31:0] dmem_stage_wdata;
@@ -445,63 +423,11 @@ module pipeline_5stage #(
         .dmem_re_o    (dmem_stage_re)
     );
 
-    // MMIO Detection: 0x8000_xxxx (UART) or 0x1000_xxxx (Diagnostic)
-    wire is_mmio = (dmem_stage_addr[31:16] == 16'h8000) || (dmem_stage_addr[31:28] == 4'h1) || mmio_match_i;
-
-    assign mmio_addr_o  = dmem_stage_addr;
-    assign mmio_wdata_o = dmem_stage_wdata;
-    assign mmio_we_o    = dmem_stage_we && is_mmio;
-    assign mmio_re_o    = dmem_stage_re && is_mmio;
-
-    // Gate cache accesses so MMIO operations bypass L1 D-Cache directly
-    wire dcache_cpu_we = dmem_stage_we && !is_mmio;
-    wire dcache_cpu_re = dmem_stage_re && !is_mmio;
-
-    wire [31:0] dcache_rdata;
-    wire [31:0] dcache_mem_addr;
-    wire [31:0] dcache_mem_wdata;
-    wire [3:0]  dcache_mem_wstrb;
-    wire        dcache_mem_we;
-    wire        dcache_mem_req;
-
-    assign dmem_addr  = is_mmio ? 32'h0 : dcache_mem_addr;
-    assign dmem_wdata = is_mmio ? 32'h0 : dcache_mem_wdata;
-    assign dmem_wstrb = is_mmio ? 4'h0  : dcache_mem_wstrb;
-    assign dmem_we    = is_mmio ? 1'b0  : dcache_mem_we;
-    assign dmem_req   = is_mmio ? 1'b0  : dcache_mem_req;
-
-    dcache_controller #(
-        .NUM_LINES      (128),
-        .WORDS_PER_LINE (4),
-        .ADDR_WIDTH     (32),
-        .TAG_WIDTH      (21),
-        .INDEX_WIDTH    (7),
-        .OFFSET_WIDTH   (2)
-    ) u_dcache (
-        .clk             (clk),
-        .reset_n         (reset_n),
-        .counter_reset_i (1'b0),
-        .cpu_addr        (dmem_stage_addr),
-        .cpu_wdata       (dmem_stage_wdata),
-        .cpu_wstrb       (dmem_stage_wstrb),
-        .cpu_we          (dcache_cpu_we),
-        .cpu_re          (dcache_cpu_re),
-        .cpu_rdata       (dcache_rdata),
-        .dcache_stall    (dcache_stall),
-        .mem_addr        (dcache_mem_addr),
-        .mem_rdata       (dmem_rdata),
-        .mem_wdata       (dcache_mem_wdata),
-        .mem_wstrb       (dcache_mem_wstrb),
-        .mem_we          (dcache_mem_we),
-        .mem_req         (dcache_mem_req),
-        .cache_hit       (dcache_hit),
-        .cache_miss      (dcache_miss),
-        .hit_count       (dcache_hit_count),
-        .miss_count      (dcache_miss_count)
-    );
-
-    // Selected read data: MMIO peripheral read vs L1 D-Cache read
-    wire [31:0] mem_rdata_final = is_mmio ? mmio_rdata_i : dcache_rdata;
+    assign dmem_addr  = dmem_stage_addr;
+    assign dmem_wdata = dmem_stage_wdata;
+    assign dmem_wstrb = dmem_stage_wstrb;
+    assign dmem_we    = dmem_stage_we;
+    assign dmem_re    = dmem_stage_re;
 
     // ========================================================================
     // MEM/WB Pipeline Register
@@ -511,7 +437,7 @@ module pipeline_5stage #(
     wire [2:0]  mem_wb_funct3;
     wire [1:0]  mem_wb_byte_offset;
     wire [31:0] mem_wb_alu_result;
-    wire [31:0] mem_wb_mem_rdata;
+    wire [31:0] mem_wb_rdata;
     wire [4:0]  mem_wb_rd;
     wire [31:0] mem_wb_pc_plus4;
 
@@ -519,13 +445,12 @@ module pipeline_5stage #(
         .clk           (clk),
         .reset_n       (reset_n),
         .stall         (stall_ext),
-        .flush         (flush_mem_wb),
         .mem_to_reg_i  (ex_mem_mem_to_reg),
         .reg_write_i   (ex_mem_reg_write),
         .funct3_i      (ex_mem_funct3),
         .byte_offset_i (ex_mem_alu_result[1:0]),
         .alu_result_i  (ex_mem_alu_result),
-        .mem_rdata_i   (mem_rdata_final),
+        .mem_rdata_i   (dmem_rdata),
         .rd_i          (ex_mem_rd),
         .pc_plus4_i    (ex_mem_pc_plus4),
         .mem_to_reg_o  (mem_wb_mem_to_reg),
@@ -533,7 +458,7 @@ module pipeline_5stage #(
         .funct3_o      (mem_wb_funct3),
         .byte_offset_o (mem_wb_byte_offset),
         .alu_result_o  (mem_wb_alu_result),
-        .mem_rdata_o   (mem_wb_mem_rdata),
+        .mem_rdata_o   (mem_wb_rdata),
         .rd_o          (mem_wb_rd),
         .pc_plus4_o    (mem_wb_pc_plus4)
     );
@@ -541,7 +466,7 @@ module pipeline_5stage #(
     assign pc_wb = mem_wb_pc_plus4 - 32'd4;
 
     // ========================================================================
-    // 5. WB Stage (Writeback Multiplexing & Sign/Zero Extension)
+    // 5. WB Stage (Writeback & Load Data Formatting)
     // ========================================================================
     writeback_stage u_writeback_stage (
         .mem_to_reg_i  (mem_wb_mem_to_reg),
@@ -549,7 +474,7 @@ module pipeline_5stage #(
         .funct3_i      (mem_wb_funct3),
         .byte_offset_i (mem_wb_byte_offset),
         .alu_result_i  (mem_wb_alu_result),
-        .mem_rdata_i   (mem_wb_mem_rdata),
+        .mem_rdata_i   (mem_wb_rdata),
         .rd_i          (mem_wb_rd),
         .wb_reg_write_o(wb_reg_write),
         .wb_dest_reg_o (wb_dest_reg),
@@ -557,42 +482,40 @@ module pipeline_5stage #(
     );
 
     // ========================================================================
-    // Centralized Hazard Detection Unit
+    // 6. Hazard Detection & Forwarding Unit
     // ========================================================================
     hazard_unit u_hazard_unit (
-        .id_rs1           (id_rs1),
-        .id_rs2           (id_rs2),
-        .id_rs1_used      (id_rs1_used),
-        .id_rs2_used      (id_rs2_used),
-        .id_ex_rs1        (id_ex_rs1),
-        .id_ex_rs2        (id_ex_rs2),
-        .id_ex_rd         (id_ex_rd),
-        .id_ex_mem_read   (id_ex_mem_read),
-        .id_ex_branch     (id_ex_branch),
-        .id_ex_jal        (id_ex_jal),
-        .id_ex_jalr       (id_ex_jalr),
-        .ex_branch_taken  (ex_branch_taken),
-        .div_busy         (div_busy),
-        .fpu_busy         (fpu_busy),
-        .ex_mem_rd        (ex_mem_rd),
-        .ex_mem_reg_write (ex_mem_reg_write),
-        .mem_wb_rd        (wb_dest_reg),
-        .mem_wb_reg_write (wb_reg_write),
-        .icache_stall_i   (icache_stall),
-        .dcache_stall_i   (dcache_stall),
-        .forward_a        (forward_a),
-        .forward_b        (forward_b),
-        .stall_if         (stall_if),
-        .stall_if_id      (stall_if_id),
-        .stall_id_ex      (stall_id_ex),
-        .stall_ex_mem     (stall_ex_mem),
-        .flush_if_id      (flush_if_id),
-        .flush_id_ex      (flush_id_ex),
-        .flush_ex_mem     (flush_ex_mem),
-        .flush_mem_wb     (flush_mem_wb)
+        .id_rs1          (id_rs1),
+        .id_rs2          (id_rs2),
+        .id_rs1_used     (id_rs1_used),
+        .id_rs2_used     (id_rs2_used),
+        .id_ex_rs1       (id_ex_rs1),
+        .id_ex_rs2       (id_ex_rs2),
+        .id_ex_rd        (id_ex_rd),
+        .id_ex_mem_read  (id_ex_mem_read),
+        .id_ex_branch    (id_ex_branch),
+        .id_ex_jal       (id_ex_jal),
+        .id_ex_jalr      (id_ex_jalr),
+        .ex_branch_taken (ex_branch_taken),
+        .div_busy        (div_busy),
+        .fpu_busy        (fpu_busy),
+        .ex_mem_rd       (ex_mem_rd),
+        .ex_mem_reg_write(ex_mem_reg_write),
+        .mem_wb_rd       (wb_dest_reg),
+        .mem_wb_reg_write(wb_reg_write),
+        .icache_stall_i  (icache_stall),
+        .forward_a       (forward_a),
+        .forward_b       (forward_b),
+        .stall_if        (stall_if),
+        .stall_if_id     (stall_if_id),
+        .stall_id_ex     (stall_id_ex),
+        .flush_if_id     (flush_if_id),
+        .flush_id_ex     (flush_id_ex),
+        .flush_ex_mem    (flush_ex_mem)
     );
 
-    assign hazard_stall    = stall_if || icache_stall || dcache_stall;
+    // Diagnostics / Exception
+    assign hazard_stall    = stall_if || icache_stall;
     assign hazard_flush_id = flush_if_id;
     assign hazard_flush_ex = flush_id_ex;
     assign exception       = id_illegal_inst;

@@ -12,7 +12,6 @@
 ../modules/stages/divider_unit.v
 ../modules/stages/fpu_single_core.v
 ../modules/stages/icache_controller.v
-../modules/stages/dcache_controller.v
 ../modules/stages/decode_stage.v
 ../modules/stages/execute_stage.v
 ../modules/stages/memory.v

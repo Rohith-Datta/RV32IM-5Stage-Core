@@ -2,7 +2,7 @@
 // File: tb_pipeline_base.v
 // Module: tb_pipeline_base
 // Description: Full 5-Stage RV32IMF Pipeline Testbench (Feature 6 Baseline)
-// Project: Pipelined RV32IMF RISC-V Core (Feature 6: L1 Harvard Caches)
+// Project: Pipelined RV32IMF RISC-V Core (Feature 6: L1 I-Cache Core)
 // Tests: RV32I Base ALU, Memory Stage, and Hazard Resolution with 50 MHz Clock
 // ============================================================================
 
@@ -24,12 +24,12 @@ module tb_pipeline_base;
     wire [31:0] imem_rdata;
     wire        imem_req;
 
-    // Data Memory Bus
+    // Direct Data Memory Bus (No D-Cache)
     wire [31:0] dmem_addr;
     wire [31:0] dmem_wdata;
     wire [3:0]  dmem_wstrb;
     wire        dmem_we;
-    wire        dmem_req;
+    wire        dmem_re;
     wire [31:0] dmem_rdata;
 
     // MMIO wires
@@ -67,14 +67,8 @@ module tb_pipeline_base;
     wire [31:0] icache_hit_count;
     wire [31:0] icache_miss_count;
 
-    wire        dcache_stall;
-    wire        dcache_hit;
-    wire        dcache_miss;
-    wire [31:0] dcache_hit_count;
-    wire [31:0] dcache_miss_count;
-
     // ------------------------------------------------------------------------
-    // DUT: 5-Stage Pipelined RV32IMF Core with L1 Harvard Caches
+    // DUT: 5-Stage Pipelined RV32IMF Core with L1 I-Cache (No D-Cache)
     // ------------------------------------------------------------------------
     pipeline_5stage #(
         .RESET_PC(32'h0000_0000)
@@ -91,14 +85,8 @@ module tb_pipeline_base;
         .dmem_wdata        (dmem_wdata),
         .dmem_wstrb        (dmem_wstrb),
         .dmem_we           (dmem_we),
-        .dmem_req          (dmem_req),
+        .dmem_re           (dmem_re),
         .dmem_rdata        (dmem_rdata),
-        .mmio_addr_o       (mmio_addr),
-        .mmio_wdata_o      (mmio_wdata),
-        .mmio_we_o         (mmio_we),
-        .mmio_re_o         (mmio_re),
-        .mmio_rdata_i      (32'h0),
-        .mmio_match_i      (1'b0),
         .pc_if             (pc_if),
         .pc_id             (pc_id),
         .pc_ex             (pc_ex),
@@ -122,12 +110,7 @@ module tb_pipeline_base;
         .icache_hit        (icache_hit),
         .icache_miss       (icache_miss),
         .icache_hit_count  (icache_hit_count),
-        .icache_miss_count (icache_miss_count),
-        .dcache_stall      (dcache_stall),
-        .dcache_hit        (dcache_hit),
-        .dcache_miss       (dcache_miss),
-        .dcache_hit_count  (dcache_hit_count),
-        .dcache_miss_count (dcache_miss_count)
+        .icache_miss_count (icache_miss_count)
     );
 
     // ------------------------------------------------------------------------
@@ -147,7 +130,7 @@ module tb_pipeline_base;
         .WORDS(1024)
     ) u_data_mem (
         .clk   (clk),
-        .re    (dmem_req),
+        .re    (dmem_re),
         .raddr (dmem_addr),
         .rdata (dmem_rdata),
         .we    (dmem_we),

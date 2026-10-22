@@ -1,4 +1,4 @@
-open_project [file normalize [file join [file dirname [info script]] "vivado_project/rv32imf_harv_fpga.xpr"]]
+open_project [file normalize [file join [file dirname [info script]] "vivado_project/rv32imf_icache_fpga.xpr"]]
 reset_run synth_1
 launch_runs impl_1 -to_step write_bitstream -jobs 4
 wait_on_run impl_1

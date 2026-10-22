@@ -1,14 +1,13 @@
 // ============================================================================
 // File: hazard_unit.v
 // Description: Centralized Hazard Detection, Forwarding, & Multi-Cycle Stall Unit
-// Project: Pipelined RV32IMF RISC-V Core (Feature 6: L1 Harvard Caches)
+// Project: Pipelined RV32IMF RISC-V Core (Feature 6: L1 I-Cache Core)
 // Supports:
 //   - EX/MEM and MEM/WB Data Forwarding
 //   - Load-Use Hazard Interlock
 //   - Branch/Jump Control Hazard Flushing (with I-Cache flush)
 //   - Multi-Cycle Math Interlocks (32-Cycle Divider & Multi-Cycle FPU)
 //   - 10-Cycle L1 I-Cache Read Miss Stall
-//   - 10-Cycle L1 D-Cache Read Miss Stall
 // ============================================================================
 
 `timescale 1ns/1ps
@@ -40,9 +39,8 @@ module hazard_unit (
     input  wire [4:0]  mem_wb_rd,
     input  wire        mem_wb_reg_write,
 
-    // Cache stall inputs
+    // Cache stall input (I-Cache only)
     input  wire        icache_stall_i,  // Feature 6: L1 I-Cache Stall
-    input  wire        dcache_stall_i,  // Feature 5/6: L1 D-Cache Stall
 
     // Forwarding Control Outputs to EX stage
     output reg  [1:0]  forward_a,
@@ -52,11 +50,9 @@ module hazard_unit (
     output wire        stall_if,
     output wire        stall_if_id,
     output wire        stall_id_ex,
-    output wire        stall_ex_mem,
     output wire        flush_if_id,
     output wire        flush_id_ex,
-    output wire        flush_ex_mem,
-    output wire        flush_mem_wb
+    output wire        flush_ex_mem
 );
 
     `include "opcode.vh"
@@ -107,23 +103,18 @@ module hazard_unit (
     // 5. Centralized Pipeline Stall and Flush Generation
     // ------------------------------------------------------------------------
     // Priority:
-    // 1. D-Cache miss (MEM stage) freezes all upstream stages (PC, IF/ID, ID/EX, EX/MEM)
-    //    and flushes MEM/WB so WB executes a bubble until data is ready.
-    // 2. Math busy (EX stage DIV or FPU) freezes PC, IF/ID, ID/EX and injects bubble into EX/MEM.
-    // 3. I-Cache miss (IF stage) freezes PC only; IF/ID captures NOP and downstream drains naturally.
+    // 1. Math busy (EX stage DIV or FPU) freezes PC, IF/ID, ID/EX and injects bubble into EX/MEM.
+    // 2. I-Cache miss (IF stage) freezes PC only; IF/ID captures NOP and downstream drains naturally.
     //    If branch/jump redirects PC in EX, PC updates to branch target immediately.
-    // 4. Load-use hazard freezes PC and IF/ID, injecting bubble into ID/EX.
-    // 5. Branch/Jump flushes IF/ID and ID/EX (2-cycle branch penalty).
+    // 3. Load-use hazard freezes PC and IF/ID, injecting bubble into ID/EX.
+    // 4. Branch/Jump flushes IF/ID and ID/EX (2-cycle branch penalty).
 
-    assign stall_if     = dcache_stall_i || math_busy ||
-                          (!branch_or_jump_taken && (icache_stall_i || load_use_hazard));
-    assign stall_if_id  = dcache_stall_i || math_busy || (load_use_hazard && !branch_or_jump_taken);
-    assign stall_id_ex  = dcache_stall_i || math_busy;
-    assign stall_ex_mem = dcache_stall_i;
+    assign stall_if     = math_busy || (!branch_or_jump_taken && (icache_stall_i || load_use_hazard));
+    assign stall_if_id  = math_busy || (load_use_hazard && !branch_or_jump_taken);
+    assign stall_id_ex  = math_busy;
 
-    assign flush_if_id  = !dcache_stall_i && !math_busy && branch_or_jump_taken;
-    assign flush_id_ex  = !dcache_stall_i && !math_busy && (branch_or_jump_taken || load_use_hazard);
-    assign flush_ex_mem = !dcache_stall_i && math_busy;
-    assign flush_mem_wb = dcache_stall_i;
+    assign flush_if_id  = !math_busy && branch_or_jump_taken;
+    assign flush_id_ex  = !math_busy && (branch_or_jump_taken || load_use_hazard);
+    assign flush_ex_mem = math_busy;
 
 endmodule
