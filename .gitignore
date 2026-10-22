@@ -60,5 +60,11 @@ feature_5/vivado_project/*.ip_user_files/
 feature_5/vivado_project/*.runs/
 feature_5/vivado_project/*.sim/
 feature_5/vivado_project/*.srcs/
+feature_6/vivado_project/*.cache/
+feature_6/vivado_project/*.hw/
+feature_6/vivado_project/*.ip_user_files/
+feature_6/vivado_project/*.runs/
+feature_6/vivado_project/*.sim/
+feature_6/vivado_project/*.srcs/
 *.dcp
 
