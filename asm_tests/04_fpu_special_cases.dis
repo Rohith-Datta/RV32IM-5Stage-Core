@@ -1,0 +1,41 @@
+; Disassembly of /Users/siddharthmisro/Documents/RISCV/asm_tests/04_fpu_special_cases.s
+; Total Instructions: 38
+
+0x00000000:  3fc000b7    lui     x1, 0x3FC00         # x1  = 1.5f (0x3FC00000)
+0x00000004:  40200137    lui     x2, 0x40200         # x2  = 2.5f (0x40200000)
+0x00000008:  400001b7    lui     x3, 0x40000         # x3  = 2.0f (0x40000000)
+0x0000000c:  40e00237    lui     x4, 0x40E00         # x4  = 7.0f (0x40E00000)
+0x00000010:  00000293    li      x5, 0               # x5  = 0.0f (0x00000000)
+0x00000014:  c0000337    lui     x6, 0xC0000         # x6  = -2.0f (0xC0000000)
+0x00000018:  7f8003b7    lui     x7, 0x7F800         # x7  = +Infinity (0x7F800000)
+0x0000001c:  c0c00437    lui     x8, 0xC0C00         # x8  = -6.0f (0xC0C00000)
+0x00000020:  00a00493    li      x9, 10              # x9  = 10
+0x00000024:  80000537    lui     x10, 0x80000        # x10 = INT_MIN (0x80000000)
+0x00000028:  fff00593    li      x11, -1             # x11 = -1
+0x0000002c:  00208653    fadd.s  x12, x1, x2
+0x00000030:  081606d3    fsub.s  x13, x12, x1
+0x00000034:  10310753    fmul.s  x14, x2, x3
+0x00000038:  183207d3    fdiv.s  x15, x4, x3
+0x0000003c:  18518853    fdiv.s  x16, x3, x5
+0x00000040:  185308d3    fdiv.s  x17, x6, x5
+0x00000044:  18528953    fdiv.s  x18, x5, x5
+0x00000048:  187389d3    fdiv.s  x19, x7, x7
+0x0000004c:  18340a53    fdiv.s  x20, x8, x3
+0x00000050:  0254cab3    div     x21, x9, x5
+0x00000054:  02b54b33    div     x22, x10, x11
+0x00000058:  20000b93    li      x23, 0x00000200
+0x0000005c:  00cba023    sw      x12, 0(x23)         # RAM[0x200] = 4.0f (0x40800000)
+0x00000060:  00dba223    sw      x13, 4(x23)         # RAM[0x204] = 2.5f (0x40200000)
+0x00000064:  00eba423    sw      x14, 8(x23)         # RAM[0x208] = 5.0f (0x40A00000)
+0x00000068:  00fba623    sw      x15, 12(x23)        # RAM[0x20C] = 3.5f (0x40600000)
+0x0000006c:  010ba823    sw      x16, 16(x23)        # RAM[0x210] = +Inf (0x7F800000)
+0x00000070:  011baa23    sw      x17, 20(x23)        # RAM[0x214] = -Inf (0xFF800000)
+0x00000074:  012bac23    sw      x18, 24(x23)        # RAM[0x218] = qNaN (0x7FC00000)
+0x00000078:  013bae23    sw      x19, 28(x23)        # RAM[0x21C] = qNaN (0x7FC00000)
+0x0000007c:  034ba023    sw      x20, 32(x23)        # RAM[0x220] = -3.0f (0xC0400000)
+0x00000080:  035ba223    sw      x21, 36(x23)        # RAM[0x224] = -1 (0xFFFFFFFF)
+0x00000084:  036ba423    sw      x22, 40(x23)        # RAM[0x228] = INT_MIN (0x80000000)
+0x00000088:  caff0c37    li      x24, 0xCAFEFEED
+0x0000008c:  eedc0c13    li      x24, 0xCAFEFEED
+0x00000090:  038ba623    sw      x24, 44(x23)        # RAM[0x22C] = 0xCAFEFEED
+0x00000094:  00008067    ret
