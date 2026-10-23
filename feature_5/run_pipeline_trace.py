@@ -148,15 +148,20 @@ def main():
     print("       Core Engine: FEATURE 5 (Direct-Mapped 2 KB L1 Data Cache @ 50 MHz)")
     print("=" * 116)
 
+    build_script = os.path.join(C_TESTS_DIR, "build_hex.py")
+    print(f"[*] Building target program '{args.target}' via {build_script}...")
+    subprocess.check_call([sys.executable, build_script, args.target], cwd=ROOT_DIR)
+
     f5_mem = os.path.join(FEATURE5_DIR, "mem")
     f5_imem_hex = os.path.join(f5_mem, "imem.hex")
     imem_map = load_imem_map(f5_imem_hex)
 
     print(f"\n[*] Loaded {len(imem_map)} instructions from {f5_imem_hex}")
-    print("[*] Running simulation via Vivado xsim in feature_5/simulation...")
+    print("[*] Elaborating and simulating via Vivado xsim in feature_5/simulation...")
 
     sim_dir = os.path.join(FEATURE5_DIR, "simulation")
-    proc = subprocess.run("xsim snap_tb_feature5 -runall", cwd=sim_dir, capture_output=True, text=True, shell=True)
+    subprocess.run("xelab -top tb_pipeline_base -snapshot snap_tb_base -debug typical", cwd=sim_dir, capture_output=True, text=True, shell=True)
+    proc = subprocess.run("xsim snap_tb_base -runall", cwd=sim_dir, capture_output=True, text=True, shell=True)
     print(proc.stdout)
 
 if __name__ == "__main__":

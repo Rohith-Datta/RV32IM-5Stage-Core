@@ -9,6 +9,8 @@ F1_MEM_DIR = os.path.join(ROOT_DIR, "feature_1", "mem")
 F2_MEM_DIR = os.path.join(ROOT_DIR, "feature_2", "mem")
 F3_MEM_DIR = os.path.join(ROOT_DIR, "feature_3", "mem")
 F4_MEM_DIR = os.path.join(ROOT_DIR, "feature_4", "mem")
+F5_MEM_DIR = os.path.join(ROOT_DIR, "feature_5", "mem")
+F6_MEM_DIR = os.path.join(ROOT_DIR, "feature_6", "mem")
 
 CC      = "riscv-none-elf-gcc"
 OBJCOPY = "riscv-none-elf-objcopy"
@@ -100,8 +102,8 @@ def build(prog_name):
     bin2hex(imem_bin, imem_hex)
     bin2hex(dmem_bin, dmem_hex)
     
-    # Copy to feature_1/mem, feature_2/mem, feature_3/mem, and feature_4/mem
-    for mem_dir in [F1_MEM_DIR, F2_MEM_DIR, F3_MEM_DIR, F4_MEM_DIR]:
+    # Copy to feature_1/mem .. feature_6/mem
+    for mem_dir in [F1_MEM_DIR, F2_MEM_DIR, F3_MEM_DIR, F4_MEM_DIR, F5_MEM_DIR, F6_MEM_DIR]:
         os.makedirs(mem_dir, exist_ok=True)
         shutil.copy2(imem_hex, os.path.join(mem_dir, "imem.hex"))
         shutil.copy2(dmem_hex, os.path.join(mem_dir, "dmem.hex"))
@@ -109,7 +111,7 @@ def build(prog_name):
         shutil.copy2(elf_file, os.path.join(mem_dir, "code.elf"))
         shutil.copy2(src_file, os.path.join(mem_dir, PROGRAMS[prog_name]))
     
-    print(f"[+] Successfully built and deployed {prog_name} to feature_1/mem/, feature_2/mem/, feature_3/mem/, and feature_4/mem/")
+    print(f"[+] Successfully built and deployed {prog_name} to feature_1..6 /mem/")
 
 if __name__ == "__main__":
     prog = sys.argv[1] if len(sys.argv) > 1 else "addition"

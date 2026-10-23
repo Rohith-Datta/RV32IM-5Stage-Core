@@ -65,5 +65,53 @@ sim_uart:
 	@echo "=== [3/3] Simulating tb_uart ==="
 	$(XSIM) snap_tb_uart -R -log sim_uart.log
 
+# ----------------------------------------------------------------------------
+# 5. Direct C Programs: Compile C -> Generate Hex -> Run Vivado Simulation
+# ----------------------------------------------------------------------------
+C_TESTS = ../../c_tests
+
+addition:
+	@echo "=== Building and Simulating addition ==="
+	python $(C_TESTS)/build_hex.py addition
+	$(XELAB) -top tb_pipeline_base -snapshot snap_tb_base -debug typical
+	$(XSIM) snap_tb_base -runall
+
+fibonacci:
+	@echo "=== Building and Simulating fibonacci ==="
+	python $(C_TESTS)/build_hex.py fibonacci
+	$(XELAB) -top tb_pipeline_base -snapshot snap_tb_base -debug typical
+	$(XSIM) snap_tb_base -runall
+
+sort:
+	@echo "=== Building and Simulating sort ==="
+	python $(C_TESTS)/build_hex.py sort
+	$(XELAB) -top tb_pipeline_base -snapshot snap_tb_base -debug typical
+	$(XSIM) snap_tb_base -runall
+
+multiplication:
+	@echo "=== Building and Simulating multiplication ==="
+	python $(C_TESTS)/build_hex.py multiplication
+	$(XELAB) -top tb_pipeline_base -snapshot snap_tb_base -debug typical
+	$(XSIM) snap_tb_base -runall
+
+division:
+	@echo "=== Building and Simulating division ==="
+	python $(C_TESTS)/build_hex.py division
+	$(XELAB) -top tb_pipeline_base -snapshot snap_tb_base -debug typical
+	$(XSIM) snap_tb_base -runall
+
+negative:
+	@echo "=== Building and Simulating negative ==="
+	python $(C_TESTS)/build_hex.py negative
+	$(XELAB) -top tb_pipeline_base -snapshot snap_tb_base -debug typical
+	$(XSIM) snap_tb_base -runall
+
+xor:
+	@echo "=== Building and Simulating xor ==="
+	python $(C_TESTS)/build_hex.py xor
+	$(XELAB) -top tb_pipeline_base -snapshot snap_tb_base -debug typical
+	$(XSIM) snap_tb_base -runall
+
 clean:
 	rm -rf *.log *.jou *.pb *.wdb xsim.dir .Xil
+
