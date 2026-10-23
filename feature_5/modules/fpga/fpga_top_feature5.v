@@ -8,6 +8,7 @@
 // 1. 8-Digit Seven-Segment Display:
 //    - sw[2] = 0: Shows 32-bit Program Counter Fetch Address (pc_if).
 //    - sw[2] = 1: Shows 32-bit Machine Instruction Code (imem_rdata).
+//    - When program finishes (`ret`): Displays "--------" across all 8 digits!
 // 2. Hardware Engine Selection (Switch sw[3]):
 //    - sw[3] = 0: DSP48E1 Multiplier Mode
 //    - sw[3] = 1: Radix-4 Booth Multiplier Mode
@@ -22,10 +23,9 @@
 //    - LED[7]: Program Execution Completed (prog_done)
 //    - LED[8]: L1 D-Cache Hit Pulse Indicator
 //    - LED[9]: L1 D-Cache Miss Pulse Indicator
-//    - LED[15:10]: Low bits of committed result
+//    - LED[15:10]: Low bits of committed register result (or final a0 return value)
 // 4. Clocking & Execution Controls:
-//    - Standard 50 MHz core clock derived from 100 MHz board oscillator
-//    - sw[0] = 0, sw[1] = 0: Paced real-time streaming with UART
+//    - sw[0] = 0, sw[1] = 0: Paced real-time streaming with UART (instruction by instruction)
 //    - sw[0] = 0, sw[1] = 1: 1 Hz Slow Clock mode for live visual observation
 //    - sw[0] = 1: Manual Single-Step mode via Center Pushbutton (btnc)
 //    - cpu_resetn: Active-low synchronous reset button (Pin C12)
@@ -102,35 +102,79 @@ module fpga_top_feature5 (
     end
 
     // ------------------------------------------------------------------------
-    // Slow Clock Generator (1 Hz for visual debug) & Step Clock Arbiter
+    // Telemetry & Completion Wires
     // ------------------------------------------------------------------------
-    reg [24:0] slow_clk_div;
-    reg        slow_clk_tick;
-    always @(posedge clk_50mhz or negedge sys_reset_n) begin
+    wire uart_busy_w;
+    wire banner_done_w;
+    reg  prog_done;
+    reg  saw_ret;
+    reg  [2:0] drain_cnt;
+    reg  [31:0] final_ret_pc;
+
+    // ------------------------------------------------------------------------
+    // Slow Clock Generator (1 Hz for visual debug)
+    // ------------------------------------------------------------------------
+    reg [26:0] slow_div_cnt;
+    reg        slow_step_pulse;
+    always @(posedge clk_100mhz or negedge sys_reset_n) begin
         if (!sys_reset_n) begin
-            slow_clk_div  <= 25'd0;
-            slow_clk_tick <= 1'b0;
-        end else if (slow_clk_div == 25'd24_999_999) begin
-            slow_clk_div  <= 25'd0;
-            slow_clk_tick <= 1'b1;
+            slow_div_cnt    <= 27'd0;
+            slow_step_pulse <= 1'b0;
+        end else if (slow_div_cnt == 27'd99_999_999) begin
+            slow_div_cnt    <= 27'd0;
+            slow_step_pulse <= 1'b1;
         end else begin
-            slow_clk_div  <= slow_clk_div + 25'd1;
-            slow_clk_tick <= 1'b0;
+            slow_div_cnt    <= slow_div_cnt + 27'd1;
+            slow_step_pulse <= 1'b0;
         end
     end
 
-    // Clock enable gating for execution pacing
-    reg core_clk_en;
-    always @(*) begin
-        if (sw[0])
-            core_clk_en = btn_pulse;
-        else if (sw[1])
-            core_clk_en = slow_clk_tick;
-        else
-            core_clk_en = 1'b1;
+    // ------------------------------------------------------------------------
+    // Auto-stream step generator paced by UART (sw[0]=0, sw[1]=0)
+    // Matches Feature 1/2/3 behavior: advances 1 instruction per UART line transmission
+    // ------------------------------------------------------------------------
+    reg auto_step_pending;
+    reg auto_step_pulse;
+    always @(posedge clk_100mhz or negedge sys_reset_n) begin
+        if (!sys_reset_n) begin
+            auto_step_pending <= 1'b0;
+            auto_step_pulse   <= 1'b0;
+        end else if (!sw[0] && !sw[1]) begin
+            if (!uart_busy_w && banner_done_w && !prog_done && !auto_step_pending) begin
+                auto_step_pulse   <= 1'b1;
+                auto_step_pending <= 1'b1;
+            end else begin
+                auto_step_pulse <= 1'b0;
+                if (uart_busy_w)
+                    auto_step_pending <= 1'b0;
+            end
+        end else begin
+            auto_step_pending <= 1'b0;
+            auto_step_pulse   <= 1'b0;
+        end
     end
 
-    wire stall_from_clock = !core_clk_en;
+    // Unified step pulse in 100 MHz domain
+    wire core_step_pulse_100 = (sw[0]) ? btn_pulse :
+                               ((sw[1]) ? slow_step_pulse : auto_step_pulse);
+
+    // Synchronize step pulse to 50 MHz core clock domain
+    reg step_sync_d1, step_sync_d2, step_sync_d3;
+    always @(posedge clk_50mhz or negedge sys_reset_n) begin
+        if (!sys_reset_n) begin
+            step_sync_d1 <= 1'b0;
+            step_sync_d2 <= 1'b0;
+            step_sync_d3 <= 1'b0;
+        end else begin
+            step_sync_d1 <= core_step_pulse_100;
+            step_sync_d2 <= step_sync_d1;
+            step_sync_d3 <= step_sync_d2;
+        end
+    end
+    wire core_step_pulse_50 = step_sync_d2 && !step_sync_d3;
+
+    // Execution freeze control: Core runs for 1 cycle when core_step_pulse_50 is high
+    wire stall_from_clock = !(core_step_pulse_50 && !prog_done);
 
     // ------------------------------------------------------------------------
     // Memories (BRAM Models for 4 KB IMEM & 4 KB DMEM)
@@ -204,6 +248,9 @@ module fpga_top_feature5 (
     wire [31:0] mmio_rdata;
     wire        mmio_match;
 
+    // Feed NOP into core once RET instruction has been fetched
+    wire [31:0] imem_rdata_core = saw_ret ? 32'h0000_0013 : imem_rdata;
+
     pipeline_5stage #(
         .RESET_PC(32'h0000_0000)
     ) u_core (
@@ -212,7 +259,7 @@ module fpga_top_feature5 (
         .stall_ext        (stall_from_clock),
         .use_dsp_i        (!sw[3]),
         .imem_addr        (imem_addr),
-        .imem_rdata       (imem_rdata),
+        .imem_rdata       (imem_rdata_core),
         .dmem_addr        (dmem_addr),
         .dmem_wdata       (dmem_wdata),
         .dmem_wstrb       (dmem_wstrb),
@@ -252,10 +299,45 @@ module fpga_top_feature5 (
     );
 
     // ------------------------------------------------------------------------
+    // Program Execution Complete Detector
+    // Detects RET (32'h00008067), drains pipeline, then halts
+    // ------------------------------------------------------------------------
+    always @(posedge clk_50mhz or negedge sys_reset_n) begin
+        if (!sys_reset_n) begin
+            saw_ret      <= 1'b0;
+            drain_cnt    <= 3'd0;
+            prog_done    <= 1'b0;
+            final_ret_pc <= 32'd0;
+        end else begin
+            if (imem_rdata == 32'h0000_8067 && pc_if != 32'h0 && core_step_pulse_50 && !hazard_stall) begin
+                saw_ret      <= 1'b1;
+                final_ret_pc <= pc_if;
+            end
+            if (saw_ret && core_step_pulse_50 && !prog_done) begin
+                if (!hazard_stall) begin
+                    if (drain_cnt < 3'd4)
+                        drain_cnt <= drain_cnt + 3'd1;
+                    else
+                        prog_done <= 1'b1;
+                end
+            end
+        end
+    end
+
+    // Latch final return value a0 (x10) when committed
+    reg [7:0] final_result_a0;
+    always @(posedge clk_50mhz or negedge sys_reset_n) begin
+        if (!sys_reset_n)
+            final_result_a0 <= 8'd0;
+        else if (wb_reg_write && wb_dest_reg == 5'd10)
+            final_result_a0 <= wb_data[7:0];
+    end
+
+    // ------------------------------------------------------------------------
     // Dedicated UART Subsystem with Boot Banner & Real-Time Telemetry
     // ------------------------------------------------------------------------
-    wire uart_busy_w;
-    wire banner_done_w;
+    wire [31:0] uart_fetch_pc   = (saw_ret || prog_done) ? final_ret_pc : pc_if;
+    wire [31:0] uart_fetch_inst = (saw_ret || prog_done) ? 32'h0000_8067 : imem_rdata;
 
     uart_unit #(
         .CLK_FREQ   (100_000_000),
@@ -270,90 +352,123 @@ module fpga_top_feature5 (
         .dmem_re         (mmio_re),
         .uart_rdata      (mmio_rdata),
         .uart_addr_match (mmio_match),
-        .fetch_pc        (pc_if),
-        .fetch_inst      (imem_rdata),
-        .hazard_stall    (hazard_stall),
-        .step_trigger    (core_clk_en),
+        .fetch_pc        (uart_fetch_pc),
+        .fetch_inst      (uart_fetch_inst),
+        .hazard_stall    (hazard_stall || dcache_stall),
+        .step_trigger    (core_step_pulse_100),
         .uart_tx         (uart_tx),
         .uart_busy       (uart_busy_w),
         .banner_done_o   (banner_done_w)
     );
 
     // ------------------------------------------------------------------------
-    // Pulse Stretchers for D-Cache Hit/Miss LED Indicators
+    // Pulse Stretchers for Visual LED Indicators (~40 ms at 100 MHz)
     // ------------------------------------------------------------------------
-    reg [21:0] hit_stretch_cnt;
-    reg        hit_led_reg;
-    always @(posedge clk_50mhz or negedge sys_reset_n) begin
+    wire fwd_active = (forward_a != 2'b00) || (forward_b != 2'b00);
+
+    reg [22:0] hazard_stretch_cnt;
+    reg [22:0] fwd_stretch_cnt;
+    reg [22:0] flush_stretch_cnt;
+    reg [22:0] mul_stretch_cnt;
+    reg [22:0] div_stretch_cnt;
+    reg [22:0] fpu_stretch_cnt;
+    reg [22:0] hit_stretch_cnt;
+    reg [22:0] miss_stretch_cnt;
+
+    always @(posedge clk_100mhz or negedge sys_reset_n) begin
         if (!sys_reset_n) begin
-            hit_stretch_cnt <= 22'd0;
-            hit_led_reg     <= 1'b0;
-        end else if (dcache_hit) begin
-            hit_stretch_cnt <= 22'h3F_FFFF;
-            hit_led_reg     <= 1'b1;
-        end else if (hit_stretch_cnt > 0) begin
-            hit_stretch_cnt <= hit_stretch_cnt - 22'd1;
-            hit_led_reg     <= 1'b1;
+            hazard_stretch_cnt <= 23'd0;
+            fwd_stretch_cnt    <= 23'd0;
+            flush_stretch_cnt  <= 23'd0;
+            mul_stretch_cnt    <= 23'd0;
+            div_stretch_cnt    <= 23'd0;
+            fpu_stretch_cnt    <= 23'd0;
+            hit_stretch_cnt    <= 23'd0;
+            miss_stretch_cnt   <= 23'd0;
         end else begin
-            hit_led_reg     <= 1'b0;
+            if (hazard_stall || dcache_stall)
+                hazard_stretch_cnt <= 23'h40_0000;
+            else if (hazard_stretch_cnt > 0)
+                hazard_stretch_cnt <= hazard_stretch_cnt - 23'd1;
+
+            if (fwd_active)
+                fwd_stretch_cnt <= 23'h40_0000;
+            else if (fwd_stretch_cnt > 0)
+                fwd_stretch_cnt <= fwd_stretch_cnt - 23'd1;
+
+            if (hazard_flush_id || hazard_flush_ex)
+                flush_stretch_cnt <= 23'h40_0000;
+            else if (flush_stretch_cnt > 0)
+                flush_stretch_cnt <= flush_stretch_cnt - 23'd1;
+
+            if (mul_active)
+                mul_stretch_cnt <= 23'h40_0000;
+            else if (mul_stretch_cnt > 0)
+                mul_stretch_cnt <= mul_stretch_cnt - 23'd1;
+
+            if (div_active || div_busy)
+                div_stretch_cnt <= 23'h40_0000;
+            else if (div_stretch_cnt > 0)
+                div_stretch_cnt <= div_stretch_cnt - 23'd1;
+
+            if (fpu_active || fpu_busy)
+                fpu_stretch_cnt <= 23'h40_0000;
+            else if (fpu_stretch_cnt > 0)
+                fpu_stretch_cnt <= fpu_stretch_cnt - 23'd1;
+
+            if (dcache_hit)
+                hit_stretch_cnt <= 23'h40_0000;
+            else if (hit_stretch_cnt > 0)
+                hit_stretch_cnt <= hit_stretch_cnt - 23'd1;
+
+            if (dcache_miss)
+                miss_stretch_cnt <= 23'h40_0000;
+            else if (miss_stretch_cnt > 0)
+                miss_stretch_cnt <= miss_stretch_cnt - 23'd1;
         end
     end
 
-    reg [21:0] miss_stretch_cnt;
-    reg        miss_led_reg;
-    always @(posedge clk_50mhz or negedge sys_reset_n) begin
-        if (!sys_reset_n) begin
-            miss_stretch_cnt <= 22'd0;
-            miss_led_reg     <= 1'b0;
-        end else if (dcache_miss) begin
-            miss_stretch_cnt <= 22'h3F_FFFF;
-            miss_led_reg     <= 1'b1;
-        end else if (miss_stretch_cnt > 0) begin
-            miss_stretch_cnt <= miss_stretch_cnt - 22'd1;
-            miss_led_reg     <= 1'b1;
-        end else begin
-            miss_led_reg     <= 1'b0;
-        end
-    end
-
-    // ------------------------------------------------------------------------
-    // Program Execution Complete Detector
-    // ------------------------------------------------------------------------
-    reg prog_done;
-    always @(posedge clk_50mhz or negedge sys_reset_n) begin
-        if (!sys_reset_n)
-            prog_done <= 1'b0;
-        else if (imem_rdata == 32'h00008067 && !hazard_stall)
-            prog_done <= 1'b1;
-    end
+    wire led_hazard = (sw[0] || sw[1]) ? (hazard_stall || dcache_stall) : (hazard_stretch_cnt > 0);
+    wire led_fwd    = (sw[0] || sw[1]) ? fwd_active                    : (fwd_stretch_cnt > 0);
+    wire led_flush  = (sw[0] || sw[1]) ? (hazard_flush_id || hazard_flush_ex) : (flush_stretch_cnt > 0);
+    wire led_mul    = (sw[0] || sw[1]) ? mul_active                    : (mul_stretch_cnt > 0);
+    wire led_div    = (sw[0] || sw[1]) ? (div_active || div_busy)      : (div_stretch_cnt > 0);
+    wire led_fpu    = (sw[0] || sw[1]) ? (fpu_active || fpu_busy)      : (fpu_stretch_cnt > 0);
+    wire led_hit    = (sw[0] || sw[1]) ? dcache_hit                    : (hit_stretch_cnt > 0);
+    wire led_miss   = (sw[0] || sw[1]) ? dcache_miss                   : (miss_stretch_cnt > 0);
 
     // ------------------------------------------------------------------------
     // Discrete LED Output Mapping
     // ------------------------------------------------------------------------
-    assign led[0]     = hazard_stall;
-    assign led[1]     = (forward_a != 2'b00) || (forward_b != 2'b00);
-    assign led[2]     = hazard_flush_id || hazard_flush_ex;
+    assign led[0]     = led_hazard;
+    assign led[1]     = led_fwd;
+    assign led[2]     = led_flush;
     assign led[3]     = wb_reg_write;
-    assign led[4]     = mul_active;
-    assign led[5]     = div_active || div_busy;
-    assign led[6]     = fpu_active || fpu_busy;
+    assign led[4]     = led_mul;
+    assign led[5]     = led_div;
+    assign led[6]     = led_fpu;
     assign led[7]     = prog_done;
-    assign led[8]     = hit_led_reg;
-    assign led[9]     = miss_led_reg;
-    assign led[15:10] = wb_data[5:0];
+    assign led[8]     = led_hit;
+    assign led[9]     = led_miss;
+    assign led[15:10] = prog_done ? final_result_a0[5:0] : wb_data[5:0];
 
     // ------------------------------------------------------------------------
     // 8-Digit Seven-Segment Multiplexed Controller
+    // Accurately connects data_in and show_dashes to seven_seg_controller
     // ------------------------------------------------------------------------
-    wire [31:0] display_value = sw[2] ? imem_rdata : pc_if;
+    wire [31:0] display_pc   = (prog_done || saw_ret) ? final_ret_pc : pc_if;
+    wire [31:0] display_inst = (prog_done || saw_ret) ? 32'h0000_8067 : imem_rdata;
+    wire [31:0] display_data = (sw[2]) ? display_inst : display_pc;
+    wire show_dashes         = saw_ret || prog_done;
 
     seven_seg_controller u_seven_seg (
-        .clk         (clk_100mhz),
-        .reset_n     (sys_reset_n),
-        .display_num (display_value),
-        .an          (an),
-        .seg         (seg),
-        .dp          (dp)
+        .clk        (clk_100mhz),
+        .reset_n    (sys_reset_n),
+        .data_in    (display_data),
+        .show_dashes(show_dashes),
+        .an         (an),
+        .seg        (seg),
+        .dp         (dp)
     );
 
 endmodule
