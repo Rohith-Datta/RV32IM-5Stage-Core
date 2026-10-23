@@ -271,11 +271,14 @@ module fpga_top_feature4 (
         .HEX_FILE("imem.hex"),
         .WORDS(1024)
     ) u_imem (
-        .addr(imem_addr),
-        .rdata(imem_rdata)
+        .clk  (core_clk),
+        .pc   (imem_addr),
+        .instr(imem_rdata)
     );
 
     // UART Subsystem
+    wire [31:0] uart_rdata;
+    wire        uart_addr_match;
     uart_unit #(
         .CLK_FREQ  (100_000_000),
         .BAUD_RATE (115_200),

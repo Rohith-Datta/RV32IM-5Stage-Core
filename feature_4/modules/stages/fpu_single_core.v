@@ -87,12 +87,16 @@ module fpu_single_core (
     wire [7:0] exp_a = op_a[30:23];
     wire [22:0] frac_a = op_a[22:0];
     wire a_is_zero = (op_a[30:0] == 31'd0);
+    wire a_is_nan  = (exp_a == 8'hFF) && (frac_a != 23'd0);
+    wire a_is_inf  = (exp_a == 8'hFF) && (frac_a == 23'd0);
 
     wire is_sub_op = (funct7 == FUNCT7_FSUB);
     wire sign_b = op_b[31] ^ is_sub_op;
     wire [7:0] exp_b = op_b[30:23];
     wire [22:0] frac_b = op_b[22:0];
     wire b_is_zero = (op_b[30:0] == 31'd0);
+    wire b_is_nan  = (exp_b == 8'hFF) && (frac_b != 23'd0);
+    wire b_is_inf  = (exp_b == 8'hFF) && (frac_b == 23'd0);
 
     wire [23:0] mant_a = a_is_zero ? 24'd0 : {1'b1, frac_a};
     wire [23:0] mant_b = b_is_zero ? 24'd0 : {1'b1, frac_b};
@@ -221,9 +225,9 @@ module fpu_single_core (
                                 fdiv_sign_res <= op_a[31] ^ op_b[31];
                                 fdiv_denom    <= mant_b;
                                 fdiv_quot     <= 26'd0;
-                                fdiv_div0     <= b_is_zero && !a_is_zero;
-                                fdiv_nan      <= b_is_zero && a_is_zero;
-                                fdiv_zero_res <= a_is_zero && !b_is_zero;
+                                fdiv_div0     <= ((b_is_zero || a_is_inf) && !a_is_zero && !b_is_inf && !a_is_nan && !b_is_nan);
+                                fdiv_nan      <= (a_is_nan || b_is_nan || (b_is_zero && a_is_zero) || (a_is_inf && b_is_inf));
+                                fdiv_zero_res <= ((a_is_zero || b_is_inf) && !b_is_zero && !a_is_inf && !a_is_nan && !b_is_nan);
 
                                 if (mant_a >= mant_b) begin
                                     fdiv_rem     <= {2'b00, mant_a};
