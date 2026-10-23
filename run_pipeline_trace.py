@@ -34,6 +34,9 @@ else:
 
 FEATURE1_DIR = os.path.join(ROOT_DIR, "feature_1")
 FEATURE2_DIR = os.path.join(ROOT_DIR, "feature_2")
+FEATURE3_DIR = os.path.join(ROOT_DIR, "feature_3")
+FEATURE4_DIR = os.path.join(ROOT_DIR, "feature_4")
+FEATURE5_DIR = os.path.join(ROOT_DIR, "feature_5")
 C_TESTS_DIR  = os.path.join(ROOT_DIR, "c_tests")
 
 CC      = "riscv-none-elf-gcc"
@@ -522,11 +525,11 @@ def print_fpga_mapping_summary(records, ret_val, imem_map, retired_list=None, ch
     print("-" * 116 + "\n")
 
 def main():
-    parser = argparse.ArgumentParser(description="5-Stage RV32I/RV32M Processor Pipeline Trace Visualizer")
+    parser = argparse.ArgumentParser(description="5-Stage RV32IMF Processor Pipeline Trace Visualizer")
     parser.add_argument("target", nargs="?", default="addition",
                         help="Target test (addition, multiplication, division, fibonacci, sort, negative, xor, or custom file .c / .s / .hex)")
-    parser.add_argument("--feature", "-f", choices=["1", "2", "3", "auto"], default="auto",
-                        help="Target core feature: 1 (RV32I baseline), 2 (RV32IM multiplier), 3 (RV32IM divider), or auto (default)")
+    parser.add_argument("--feature", "-f", choices=["1", "2", "3", "4", "5", "auto"], default="auto",
+                        help="Target core feature: 1 (RV32I baseline), 2 (RV32IM multiplier), 3 (RV32IM divider), 4 (RV32IMF FPU), 5 (RV32IMF with D-Cache), or auto (default)")
     parser.add_argument("--asm", type=str, default=None,
                         help="Direct assembly string (e.g. 'addi x1, x0, 10; addi x2, x0, 2; add x3, x1, x2; ret')")
     parser.add_argument("--bitstream", action="store_true",
@@ -534,6 +537,13 @@ def main():
 
     args = parser.parse_args()
     target = args.target
+
+    if args.feature == "5":
+        f5_script = os.path.join(FEATURE5_DIR, "run_pipeline_trace.py")
+        sys.exit(subprocess.call([sys.executable, f5_script, target], cwd=ROOT_DIR))
+    if args.feature == "4":
+        f4_script = os.path.join(FEATURE4_DIR, "run_pipeline_trace.py")
+        sys.exit(subprocess.call([sys.executable, f4_script, target], cwd=ROOT_DIR))
 
     FEATURE3_DIR = os.path.join(ROOT_DIR, "feature_3")
     f1_mem = os.path.join(FEATURE1_DIR, "mem")
