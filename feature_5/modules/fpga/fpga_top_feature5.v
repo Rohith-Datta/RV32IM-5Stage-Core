@@ -91,27 +91,6 @@ module fpga_top_feature5 (
     assign btn_pulse = btn_state && !btn_prev;
 
     // ------------------------------------------------------------------------
-    // 50 MHz Synchronous Core Clock Generator (Derived from 100 MHz Oscillator)
-    // ------------------------------------------------------------------------
-    (* keep = "true" *) reg clk_50mhz;
-    always @(posedge clk_100mhz or negedge sys_reset_n) begin
-        if (!sys_reset_n)
-            clk_50mhz <= 1'b0;
-        else
-            clk_50mhz <= ~clk_50mhz;
-    end
-
-    // ------------------------------------------------------------------------
-    // Telemetry & Completion Wires
-    // ------------------------------------------------------------------------
-    wire uart_busy_w;
-    wire banner_done_w;
-    reg  prog_done;
-    reg  saw_ret;
-    reg  [2:0] drain_cnt;
-    reg  [31:0] final_ret_pc;
-
-    // ------------------------------------------------------------------------
     // Slow Clock Generator (1 Hz for visual debug)
     // ------------------------------------------------------------------------
     reg [26:0] slow_div_cnt;
@@ -130,8 +109,18 @@ module fpga_top_feature5 (
     end
 
     // ------------------------------------------------------------------------
+    // Telemetry & Completion Wires
+    // ------------------------------------------------------------------------
+    wire uart_busy_w;
+    wire banner_done_w;
+    reg  prog_done;
+    reg  saw_ret;
+    reg  [2:0] drain_cnt;
+    reg  [31:0] final_ret_pc;
+
+    // ------------------------------------------------------------------------
     // Auto-stream step generator paced by UART (sw[0]=0, sw[1]=0)
-    // Matches Feature 1/2/3 behavior: advances 1 instruction per UART line transmission
+    // Matches Feature 1/2/3/4 behavior: advances 1 core cycle per UART line transmission
     // ------------------------------------------------------------------------
     reg auto_step_pending;
     reg auto_step_pulse;
@@ -154,27 +143,15 @@ module fpga_top_feature5 (
         end
     end
 
-    // Unified step pulse in 100 MHz domain
-    wire core_step_pulse_100 = (sw[0]) ? btn_pulse :
-                               ((sw[1]) ? slow_step_pulse : auto_step_pulse);
+    // Unified step pulse:
+    //   sw[0] = 0, sw[1] = 0: Paced real-time streaming with UART
+    //   sw[0] = 0, sw[1] = 1: 1 Hz Slow Clock mode
+    //   sw[0] = 1: Single-Step mode via Center Pushbutton (btnc)
+    wire core_step_pulse = (sw[0]) ? btn_pulse :
+                           ((sw[1]) ? slow_step_pulse : auto_step_pulse);
 
-    // Synchronize step pulse to 50 MHz core clock domain
-    reg step_sync_d1, step_sync_d2, step_sync_d3;
-    always @(posedge clk_50mhz or negedge sys_reset_n) begin
-        if (!sys_reset_n) begin
-            step_sync_d1 <= 1'b0;
-            step_sync_d2 <= 1'b0;
-            step_sync_d3 <= 1'b0;
-        end else begin
-            step_sync_d1 <= core_step_pulse_100;
-            step_sync_d2 <= step_sync_d1;
-            step_sync_d3 <= step_sync_d2;
-        end
-    end
-    wire core_step_pulse_50 = step_sync_d2 && !step_sync_d3;
-
-    // Execution freeze control: Core runs for 1 cycle when core_step_pulse_50 is high
-    wire stall_from_clock = !(core_step_pulse_50 && !prog_done);
+    // Gated Core Clock: Advances exactly 1 cycle per instruction or stall cycle!
+    wire core_clk = core_step_pulse && !prog_done;
 
     // ------------------------------------------------------------------------
     // Memories (BRAM Models for 4 KB IMEM & 4 KB DMEM)
@@ -193,7 +170,7 @@ module fpga_top_feature5 (
         .HEX_FILE("imem.hex"),
         .WORDS(1024)
     ) u_instr_mem (
-        .clk   (clk_50mhz),
+        .clk   (core_clk),
         .pc    (imem_addr),
         .instr (imem_rdata)
     );
@@ -202,7 +179,7 @@ module fpga_top_feature5 (
         .HEX_FILE("dmem.hex"),
         .WORDS(1024)
     ) u_data_mem (
-        .clk   (clk_50mhz),
+        .clk   (core_clk),
         .re    (dmem_req),
         .raddr (dmem_addr),
         .rdata (dmem_rdata),
@@ -254,9 +231,9 @@ module fpga_top_feature5 (
     pipeline_5stage #(
         .RESET_PC(32'h0000_0000)
     ) u_core (
-        .clk              (clk_50mhz),
+        .clk              (core_clk),
         .reset_n          (sys_reset_n),
-        .stall_ext        (stall_from_clock),
+        .stall_ext        (prog_done),
         .use_dsp_i        (!sw[3]),
         .imem_addr        (imem_addr),
         .imem_rdata       (imem_rdata_core),
@@ -302,18 +279,18 @@ module fpga_top_feature5 (
     // Program Execution Complete Detector
     // Detects RET (32'h00008067), drains pipeline, then halts
     // ------------------------------------------------------------------------
-    always @(posedge clk_50mhz or negedge sys_reset_n) begin
+    always @(posedge clk_100mhz or negedge sys_reset_n) begin
         if (!sys_reset_n) begin
             saw_ret      <= 1'b0;
             drain_cnt    <= 3'd0;
             prog_done    <= 1'b0;
             final_ret_pc <= 32'd0;
         end else begin
-            if (imem_rdata == 32'h0000_8067 && pc_if != 32'h0 && core_step_pulse_50 && !hazard_stall) begin
+            if (imem_rdata == 32'h0000_8067 && pc_if != 32'h0 && core_step_pulse && !hazard_stall) begin
                 saw_ret      <= 1'b1;
                 final_ret_pc <= pc_if;
             end
-            if (saw_ret && core_step_pulse_50 && !prog_done) begin
+            if (saw_ret && core_step_pulse && !prog_done) begin
                 if (!hazard_stall) begin
                     if (drain_cnt < 3'd4)
                         drain_cnt <= drain_cnt + 3'd1;
@@ -326,10 +303,10 @@ module fpga_top_feature5 (
 
     // Latch final return value a0 (x10) when committed
     reg [7:0] final_result_a0;
-    always @(posedge clk_50mhz or negedge sys_reset_n) begin
+    always @(posedge clk_100mhz or negedge sys_reset_n) begin
         if (!sys_reset_n)
             final_result_a0 <= 8'd0;
-        else if (wb_reg_write && wb_dest_reg == 5'd10)
+        else if (core_step_pulse && wb_reg_write && wb_dest_reg == 5'd10)
             final_result_a0 <= wb_data[7:0];
     end
 
@@ -355,7 +332,7 @@ module fpga_top_feature5 (
         .fetch_pc        (uart_fetch_pc),
         .fetch_inst      (uart_fetch_inst),
         .hazard_stall    (hazard_stall || dcache_stall),
-        .step_trigger    (core_step_pulse_100),
+        .step_trigger    (core_step_pulse && !prog_done),
         .uart_tx         (uart_tx),
         .uart_busy       (uart_busy_w),
         .banner_done_o   (banner_done_w)

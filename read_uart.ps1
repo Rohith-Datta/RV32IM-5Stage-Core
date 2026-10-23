@@ -153,11 +153,11 @@ try {
                 continue
             }
 
-            # Check for Load-Use Hazard Stall
+            # Check for Pipeline Hazard / D-Cache Miss Stall
             if ($line -match "stall") {
                 $stall_count++
                 $cc_str = "{0,3}" -f $cycle
-                Write-Host " [CC=$cc_str] ---------stall---------  <-- [LOAD-USE HAZARD STALL DETECTED]" -ForegroundColor Yellow
+                Write-Host " [CC=$cc_str] ---------stall---------  <-- [PIPELINE STALL: D-Cache Miss Refill / Hazard]" -ForegroundColor Yellow
                 $cycle++
                 continue
             }
@@ -206,7 +206,7 @@ try {
                         Write-Host "   * Final Retirement of ret   : Clock Cycle $cycle (WB Stage)" -ForegroundColor Cyan
                         Write-Host "   * Total Elapsed Clock Cycles: $total_elapsed_cycles cycles (Cycles 0 to $cycle)" -ForegroundColor Cyan
                         Write-Host "   * Dynamic Instructions Run  : $inst_count instructions ($reg_commits register commits + 5 memory stores)" -ForegroundColor White
-                        Write-Host "   * Load-Use Hazard Stalls    : $stall_count stalls (Cycles 11 & 15)" -ForegroundColor Yellow
+                        Write-Host "   * Pipeline Stalls (Cache/Hazard): $stall_count stalls" -ForegroundColor Yellow
                         Write-Host "   * Throughput (Overall IPC)  : $ipc_total instructions/cycle ($inst_count / $total_elapsed_cycles)" -ForegroundColor White
                         Write-Host "   * Throughput (Retired IPC)  : $ipc_retired instructions/cycle ($reg_commits / $total_elapsed_cycles)" -ForegroundColor White
                         Write-Host "----------------------------------------------------------" -ForegroundColor DarkGray
