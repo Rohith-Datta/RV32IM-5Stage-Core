@@ -34,7 +34,9 @@ module icache_controller #(
     parameter ADDR_WIDTH     = 32,
     parameter TAG_WIDTH      = 21,    // [31:11]
     parameter INDEX_WIDTH    = 7,     // [10:4]
-    parameter OFFSET_WIDTH   = 2      // [3:2]
+    parameter OFFSET_WIDTH   = 2,     // [3:2]
+    parameter HIT_TIME       = 1,     // Hit latency (1 cycle)
+    parameter MISS_PENALTY   = 9      // Miss penalty stall cycles (9 cycles, 10 cycles total)
 )(
     input  wire        clk,
     input  wire        reset_n,
@@ -58,8 +60,13 @@ module icache_controller #(
     output wire        cache_hit,
     output wire        cache_miss,
     output reg  [31:0] hit_count,
-    output reg  [31:0] miss_count
+    output reg  [31:0] miss_count,
+    output wire [1:0]  state_o,
+    output wire [3:0]  refill_cnt_o,
+    output wire [31:0] latched_pc_o,
+    output wire        just_refilled_o
 );
+
 
     // ------------------------------------------------------------------------
     // Cache Storage Arrays
@@ -163,6 +170,11 @@ module icache_controller #(
     // ------------------------------------------------------------------------
     integer i;
     reg just_refilled;
+
+    assign state_o         = state;
+    assign refill_cnt_o    = refill_cnt;
+    assign latched_pc_o    = latched_pc;
+    assign just_refilled_o = just_refilled;
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             state         <= STATE_IDLE;
@@ -218,7 +230,7 @@ module icache_controller #(
                     end else if (refill_cnt == 4'd6) begin
                         if (!bypass_act) data_mem3[refill_index] <= mem_rdata;
                         if (refill_offset == 2'b11) bypass_word <= mem_rdata;
-                    end else if (refill_cnt == 4'd8) begin
+                    end else if (refill_cnt == (MISS_PENALTY - 2)) begin
                         if (bypass_act) begin
                             // In bypass mode, do not write tag or valid bit
                             state         <= STATE_BYPASS;

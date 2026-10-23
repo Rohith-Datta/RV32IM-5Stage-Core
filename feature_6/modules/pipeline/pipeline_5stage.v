@@ -15,7 +15,9 @@
 `timescale 1ns/1ps
 
 module pipeline_5stage #(
-    parameter RESET_PC = 32'h0000_0000
+    parameter RESET_PC     = 32'h0000_0000,
+    parameter HIT_TIME     = 1,
+    parameter MISS_PENALTY = 9
 )(
     input  wire        clk,
     input  wire        reset_n,
@@ -62,7 +64,13 @@ module pipeline_5stage #(
     output wire        icache_hit,
     output wire        icache_miss,
     output wire [31:0] icache_hit_count,
-    output wire [31:0] icache_miss_count
+    output wire [31:0] icache_miss_count,
+    output wire        branch_or_jump_taken_o,
+    output wire        jal_taken_id_o,
+    output wire [1:0]  icache_state_o,
+    output wire [3:0]  icache_refill_cnt_o,
+    output wire [31:0] icache_latched_pc_o,
+    output wire        icache_just_refilled_o
 );
 
     `include "opcode.vh"
@@ -78,6 +86,18 @@ module pipeline_5stage #(
     wire        branch_or_jump_taken;
     wire [31:0] target_pc;
 
+    // Fast JAL Resolution in ID Stage (1-cycle JAL latency, 1-cycle flush penalty)
+    wire        id_jal;
+    wire [31:0] id_imm;
+    wire [31:0] if_id_pc;
+
+    wire        jal_taken_id   = id_jal;
+    wire [31:0] jal_target_id  = if_id_pc + id_imm;
+    assign jal_taken_id_o      = jal_taken_id;
+
+    wire        pipe_redirect  = jal_taken_id || branch_or_jump_taken;
+    wire [31:0] pipe_target_pc = jal_taken_id ? jal_target_id : target_pc;
+
     // ========================================================================
     // 1. IF Stage (Instruction Fetch, PC Update, & 2 KB L1 I-Cache)
     // ========================================================================
@@ -86,13 +106,17 @@ module pipeline_5stage #(
     wire [31:0] pc_plus4;
 
     assign pc_plus4 = pc_reg + 32'd4;
-    assign pc_next  = branch_or_jump_taken ? target_pc : pc_plus4;
+    assign pc_next  = pipe_redirect ? pipe_target_pc : pc_plus4;
 
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             pc_reg <= RESET_PC;
-        end else if (!stall_if && !stall_ext) begin
-            pc_reg <= pc_next;
+        end else if (!stall_ext) begin
+            if (pipe_redirect) begin
+                pc_reg <= pipe_target_pc;
+            end else if (!stall_if) begin
+                pc_reg <= pc_next;
+            end
         end
     end
 
@@ -107,11 +131,13 @@ module pipeline_5stage #(
         .ADDR_WIDTH     (32),
         .TAG_WIDTH      (21),
         .INDEX_WIDTH    (7),
-        .OFFSET_WIDTH   (2)
+        .OFFSET_WIDTH   (2),
+        .HIT_TIME       (HIT_TIME),
+        .MISS_PENALTY   (MISS_PENALTY)
     ) u_icache (
         .clk             (clk),
         .reset_n         (reset_n),
-        .flush_i         (branch_or_jump_taken), // Flush in-flight refill on branch/jump
+        .flush_i         (pipe_redirect), // Flush in-flight refill on branch/jump
         .counter_reset_i (1'b0),
         .cache_bypass_i  (icache_bypass_i),
         .cpu_addr        (pc_reg),
@@ -123,13 +149,16 @@ module pipeline_5stage #(
         .cache_hit       (icache_hit),
         .cache_miss      (icache_miss),
         .hit_count       (icache_hit_count),
-        .miss_count      (icache_miss_count)
+        .miss_count      (icache_miss_count),
+        .state_o         (icache_state_o),
+        .refill_cnt_o    (icache_refill_cnt_o),
+        .latched_pc_o    (icache_latched_pc_o),
+        .just_refilled_o (icache_just_refilled_o)
     );
 
     // ========================================================================
     // IF/ID Pipeline Register
     // ========================================================================
-    wire [31:0] if_id_pc;
     wire [31:0] if_id_pc_plus4;
     wire [31:0] if_id_inst;
 
@@ -137,7 +166,7 @@ module pipeline_5stage #(
         .clk        (clk),
         .reset_n    (reset_n),
         .stall      (stall_if_id || stall_ext),
-        .flush      (flush_if_id || branch_or_jump_taken),
+        .flush      (flush_if_id || pipe_redirect),
         .pc_i       (pc_reg),
         .pc_plus4_i (pc_plus4),
         .instr_i    (icache_cpu_rdata),
@@ -156,7 +185,6 @@ module pipeline_5stage #(
     wire        id_alu;
     wire        id_lui;
     wire        id_auipc;
-    wire        id_jal;
     wire        id_jalr;
     wire        id_branch;
     wire        id_mem_read;
@@ -170,7 +198,6 @@ module pipeline_5stage #(
     wire        id_illegal_inst;
     wire [31:0] id_rdata1;
     wire [31:0] id_rdata2;
-    wire [31:0] id_imm;
     wire [4:0]  id_rs1;
     wire [4:0]  id_rs2;
     wire [4:0]  id_rd;
@@ -257,7 +284,7 @@ module pipeline_5stage #(
         .alu_i           (id_alu),
         .lui_i           (id_lui),
         .auipc_i         (id_auipc),
-        .jal_i           (id_jal),
+        .jal_i           (id_jal && !jal_taken_id),
         .jalr_i          (id_jalr),
         .branch_i        (id_branch),
         .mem_read_i      (id_mem_read),
@@ -515,9 +542,10 @@ module pipeline_5stage #(
     );
 
     // Diagnostics / Exception
-    assign hazard_stall    = stall_if || icache_stall;
-    assign hazard_flush_id = flush_if_id;
-    assign hazard_flush_ex = flush_id_ex;
-    assign exception       = id_illegal_inst;
+    assign hazard_stall           = stall_if || icache_stall;
+    assign hazard_flush_id        = flush_if_id;
+    assign hazard_flush_ex        = flush_id_ex;
+    assign exception              = id_illegal_inst;
+    assign branch_or_jump_taken_o = branch_or_jump_taken;
 
 endmodule

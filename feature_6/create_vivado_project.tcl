@@ -46,6 +46,7 @@ set RTL_FILES [list \
     [file join $SCRIPT_DIR "modules" "fpga" "fpga_top_feature6.v"] \
     [file join $SCRIPT_DIR "modules" "uart" "uart_tx.v"] \
     [file join $SCRIPT_DIR "modules" "uart" "uart_unit.v"] \
+    [file join $SCRIPT_DIR "modules" "uart" "icache_uart_printer.v"] \
 ]
 
 add_files -norecurse -fileset sources_1 $RTL_FILES
@@ -73,6 +74,7 @@ add_files -norecurse -fileset sources_1 $MEM_FILES
 
 # Add Simulation Sources & Testbenches
 set SIM_FILES [list \
+    [file join $SCRIPT_DIR "testbench" "tb_icache_uart_verify.v"] \
     [file join $SCRIPT_DIR "testbench" "tb_icache.v"] \
     [file join $SCRIPT_DIR "testbench" "tb_feature6_pipeline.v"] \
     [file join $SCRIPT_DIR "testbench" "tb_pipeline_base.v"] \
