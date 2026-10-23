@@ -165,6 +165,12 @@ try {
                 continue
             }
 
+            # Pass through Feature 6 I-cache formatted trace lines without mangling
+            if ($line -match "^\s*\d+\s+0x[0-9a-fA-F]{8}\s+0x[0-9a-fA-F]{8}" -or $line -match "^\s*FLUSH\s+PC=") {
+                Write-Host $line
+                continue
+            }
+
             # Check for Pipeline Hazard / D-Cache Miss Stall
             if ($line -match "stall") {
                 $stall_count++

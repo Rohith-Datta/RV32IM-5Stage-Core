@@ -137,6 +137,7 @@ module pipeline_5stage #(
     ) u_icache (
         .clk             (clk),
         .reset_n         (reset_n),
+        .stall_i         (stall_ext),
         .flush_i         (pipe_redirect), // Flush in-flight refill on branch/jump
         .counter_reset_i (1'b0),
         .cache_bypass_i  (icache_bypass_i),

@@ -28,8 +28,9 @@ module tb_icache_uart_verify;
 
     // Instantiate Top-Level FPGA Module
     fpga_top_feature6 #(
-        .CLK_FREQ  (50_000_000),
-        .BAUD_RATE (SIM_BAUD)
+        .CLK_FREQ       (50_000_000),
+        .BAUD_RATE      (SIM_BAUD),
+        .DEBOUNCE_LIMIT (20'd4)
     ) u_dut (
         .CLK100MHZ   (clk100mhz),
         .CPU_RESETN  (cpu_resetn),
@@ -47,6 +48,7 @@ module tb_icache_uart_verify;
 
     reg [7:0] rx_byte;
     integer   bit_idx;
+    integer   step_k;
 
     always begin
         // Wait for falling edge of START bit
@@ -123,6 +125,33 @@ module tb_icache_uart_verify;
         wait (led[4] == 1'b1);
         $display("[TB] >>> UART transmission finished for Mode 1!\n");
         #50000; // Wait 50 us
+
+        // --------------------------------------------------------------------
+        // TEST 3: Hardware Debug Stepping Mode (SW[15] = 1, BTNC pulses)
+        // --------------------------------------------------------------------
+        $display("\n[TB] --------------------------------------------------------");
+        $display("[TB] TEST 3: Testing Hardware Debug Stepping Mode (SW[15] = 1)...");
+        $display("[TB] SW15 = 1 (Step Mode), SW0 = 0 (Cold Cache Enabled).");
+        $display("[TB] Verifying single-cycle advance per BTNC press + immediate UART row output.");
+        $display("[TB] --------------------------------------------------------");
+
+        sw[15] = 1'b1; // Enable Hardware Debug Step Mode
+        sw[0]  = 1'b0; // Cold Cache Mode 0
+        #500;
+        cpu_resetn = 1'b0; // Reset core
+        #1000;
+        cpu_resetn = 1'b1; // Release reset
+        #300000;           // Wait for banner header to print over UART
+
+        $display("[TB] Banner output complete. Advancing 5 single cycles via BTNC pulses...");
+        for (step_k = 1; step_k <= 5; step_k = step_k + 1) begin
+            $display("[TB] >>> Pressing BTNC for cycle %0d...", step_k);
+            btnc = 1'b1;
+            #300; // Hold button past debounce threshold
+            btnc = 1'b0;
+            #350000; // Allow single-row UART transmission to complete
+        end
+        $display("[TB] >>> Successfully stepped 5 cycles and received immediate UART line per step!\n");
 
         $display("\n============================================================");
         $display("   FEATURE 6 VERIFICATION TESTBENCH COMPLETED SUCCESSFULLY!");

@@ -19,9 +19,13 @@ module icache_uart_printer #(
     input  wire        reset_n,
 
     // Trigger & Mode Info
-    input  wire        start_print,       // Pulse to start UART dump
-    input  wire        mode_bypassed,     // 0: Enabled (SW0=0), 1: Bypassed (SW0=1)
-    input  wire [7:0]  trace_len,         // Total entries in trace buffer
+    input  wire        start_print,        // Pulse to start continuous UART dump
+    input  wire        print_banner_only,  // Pulse to print banner header only (Step mode)
+    input  wire        print_single_row,   // Pulse to print a single row immediately (Step mode)
+    input  wire [7:0]  single_row_addr,    // Target trace address for single row
+    input  wire        print_summary_only, // Pulse to print summary after step mode halt
+    input  wire        mode_bypassed,      // 0: Enabled (SW0=0), 1: Bypassed (SW0=1)
+    input  wire [7:0]  trace_len,          // Total entries in trace buffer
 
     // Trace Buffer Read Interface
     output reg  [7:0]  trace_rd_addr,
@@ -150,6 +154,7 @@ module icache_uart_printer #(
     reg [3:0] sub_step;
     reg [6:0] char_idx;
     reg [7:0] current_row;
+    reg       is_step_op;
 
     assign print_busy = (state != S_IDLE);
 
@@ -709,6 +714,24 @@ module icache_uart_printer #(
                         sub_step    <= 4'd0;
                         char_idx    <= 7'd0;
                         current_row <= 8'd0;
+                        is_step_op  <= 1'b0;
+                    end else if (print_banner_only) begin
+                        state       <= S_BANNER;
+                        sub_step    <= 4'd0;
+                        char_idx    <= 7'd0;
+                        is_step_op  <= 1'b1;
+                    end else if (print_single_row) begin
+                        state         <= S_ROW;
+                        sub_step      <= 4'd0;
+                        char_idx      <= 7'd0;
+                        current_row   <= single_row_addr;
+                        trace_rd_addr <= single_row_addr;
+                        is_step_op    <= 1'b1;
+                    end else if (print_summary_only) begin
+                        state       <= S_SUMMARY;
+                        sub_step    <= 4'd0;
+                        char_idx    <= 7'd0;
+                        is_step_op  <= 1'b0;
                     end
                 end
 
@@ -727,7 +750,7 @@ module icache_uart_printer #(
                                 sub_step      <= 4'd0;
                                 current_row   <= 8'd0;
                                 trace_rd_addr <= 8'd0;
-                                state         <= S_ROW;
+                                state         <= is_step_op ? S_IDLE : S_ROW;
                             end
                         end
                     end else begin
@@ -746,7 +769,9 @@ module icache_uart_printer #(
                             char_idx <= char_idx + 7'd1;
                         end else begin
                             char_idx <= 7'd0;
-                            if (current_row < trace_len - 1) begin
+                            if (is_step_op) begin
+                                state <= S_IDLE;
+                            end else if (current_row < trace_len - 1) begin
                                 current_row   <= current_row + 8'd1;
                                 trace_rd_addr <= current_row + 8'd1;
                             end else begin
@@ -758,6 +783,7 @@ module icache_uart_printer #(
                         tx_start <= 1'b0;
                     end
                 end
+
 
                 S_SUMMARY: begin
                     if (!tx_busy && !tx_start) begin

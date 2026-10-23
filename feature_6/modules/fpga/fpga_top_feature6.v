@@ -19,8 +19,9 @@
 `timescale 1ns/1ps
 
 module fpga_top_feature6 #(
-    parameter CLK_FREQ  = 50_000_000,
-    parameter BAUD_RATE = 115_200
+    parameter CLK_FREQ       = 50_000_000,
+    parameter BAUD_RATE      = 115_200,
+    parameter DEBOUNCE_LIMIT = 20'd1_000_000
 )(
     input  wire        CLK100MHZ,      // 100 MHz onboard oscillator
     input  wire        CPU_RESETN,     // Active-low CPU reset push button
@@ -48,12 +49,38 @@ module fpga_top_feature6 #(
     end
     wire reset_n = reset_sync[2];
 
-    // Synchronize center push button (BTNC clears comparison memory)
-    reg [2:0] btnc_sync = 3'b000;
-    always @(posedge clk_50mhz) begin
-        btnc_sync <= {btnc_sync[1:0], BTNC};
+    // ------------------------------------------------------------------------
+    // BTNC 20ms Digital Debouncer & Positive Edge Detector
+    // ------------------------------------------------------------------------
+    reg [2:0]  btnc_sync_reg = 3'b000;
+    reg [19:0] btnc_timer = 20'd0;
+    reg        btnc_debounced = 1'b0;
+    reg        btnc_debounced_d = 1'b0;
+
+    always @(posedge clk_50mhz or negedge reset_n) begin
+        if (!reset_n) begin
+            btnc_sync_reg       <= 3'b000;
+            btnc_timer          <= 20'd0;
+            btnc_debounced      <= 1'b0;
+            btnc_debounced_d    <= 1'b0;
+        end else begin
+            btnc_sync_reg <= {btnc_sync_reg[1:0], BTNC};
+            if (btnc_sync_reg[2] != btnc_debounced) begin
+                if (btnc_timer == DEBOUNCE_LIMIT) begin // Debounce window (20ms on hardware)
+                    btnc_debounced <= btnc_sync_reg[2];
+                    btnc_timer     <= 20'd0;
+                end else begin
+                    btnc_timer     <= btnc_timer + 20'd1;
+                end
+            end else begin
+                btnc_timer <= 20'd0;
+            end
+            btnc_debounced_d <= btnc_debounced;
+        end
     end
-    wire btnc_pressed = btnc_sync[2];
+
+    wire btnc_step_pulse = btnc_debounced && !btnc_debounced_d; // Clean 1-cycle edge pulse
+    wire btnc_pressed    = btnc_step_pulse;
 
     // ========================================================================
     // 2. Program Instruction Helper Function
@@ -145,15 +172,16 @@ module fpga_top_feature6 #(
     );
 
     // ========================================================================
-    // 5. Run Controller & Trace Logger
+    // 5. Run Controller, Stepping Logic & Trace Buffer
     // ========================================================================
     reg        latched_mode = 1'b0;   // Latched SW[0] at start of run
     reg        run_active   = 1'b0;   // 1 while benchmark is executing
     reg        run_done     = 1'b0;   // 1 when 3rd JAL completes
-    reg        stall_core   = 1'b1;   // Freezes CPU when run completes
-    reg [1:0]  jal_loop_cnt = 2'd0;   // Counts JAL completions (0, 1, 2 -> done)
+    reg [1:0]  jal_loop_cnt = 2'd0;   // Counts JAL loop completions (0, 1, 2 -> done)
+    reg [31:0] final_halt_pc = 32'h0000_0010;
 
-    reg [15:0] active_cycles = 16'd0;
+    reg [15:0] global_cyc    = 16'd1; // UNIFIED GLOBAL CYCLE COUNTER (starts at 1!)
+    reg [15:0] halted_cycles = 16'd0;
     reg [15:0] active_insts  = 16'd0;
     reg [15:0] active_hits   = 16'd0;
     reg [15:0] active_misses = 16'd0;
@@ -166,11 +194,19 @@ module fpga_top_feature6 #(
     //   4'd10: FETCHED (instruction delivered)
     //   4'd11: FLUSH  PC=0x00000014   (jal PC + 4)
     (* ram_style = "block" *) reg [83:0] trace_mem [0:255];
-    reg [7:0]  trace_len     = 8'd0;
+    reg [7:0]  trace_len = 8'd0;
     wire [7:0] trace_rd_addr;
     reg [83:0] trace_rd_data;
 
+    // Synchronous BRAM read/write
+    reg        trace_wr_en = 1'b0;
+    reg [83:0] trace_wr_data = 84'd0;
+    reg [7:0]  trace_wr_addr = 8'd0;
+
     always @(posedge clk_50mhz) begin
+        if (trace_wr_en) begin
+            trace_mem[trace_wr_addr] <= trace_wr_data;
+        end
         trace_rd_data <= trace_mem[trace_rd_addr];
     end
 
@@ -187,103 +223,185 @@ module fpga_top_feature6 #(
     reg [15:0] mode1_hits         = 16'd0;
     reg [15:0] mode1_misses       = 16'd0;
 
-    // Center button BTNC clears comparison memory if user wants fresh comparison
+    // Trigger pulses for UART print engine
+    reg start_print        = 1'b0;
+    reg step_print_banner  = 1'b0;
+    reg step_print_row     = 1'b0;
+    reg [7:0] step_row_addr = 8'd0;
+    reg step_print_summary = 1'b0;
+    reg banner_printed_for_step = 1'b0;
+
+    wire printer_busy;
+    wire printer_done;
+
+    // Hardware Debug Stepping Mode:
+    // SW[15] = 1: Manual Step Mode (advances 1 clock cycle per BTNC clean press)
+    // SW[15] = 0: Continuous Run Mode (runs at 50 MHz standard clock)
+    wire step_mode_active = SW[15];
+    wire can_step         = step_mode_active ? (btnc_step_pulse && !printer_busy) : 1'b1;
+    wire core_clk_en      = run_active && can_step;
+    wire stall_core       = !core_clk_en;
+
+    // In Continuous Mode, BTNC can be pressed to reset comparison history
     always @(posedge clk_50mhz) begin
-        if (btnc_pressed) begin
+        if (!step_mode_active && btnc_pressed) begin
             mode0_valid <= 1'b0;
             mode1_valid <= 1'b0;
         end
     end
-
-    // Trigger pulse for UART print engine
-    reg start_print = 1'b0;
 
     // Detect JAL executed in ID stage: IF is presenting pc_if == 0x00000014, which is FLUSHED!
     wire jal_taken_id;
 
     always @(posedge clk_50mhz or negedge reset_n) begin
         if (!reset_n) begin
-            latched_mode  <= SW[0];
-            run_active    <= 1'b1;  // Ready to run on first cycle exiting reset!
-            run_done      <= 1'b0;
-            stall_core    <= 1'b0;  // Allow core to run
-            start_print   <= 1'b0;
-            jal_loop_cnt  <= 2'd0;
-            active_cycles <= 16'd0;
-            active_insts  <= 16'd0;
-            active_hits   <= 16'd0;
-            active_misses <= 16'd0;
-            trace_len     <= 8'd0;
-        end else if (run_active) begin
-            start_print   <= 1'b0;
-            active_cycles <= active_cycles + 16'd1;
+            latched_mode             <= SW[0];
+            run_active               <= 1'b1;  // Ready to run on first cycle exiting reset!
+            run_done                 <= 1'b0;
+            start_print              <= 1'b0;
+            step_print_banner        <= 1'b0;
+            step_print_row           <= 1'b0;
+            step_row_addr            <= 8'd0;
+            step_print_summary       <= 1'b0;
+            banner_printed_for_step  <= 1'b0;
+            jal_loop_cnt             <= 2'd0;
+            global_cyc               <= 16'd1; // First clock cycle is CYC = 1!
+            halted_cycles            <= 16'd0;
+            active_insts             <= 16'd0;
+            active_hits              <= 16'd0;
+            active_misses            <= 16'd0;
+            trace_len                <= 8'd0;
+            final_halt_pc            <= 32'h0000_0010;
+            trace_wr_en              <= 1'b0;
+        end else begin
+            start_print        <= 1'b0;
+            step_print_banner  <= 1'b0;
+            step_print_row     <= 1'b0;
+            step_print_summary <= 1'b0;
+            trace_wr_en        <= 1'b0;
 
-            if (jal_taken_id) begin
-                // JAL in ID: the instruction currently being fetched at 0x00000014 is FLUSHED!
-                trace_mem[trace_len] <= {4'd11, active_cycles + 16'd1, 32'h0000_0014, 32'h0000_0013};
-                trace_len            <= trace_len + 8'd1;
-                jal_loop_cnt         <= jal_loop_cnt + 2'd1;
+            // In Step Mode, print banner header as soon as reset is released
+            if (step_mode_active && !banner_printed_for_step && !printer_busy) begin
+                step_print_banner       <= 1'b1;
+                banner_printed_for_step <= 1'b1;
+            end
 
-                if (jal_loop_cnt == 2'd2) begin
-                    // 3rd JAL completion reached! Stop core and trigger UART print
-                    run_active  <= 1'b0;
-                    run_done    <= 1'b1;
-                    stall_core  <= 1'b1;
-                    start_print <= 1'b1;
+            if (run_active && can_step) begin
+                global_cyc <= global_cyc + 16'd1;
 
-                    if (!latched_mode) begin
-                        mode0_valid        <= 1'b1;
-                        mode0_instructions <= active_insts;
-                        mode0_cycles       <= active_cycles + 16'd1;
-                        mode0_hits         <= active_hits;
-                        mode0_misses       <= active_misses;
-                    end else begin
-                        mode1_valid        <= 1'b1;
-                        mode1_instructions <= active_insts;
-                        mode1_cycles       <= active_cycles + 16'd1;
-                        mode1_hits         <= active_hits;
-                        mode1_misses       <= active_misses;
+                if (jal_taken_id) begin
+                    // JAL in ID: the instruction currently being fetched at 0x00000014 is FLUSHED!
+                    trace_wr_en   <= 1'b1;
+                    trace_wr_addr <= trace_len;
+                    trace_wr_data <= {4'd11, global_cyc, 32'h0000_0014, 32'h0000_0013};
+
+                    if (step_mode_active) begin
+                        step_print_row <= 1'b1;
+                        step_row_addr  <= trace_len;
                     end
-                end
-            end else begin
-                // Normal cycle logging:
-                case (icache_state)
-                    2'b00: begin // STATE_IDLE
-                        if (icache_just_refilled) begin
-                            // Instruction delivered on cycle 10 of miss (enabled mode)
-                            trace_mem[trace_len] <= {4'd10, active_cycles + 16'd1, pc_if, get_inst_for_pc(pc_if)};
-                            trace_len            <= trace_len + 8'd1;
-                            active_insts         <= active_insts + 16'd1;
-                        end else if (icache_hit) begin
-                            // 1-cycle HIT
-                            trace_mem[trace_len] <= {4'd0, active_cycles + 16'd1, pc_if, get_inst_for_pc(pc_if)};
-                            trace_len            <= trace_len + 8'd1;
-                            active_hits          <= active_hits + 16'd1;
-                            active_insts         <= active_insts + 16'd1;
-                        end else if (icache_miss) begin
-                            // Cycle 1 of MISS (stall 1/9)
-                            trace_mem[trace_len] <= {4'd1, active_cycles + 16'd1, pc_if, get_inst_for_pc(pc_if)};
-                            trace_len            <= trace_len + 8'd1;
-                            active_misses        <= active_misses + 16'd1;
+                    trace_len    <= trace_len + 8'd1;
+                    jal_loop_cnt <= jal_loop_cnt + 2'd1;
+
+                    if (jal_loop_cnt == 2'd2) begin
+                        // 3rd JAL completion reached! Stop core and trigger summary print
+                        run_active    <= 1'b0;
+                        run_done      <= 1'b1;
+                        final_halt_pc <= 32'h0000_0010;
+                        halted_cycles <= global_cyc;
+
+                        if (!step_mode_active) begin
+                            start_print <= 1'b1;
+                        end else begin
+                            step_print_summary <= 1'b1;
+                        end
+
+                        if (!latched_mode) begin
+                            mode0_valid        <= 1'b1;
+                            mode0_instructions <= active_insts;
+                            mode0_cycles       <= global_cyc;
+                            mode0_hits         <= active_hits;
+                            mode0_misses       <= active_misses;
+                        end else begin
+                            mode1_valid        <= 1'b1;
+                            mode1_instructions <= active_insts;
+                            mode1_cycles       <= global_cyc;
+                            mode1_hits         <= active_hits;
+                            mode1_misses       <= active_misses;
                         end
                     end
+                end else begin
+                    // Normal cycle logging:
+                    case (icache_state)
+                        2'b00: begin // STATE_IDLE
+                            if (icache_just_refilled) begin
+                                // Instruction delivered on cycle 10 of miss (enabled mode)
+                                trace_wr_en   <= 1'b1;
+                                trace_wr_addr <= trace_len;
+                                trace_wr_data <= {4'd10, global_cyc, pc_if, get_inst_for_pc(pc_if)};
 
-                    2'b01: begin // STATE_REFILL
-                        // Cycles 2..9 of miss / refill
-                        trace_mem[trace_len] <= {4'd2 + icache_refill_cnt, active_cycles + 16'd1, icache_latched_pc, get_inst_for_pc(icache_latched_pc)};
-                        trace_len            <= trace_len + 8'd1;
-                    end
+                                if (step_mode_active) begin
+                                    step_print_row <= 1'b1;
+                                    step_row_addr  <= trace_len;
+                                end
+                                trace_len    <= trace_len + 8'd1;
+                                active_insts <= active_insts + 16'd1;
+                            end else if (icache_hit) begin
+                                // 1-cycle HIT
+                                trace_wr_en   <= 1'b1;
+                                trace_wr_addr <= trace_len;
+                                trace_wr_data <= {4'd0, global_cyc, pc_if, get_inst_for_pc(pc_if)};
 
-                    2'b10: begin // STATE_BYPASS
-                        // Cycle 10 of bypassed fetch (instruction delivered)
-                        trace_mem[trace_len] <= {4'd10, active_cycles + 16'd1, icache_latched_pc, get_inst_for_pc(icache_latched_pc)};
-                        trace_len            <= trace_len + 8'd1;
-                        active_insts         <= active_insts + 16'd1;
-                    end
-                endcase
+                                if (step_mode_active) begin
+                                    step_print_row <= 1'b1;
+                                    step_row_addr  <= trace_len;
+                                end
+                                trace_len    <= trace_len + 8'd1;
+                                active_hits  <= active_hits + 16'd1;
+                                active_insts <= active_insts + 16'd1;
+                            end else if (icache_miss) begin
+                                // Cycle 1 of MISS (stall 1/9)
+                                trace_wr_en   <= 1'b1;
+                                trace_wr_addr <= trace_len;
+                                trace_wr_data <= {4'd1, global_cyc, pc_if, get_inst_for_pc(pc_if)};
+
+                                if (step_mode_active) begin
+                                    step_print_row <= 1'b1;
+                                    step_row_addr  <= trace_len;
+                                end
+                                trace_len     <= trace_len + 8'd1;
+                                active_misses <= active_misses + 16'd1;
+                            end
+                        end
+
+                        2'b01: begin // STATE_REFILL
+                            // Cycles 2..9 of miss / refill
+                            trace_wr_en   <= 1'b1;
+                            trace_wr_addr <= trace_len;
+                            trace_wr_data <= {4'd2 + icache_refill_cnt, global_cyc, icache_latched_pc, get_inst_for_pc(icache_latched_pc)};
+
+                            if (step_mode_active) begin
+                                step_print_row <= 1'b1;
+                                step_row_addr  <= trace_len;
+                            end
+                            trace_len <= trace_len + 8'd1;
+                        end
+
+                        2'b10: begin // STATE_BYPASS
+                            // Cycle 10 of bypassed fetch (instruction delivered)
+                            trace_wr_en   <= 1'b1;
+                            trace_wr_addr <= trace_len;
+                            trace_wr_data <= {4'd10, global_cyc, icache_latched_pc, get_inst_for_pc(icache_latched_pc)};
+
+                            if (step_mode_active) begin
+                                step_print_row <= 1'b1;
+                                step_row_addr  <= trace_len;
+                            end
+                            trace_len    <= trace_len + 8'd1;
+                            active_insts <= active_insts + 16'd1;
+                        end
+                    endcase
+                end
             end
-        end else begin
-            start_print <= 1'b0;
         end
     end
 
@@ -342,11 +460,9 @@ module fpga_top_feature6 #(
     );
 
     // ========================================================================
-    // 7. Post-Run Formatted UART Output Engine
+    // 7. Formatted UART Output Engine
     // ========================================================================
     wire uart_tx_line;
-    wire printer_busy;
-    wire printer_done;
 
     icache_uart_printer #(
         .CLK_FREQ  (CLK_FREQ),
@@ -355,12 +471,16 @@ module fpga_top_feature6 #(
         .clk                (clk_50mhz),
         .reset_n            (reset_n),
         .start_print        (start_print),
+        .print_banner_only  (step_print_banner),
+        .print_single_row   (step_print_row),
+        .single_row_addr    (step_row_addr),
+        .print_summary_only (step_print_summary),
         .mode_bypassed      (latched_mode),
         .trace_len          (trace_len),
         .trace_rd_addr      (trace_rd_addr),
         .trace_rd_data      (trace_rd_data),
         .stat_instructions  (active_insts),
-        .stat_cycles        (active_cycles),
+        .stat_cycles        (halted_cycles),
         .stat_hits          (active_hits),
         .stat_misses        (active_misses),
         .mode0_valid        (mode0_valid),
@@ -418,11 +538,11 @@ module fpga_top_feature6 #(
     assign LED[7]  = mode0_valid && mode1_valid;               // Both modes completed comparison ready!
     assign LED[8]  = (icache_hit_timer != 0);                  // I-Cache Hit pulse (Green)
     assign LED[9]  = (icache_miss_timer != 0);                 // I-Cache Miss pulse (Orange)
-    assign LED[10] = 1'b0;
-    assign LED[11] = 1'b0;
+    assign LED[10] = step_mode_active;                         // Step Mode Active (SW[15]=1)
+    assign LED[11] = btnc_debounced;                           // Clean BTNC state
     assign LED[12] = div_busy || fpu_busy;
     assign LED[13] = hazard_stall;
-    assign LED[14] = printer_busy;
+    assign LED[14] = 1'b0;
     assign LED[15] = heartbeat_cnt[24];                        // Alive blink
 
     // ========================================================================
@@ -431,8 +551,8 @@ module fpga_top_feature6 #(
     reg [31:0] display_data;
     always @(*) begin
         case (SW[5:3])
-            3'b000: display_data = pc_wb;                                     // Mode 0: Retired PC
-            3'b001: display_data = {16'h0, active_cycles};                    // Mode 1: Active Clock Cycles
+            3'b000: display_data = run_done ? final_halt_pc : pc_wb;          // Mode 0: Consistently 0x00000010 on halt!
+            3'b001: display_data = {16'h0, run_done ? halted_cycles : global_cyc}; // Mode 1: Unified Global Cycles
             3'b010: display_data = {16'h0, active_hits};                      // Mode 2: Active Hits
             3'b011: display_data = {16'h0, active_misses};                    // Mode 3: Active Misses
             3'b100: display_data = imem_rdata;                                // Mode 4: Fetched Instruction
@@ -453,3 +573,4 @@ module fpga_top_feature6 #(
     );
 
 endmodule
+

@@ -42,6 +42,7 @@ module icache_controller #(
     input  wire        reset_n,
     input  wire        flush_i,          // Flushes refill FSM on branch/jump in EX stage
     input  wire        counter_reset_i,  // Resets diagnostic performance counters
+    input  wire        stall_i,          // Active high: freezes controller FSM and refill counters
 
     // Cache Bypass Control (1 = Bypass cache to evaluate uncached penalty, 0 = Normal L1)
     input  wire        cache_bypass_i,
@@ -188,72 +189,77 @@ module icache_controller #(
                 valid_array[i] <= 1'b0;
                 tag_array[i]   <= {TAG_WIDTH{1'b0}};
             end
-        end else if (flush_act) begin
-            // Branch or jump taken in EX stage cancels in-flight fetch
-            state         <= STATE_IDLE;
-            refill_cnt    <= 4'd0;
-            just_refilled <= 1'b0;
-        end else begin
-            if (counter_reset_i === 1'b1) begin
-                hit_count  <= 32'd0;
-                miss_count <= 32'd0;
-            end
-
-            case (state)
-                STATE_IDLE: begin
-                    just_refilled <= 1'b0;
-                    if (miss_condition) begin
-                        state        <= STATE_REFILL;
-                        refill_cnt   <= 4'd0;
-                        latched_pc   <= cpu_addr;
-                        if (counter_reset_i !== 1'b1)
-                            miss_count   <= miss_count + 32'd1;
-                    end else if (!just_refilled) begin
-                        if (counter_reset_i !== 1'b1)
-                            hit_count    <= hit_count + 32'd1;
-                    end
+        end else if (!stall_i) begin
+            if (flush_act) begin
+                // Branch or jump taken in EX stage cancels in-flight fetch
+                state         <= STATE_IDLE;
+                refill_cnt    <= 4'd0;
+                just_refilled <= 1'b0;
+            end else begin
+                if (counter_reset_i === 1'b1) begin
+                    hit_count  <= 32'd0;
+                    miss_count <= 32'd0;
                 end
 
-                STATE_REFILL: begin
-                    refill_cnt <= refill_cnt + 4'd1;
-
-                    // Latch burst words into cache data banks
-                    if (refill_cnt == 4'd3) begin
-                        if (!bypass_act) data_mem0[refill_index] <= mem_rdata;
-                        if (refill_offset == 2'b00) bypass_word <= mem_rdata;
-                    end else if (refill_cnt == 4'd4) begin
-                        if (!bypass_act) data_mem1[refill_index] <= mem_rdata;
-                        if (refill_offset == 2'b01) bypass_word <= mem_rdata;
-                    end else if (refill_cnt == 4'd5) begin
-                        if (!bypass_act) data_mem2[refill_index] <= mem_rdata;
-                        if (refill_offset == 2'b10) bypass_word <= mem_rdata;
-                    end else if (refill_cnt == 4'd6) begin
-                        if (!bypass_act) data_mem3[refill_index] <= mem_rdata;
-                        if (refill_offset == 2'b11) bypass_word <= mem_rdata;
-                    end else if (refill_cnt == (MISS_PENALTY - 2)) begin
-                        if (bypass_act) begin
-                            // In bypass mode, do not write tag or valid bit
-                            state         <= STATE_BYPASS;
-                            refill_cnt    <= 4'd0;
-                        end else begin
-                            // Finalize line: commit tag and set valid bit
-                            tag_array[refill_index]   <= refill_tag;
-                            valid_array[refill_index] <= 1'b1;
-                            state                     <= STATE_IDLE;
-                            refill_cnt                <= 4'd0;
-                            just_refilled             <= 1'b1;
+                case (state)
+                    STATE_IDLE: begin
+                        just_refilled <= 1'b0;
+                        if (miss_condition) begin
+                            state        <= STATE_REFILL;
+                            refill_cnt   <= 4'd0;
+                            latched_pc   <= cpu_addr;
+                            if (counter_reset_i !== 1'b1)
+                                miss_count   <= miss_count + 32'd1;
+                        end else if (!just_refilled) begin
+                            if (counter_reset_i !== 1'b1)
+                                hit_count    <= hit_count + 32'd1;
                         end
                     end
-                end
 
-                STATE_BYPASS: begin
-                    // Release the CPU for exactly 1 cycle to latch instruction & advance PC
-                    state         <= STATE_IDLE;
-                    refill_cnt    <= 4'd0;
-                    just_refilled <= 1'b0;
-                end
-            endcase
+                    STATE_REFILL: begin
+                        refill_cnt <= refill_cnt + 4'd1;
+
+                        if (refill_cnt == 4'd3 && refill_offset == 2'b00) bypass_word <= mem_rdata;
+                        if (refill_cnt == 4'd4 && refill_offset == 2'b01) bypass_word <= mem_rdata;
+                        if (refill_cnt == 4'd5 && refill_offset == 2'b10) bypass_word <= mem_rdata;
+                        if (refill_cnt == 4'd6 && refill_offset == 2'b11) bypass_word <= mem_rdata;
+
+                        if (refill_cnt == (MISS_PENALTY - 2)) begin
+                            if (bypass_act) begin
+                                // In bypass mode, do not write tag or valid bit
+                                state         <= STATE_BYPASS;
+                                refill_cnt    <= 4'd0;
+                            end else begin
+                                // Finalize line: commit tag and set valid bit
+                                tag_array[refill_index]   <= refill_tag;
+                                valid_array[refill_index] <= 1'b1;
+                                state                     <= STATE_IDLE;
+                                refill_cnt                <= 4'd0;
+                                just_refilled             <= 1'b1;
+                            end
+                        end
+                    end
+
+                    STATE_BYPASS: begin
+                        // Release the CPU for exactly 1 cycle to latch instruction & advance PC
+                        state         <= STATE_IDLE;
+                        refill_cnt    <= 4'd0;
+                        just_refilled <= 1'b0;
+                    end
+                endcase
+            end
+        end
+    end
+
+    // Synchronous BRAM Bank Writes (separated from async reset for clean Block RAM inference)
+    always @(posedge clk) begin
+        if (!stall_i && state == STATE_REFILL && !bypass_act) begin
+            if (refill_cnt == 4'd3) data_mem0[refill_index] <= mem_rdata;
+            if (refill_cnt == 4'd4) data_mem1[refill_index] <= mem_rdata;
+            if (refill_cnt == 4'd5) data_mem2[refill_index] <= mem_rdata;
+            if (refill_cnt == 4'd6) data_mem3[refill_index] <= mem_rdata;
         end
     end
 
 endmodule
+
