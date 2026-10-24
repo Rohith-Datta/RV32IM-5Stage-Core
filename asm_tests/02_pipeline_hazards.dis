@@ -1,0 +1,24 @@
+; Disassembly of /Users/siddharthmisro/Documents/RISCV/asm_tests/02_pipeline_hazards.s
+; Total Instructions: 21
+
+0x00000000:  00a00093    li      x1, 10
+0x00000004:  01408093    addi    x1, x1, 20          # x1 = 30  (EX stage)
+0x00000008:  00108133    add     x2, x1, x1          # x2 = 60  (Forwarded directly from EX/MEM!)
+0x0000000c:  001101b3    add     x3, x2, x1          # x3 = 90  (Forwarded from both EX/MEM and MEM/WB!)
+0x00000010:  20000213    li      x4, 0x00000200
+0x00000014:  00322023    sw      x3, 0(x4)           # Store 90 to RAM[0x200]
+0x00000018:  00022283    lw      x5, 0(x4)           # x5 = 90 loaded from RAM
+0x0000001c:  00a28313    addi    x6, x5, 10          # x6 = 90 + 10 = 100 (Requires Load-Use stall!)
+0x00000020:  00100393    li      x7, 1
+0x00000024:  00039663    bnez    x7, branch_target   # Branch taken!
+0x00000028:  3e700413    addi    x8, x0, 999         # This instruction MUST NOT execute (flushed!)
+0x0000002c:  37800493    addi    x9, x0, 888         # This instruction MUST NOT execute (flushed!)
+0x00000030:  00530513    addi    x10, x6, 5          # x10 = 100 + 5 = 105
+0x00000034:  00122223    sw      x1, 4(x4)           # RAM[0x204] = 30
+0x00000038:  00222423    sw      x2, 8(x4)           # RAM[0x208] = 60
+0x0000003c:  00622623    sw      x6, 12(x4)          # RAM[0x20C] = 100
+0x00000040:  00a22823    sw      x10, 16(x4)         # RAM[0x210] = 105
+0x00000044:  cafe05b7    li      x11, 0xCAFE0002
+0x00000048:  00258593    li      x11, 0xCAFE0002
+0x0000004c:  00b22a23    sw      x11, 20(x4)         # RAM[0x214] = 0xCAFE0002
+0x00000050:  00008067    ret

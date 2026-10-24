@@ -1,0 +1,35 @@
+; Disassembly of /Users/siddharthmisro/Documents/RISCV/asm_tests/01_basic_arithmetic.s
+; Total Instructions: 32
+
+0x00000000:  00f00093    li      x1, 15              # x1 = 15
+0x00000004:  01900113    li      x2, 25              # x2 = 25
+0x00000008:  06400193    li      x3, 100             # x3 = 100
+0x0000000c:  00208233    add     x4, x1, x2          # x4 = 15 + 25 = 40 (0x28)
+0x00000010:  404182b3    sub     x5, x3, x4          # x5 = 100 - 40 = 60 (0x3C)
+0x00000014:  ff628313    addi    x6, x5, -10         # x6 = 60 - 10 = 50 (0x32)
+0x00000018:  0020f3b3    and     x7, x1, x2          # x7 = 15 & 25 = 9 (0x09)
+0x0000001c:  0020e433    or      x8, x1, x2          # x8 = 15 | 25 = 31 (0x1F)
+0x00000020:  0020c4b3    xor     x9, x1, x2          # x9 = 15 ^ 25 = 22 (0x16)
+0x00000024:  fff4c513    xori    x10, x9, -1         # x10 = ~x9 = NOT(22) = 0xFFFFFFE9
+0x00000028:  00400593    li      x11, 4              # Shift amount = 4
+0x0000002c:  00b09633    sll     x12, x1, x11        # x12 = 15 << 4 = 240 (0xF0)
+0x00000030:  00b656b3    srl     x13, x12, x11       # x13 = 240 >> 4 = 15 (0x0F)
+0x00000034:  f8000713    li      x14, -128           # x14 = 0xFFFFFF80
+0x00000038:  40b757b3    sra     x15, x14, x11       # x15 = -128 >> 4 = -8 (0xFFFFFFF8, sign preserved)
+0x0000003c:  0020a833    slt     x16, x1, x2         # x16 = (15 < 25) ? 1 : 0 -> 1
+0x00000040:  001128b3    slt     x17, x2, x1         # x17 = (25 < 15) ? 1 : 0 -> 0
+0x00000044:  00072913    slti    x18, x14, 0         # x18 = (-128 < 0) ? 1 : 0 -> 1
+0x00000048:  00500993    li      x19, 5              # loop counter = 5
+0x0000004c:  00000a13    li      x20, 0              # accumulator = 0
+0x00000050:  013a0a33    add     x20, x20, x19       # sum += counter
+0x00000054:  fff98993    addi    x19, x19, -1        # counter--
+0x00000058:  fe099ce3    bnez    x19, loop_sum       # repeat if counter != 0
+0x0000005c:  20000a93    li      x21, 0x00000200
+0x00000060:  004aa023    sw      x4, 0(x21)          # RAM[0x200] = 40
+0x00000064:  005aa223    sw      x5, 4(x21)          # RAM[0x204] = 60
+0x00000068:  006aa423    sw      x6, 8(x21)          # RAM[0x208] = 50
+0x0000006c:  014aa623    sw      x20, 12(x21)        # RAM[0x20C] = 15 (Sum of 1..5)
+0x00000070:  cafe0b37    li      x22, 0xCAFE0001
+0x00000074:  001b0b13    li      x22, 0xCAFE0001
+0x00000078:  016aa823    sw      x22, 16(x21)        # RAM[0x210] = 0xCAFE0001
+0x0000007c:  00008067    ret

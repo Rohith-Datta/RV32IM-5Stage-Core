@@ -1,0 +1,17 @@
+; Disassembly of /Users/siddharthmisro/Documents/RISCV/asm_tests/05_fpga_io_demo.s
+; Total Instructions: 14
+
+0x00000000:  20000093    li      x1, 0x00000200      # x1 = Base RAM Address
+0x00000004:  00000113    li      x2, 0               # x2 = Visual pattern counter (0 to 255)
+0x00000008:  00a00193    li      x3, 10              # Number of cycles to run in simulation
+0x0000000c:  00110113    addi    x2, x2, 1           # Increment counter
+0x00000010:  0020a023    sw      x2, 0(x1)
+0x00000014:  00500213    li      x4, 5               # Delay count (small for simulation, adjust for hardware)
+0x00000018:  fff20213    addi    x4, x4, -1
+0x0000001c:  fe021ee3    bnez    x4, delay
+0x00000020:  fff18193    addi    x3, x3, -1
+0x00000024:  fe0194e3    bnez    x3, demo_loop
+0x00000028:  cafe02b7    li      x5, 0xCAFE0005
+0x0000002c:  00528293    li      x5, 0xCAFE0005
+0x00000030:  0050a223    sw      x5, 4(x1)
+0x00000034:  00008067    ret
