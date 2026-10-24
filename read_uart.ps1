@@ -101,6 +101,15 @@ function Disassemble-RV32 {
         return "lui $rdName, 0x$(($inst -shr 12).ToString('x'))"
     }
 
+    # OP-FP / RV32F (0x53)
+    if ($opcode -eq 0x53) {
+        if ($funct7 -eq 0x00) { return "fadd.s $rdName, $rs1Name, $rs2Name" }
+        if ($funct7 -eq 0x04) { return "fsub.s $rdName, $rs1Name, $rs2Name" }
+        if ($funct7 -eq 0x08) { return "fmul.s $rdName, $rs1Name, $rs2Name" }
+        if ($funct7 -eq 0x0C) { return "fdiv.s $rdName, $rs1Name, $rs2Name" }
+        return "fp_op (0x$($inst.ToString('X8')))"
+    }
+
     return "inst (0x$($inst.ToString('X8')))"
 }
 
