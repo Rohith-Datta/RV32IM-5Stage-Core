@@ -9,6 +9,10 @@
 xsim.dir/
 .Xil/
 *dfx_runtime.txt
+*.tmp
+*.tmp.*
+*isWriteableTest*
+.hdi*
 
 
 # OS and Office specific files
