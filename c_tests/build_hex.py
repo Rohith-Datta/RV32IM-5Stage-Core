@@ -4,29 +4,49 @@ import sys
 import shutil
 
 C_TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-MEM_DIR = os.path.join(os.path.dirname(C_TESTS_DIR), "feature_1", "mem")
+ROOT_DIR = os.path.dirname(C_TESTS_DIR)
+F1_MEM_DIR = os.path.join(ROOT_DIR, "feature_1", "mem")
+F2_MEM_DIR = os.path.join(ROOT_DIR, "feature_2", "mem")
+F3_MEM_DIR = os.path.join(ROOT_DIR, "feature_3", "mem")
+F4_MEM_DIR = os.path.join(ROOT_DIR, "feature_4", "mem")
+F5_MEM_DIR = os.path.join(ROOT_DIR, "feature_5", "mem")
+F6_MEM_DIR = os.path.join(ROOT_DIR, "feature_6", "mem")
 
 CC      = "riscv-none-elf-gcc"
 OBJCOPY = "riscv-none-elf-objcopy"
 OBJDUMP = "riscv-none-elf-objdump"
-CFLAGS  = ["-march=rv32i", "-mabi=ilp32", "-O0"]
+CFLAGS  = ["-march=rv32im", "-mabi=ilp32", "-O0"]
 
 PROGRAMS = {
-    "addition":       "addition.c",
-    "code_addition":  "code_addition.c",
-    "addition.c":     "addition.c",
-    "fibonacci":      "fibonacci.c",
-    "code_fibonacci": "code_fibonacci.c",
-    "fibonacci.c":    "fibonacci.c",
-    "sort":           "sort.c",
-    "code_sort":      "code_sort.c",
-    "sort.c":         "sort.c",
-    "negative":       "negative.c",
-    "code_negative":  "code_negative.c",
-    "negative.c":     "negative.c",
-    "xor":            "xor.c",
-    "code_xor":       "code_xor.c",
-    "xor.c":          "xor.c"
+    "addition":            "addition.c",
+    "code_addition":       "code_addition.c",
+    "addition.c":          "addition.c",
+    "multiplication":      "multiplication.c",
+    "code_multiplication": "multiplication.c",
+    "multiplication.c":    "multiplication.c",
+    "division":            "division.c",
+    "code_division":       "division.c",
+    "division.c":          "division.c",
+    "fibonacci":           "fibonacci.c",
+    "code_fibonacci":      "code_fibonacci.c",
+    "fibonacci.c":         "fibonacci.c",
+    "sort":                "sort.c",
+    "code_sort":           "code_sort.c",
+    "sort.c":              "sort.c",
+    "negative":            "negative.c",
+    "code_negative":       "code_negative.c",
+    "negative.c":          "negative.c",
+    "xor":                 "xor.c",
+    "code_xor":            "code_xor.c",
+    "xor.c":               "xor.c",
+    "dcache":              "dcache_test.c",
+    "dcache_test":         "dcache_test.c",
+    "dcache.c":            "dcache_test.c",
+    "dcache_test.c":       "dcache_test.c",
+    "fpu":                 "fpu.c",
+    "fpu_test":            "fpu.c",
+    "fpu.c":               "fpu.c",
+    "fpu_test.c":          "fpu.c"
 }
 
 def hex_change(val):
@@ -66,17 +86,21 @@ def build(prog_name):
     imem_hex = os.path.join(C_TESTS_DIR, "imem.hex")
     dmem_hex = os.path.join(C_TESTS_DIR, "dmem.hex")
     
-    print(f"[*] Compiling {PROGRAMS[prog_name]} -> code.elf...")
-    subprocess.check_call([CC, "-c", src_file, "-o", elf_file] + CFLAGS)
+    obj_file = os.path.join(C_TESTS_DIR, "code.o")
+    linker_ld = os.path.join(C_TESTS_DIR, "linker.ld")
+    march = "rv32im" if ("multiplication" in prog_name or "division" in prog_name) else "rv32i"
+    cflags = ["-march=" + march, "-mabi=ilp32", "-O0"]
+    print(f"[*] Compiling {PROGRAMS[prog_name]} ({march}) -> code.o...")
+    subprocess.check_call([CC, "-c", src_file, "-o", obj_file, "-I", C_TESTS_DIR, "-ffunction-sections"] + cflags)
     
-    print(f"[*] Extracting text section -> imem.bin...")
+    print(f"[*] Linking code.o -> code.elf (Entry=main at 0x00000000 via linker.ld)...")
+    subprocess.check_call(["riscv-none-elf-ld", "-T", linker_ld, obj_file, "-o", elf_file])
+    
+    print(f"[*] Extracting full memory image -> imem.bin & dmem.bin...")
     subprocess.check_call([OBJCOPY, "-O", "binary", elf_file, imem_bin])
-    
-    print(f"[*] Extracting data section -> dmem.bin...")
-    # Some programs may not have .data, so don't fail if section missing
-    res = subprocess.run([OBJCOPY, "-j", ".data", "-O", "binary", elf_file, dmem_bin], capture_output=True)
-    if not os.path.exists(dmem_bin) or res.returncode != 0:
-        open(dmem_bin, "wb").close()
+    # In Harvard architecture with separate BRAMs, DMEM must contain .rodata & .data
+    # at their linked addresses so loads (lbu, lw) find strings and constants.
+    shutil.copyfile(imem_bin, dmem_bin)
         
     print(f"[*] Generating disassembly -> code.dis...")
     with open(dis_file, "w") as df:
@@ -86,15 +110,24 @@ def build(prog_name):
     bin2hex(imem_bin, imem_hex)
     bin2hex(dmem_bin, dmem_hex)
     
-    # Copy to feature_1/mem
-    os.makedirs(MEM_DIR, exist_ok=True)
-    shutil.copy2(imem_hex, os.path.join(MEM_DIR, "imem.hex"))
-    shutil.copy2(dmem_hex, os.path.join(MEM_DIR, "dmem.hex"))
-    shutil.copy2(dis_file, os.path.join(MEM_DIR, "code.dis"))
-    shutil.copy2(elf_file, os.path.join(MEM_DIR, "code.elf"))
-    shutil.copy2(src_file, os.path.join(MEM_DIR, PROGRAMS[prog_name]))
+    # Copy to feature_1/mem .. feature_6/mem, plus simulation and vivado_project
+    for feat_idx in range(1, 7):
+        feat_dir = os.path.join(ROOT_DIR, f"feature_{feat_idx}")
+        mem_dir = os.path.join(feat_dir, "mem")
+        os.makedirs(mem_dir, exist_ok=True)
+        shutil.copy2(imem_hex, os.path.join(mem_dir, "imem.hex"))
+        shutil.copy2(dmem_hex, os.path.join(mem_dir, "dmem.hex"))
+        shutil.copy2(dis_file, os.path.join(mem_dir, "code.dis"))
+        shutil.copy2(elf_file, os.path.join(mem_dir, "code.elf"))
+        shutil.copy2(src_file, os.path.join(mem_dir, PROGRAMS[prog_name]))
+
+        for sub in ["simulation", "vivado_project"]:
+            target_sub = os.path.join(feat_dir, sub)
+            if os.path.exists(target_sub):
+                shutil.copy2(imem_hex, os.path.join(target_sub, "imem.hex"))
+                shutil.copy2(dmem_hex, os.path.join(target_sub, "dmem.hex"))
     
-    print(f"[+] Successfully built and deployed {prog_name} to feature_1/mem/")
+    print(f"[+] Successfully built and deployed {prog_name} to feature_1..6 (mem, simulation, vivado_project)")
 
 if __name__ == "__main__":
     prog = sys.argv[1] if len(sys.argv) > 1 else "addition"
