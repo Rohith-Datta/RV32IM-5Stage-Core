@@ -27,10 +27,26 @@ localparam [6:0] LUI    = 7'b0110111,  // U-type
                  LOAD   = 7'b0000011,  // I-type
                  STORE  = 7'b0100011,  // S-type
                  ARITHI = 7'b0010011,  // I-type
-                 ARITHR = 7'b0110011;  // R-type (and M-extension)
+                 ARITHR = 7'b0110011,  // R-type (and M-extension, Zbb)
+                 SYSTEM = 7'b1110011,  // System / CSR instructions (Feature 8)
+                 OP_FP  = 7'b1010011,  // Single-precision Floating Point (Feature 4)
+                 LOAD_FP= 7'b0000111,  // FLW (Feature 4)
+                 STORE_FP=7'b0100111;  // FSW (Feature 4)
 
-// Reserved custom opcode for MAC Coprocessor (Feature 6)
-localparam [6:0] CUSTOM_MAC = 7'b0001011;
+// ----------------------------------------------------------------------------
+// RV32M Extension Definitions (Feature 2 Multiplier & Feature 5 Divider)
+// Opcode == ARITHR (7'b0110011) and funct7 == 7'b0000001
+// ----------------------------------------------------------------------------
+localparam [6:0] FUNCT7_M_EXT = 7'b0000001;
+
+localparam [2:0] F3_MUL    = 3'b000,
+                 F3_MULH   = 3'b001,
+                 F3_MULHSU = 3'b010,
+                 F3_MULHU  = 3'b011,
+                 F3_DIV    = 3'b100,
+                 F3_DIVU   = 3'b101,
+                 F3_REM    = 3'b110,
+                 F3_REMU   = 3'b111;
 
 // ----------------------------------------------------------------------------
 // Branch FUNC3 (inst[14:12] when opcode == BRANCH)

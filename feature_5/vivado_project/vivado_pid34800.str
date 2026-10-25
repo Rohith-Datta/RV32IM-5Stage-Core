@@ -1846,3 +1846,36 @@ selectView(PAResourceOtoP.PAViews_FLOW_NAVIGATOR, "Flow Navigator", 75, 75, 343,
 // TclEventType: FILE_SET_CHANGE
 // WARNING: HSwingWorker (Refresh Filesets Swing Worker) is taking 4571 ms. Increasing delay to 13713 ms.
 // WARNING: HSwingWorker (Refresh Filesets Swing Worker) is taking 313 ms. Decreasing delay to 2313 ms.
+// TclEventType: DG_GRAPH_STALE
+// TclEventType: FILE_SET_CHANGE
+// WARNING: HSwingWorker (Refresh Filesets Swing Worker) is taking 1726 ms. Increasing delay to 5178 ms.
+// WARNING: HTimer (FileMgr Design Graph Update Timer) is taking 1650ms to process. Increasing delay to 5000 ms.
+// WARNING: HEventQueue.dispatchEvent() is taking  1650 ms.
+// WARNING: HTimer (StateMonitor Timer) is taking 1188ms to process. Increasing delay to 4000 ms.
+// WARNING: HEventQueue.dispatchEvent() is taking  1188 ms.
+// Elapsed Time for: 'PAResourceItoN.MsgLongTask_MESSAGE_LONG_TASK/M.f': 35h:00m:39s
+// TclEventType: DG_GRAPH_GENERATED
+// Elapsed Time for: 'PAResourceItoN.MsgLongTask_MESSAGE_LONG_TASK/M.f': 35h:00m:42s
+// TclEventType: RUN_STATUS_CHANGE
+// WARNING: HSwingWorker (Refresh Filesets Swing Worker) is taking 3556 ms. Increasing delay to 10668 ms.
+// WARNING: HSwingWorker (Update Runs Swing Worker) is taking 5630 ms. Increasing delay to 10000 ms.
+// HMemoryUtils.trashcanNow. Engine heap size: 2,400 MB. GUI used memory: 130 MB. Current time: 10/26/26, 12:17:01 AM IST
+// WARNING: HSwingWorker (Refresh Filesets Swing Worker) is taking 35 ms. Decreasing delay to 2035 ms.
+// WARNING: HSwingWorker (Refresh Filesets Swing Worker) is taking 4329 ms. Increasing delay to 12987 ms.
+// WARNING: HSwingWorker (Refresh Filesets Swing Worker) is taking 909 ms. Decreasing delay to 2909 ms.
+// WARNING: HSwingWorker (Refresh Filesets Swing Worker) is taking 3210 ms. Increasing delay to 9630 ms.
+// HMemoryUtils.trashcanNow. Engine heap size: 2,400 MB. GUI used memory: 130 MB. Current time: 10/26/26, 12:18:11 AM IST
+// HMemoryUtils.trashcanNow. Engine heap size: 2,400 MB. GUI used memory: 130 MB. Current time: 10/26/26, 12:19:01 AM IST
+// HMemoryUtils.trashcanNow. Engine heap size: 2,400 MB. GUI used memory: 130 MB. Current time: 10/26/26, 12:19:45 AM IST
+// TclEventType: FILE_SET_CHANGE
+// WARNING: HSwingWorker (Refresh Filesets Swing Worker) is taking 5365 ms. Increasing delay to 16095 ms.
+// WARNING: HSwingWorker (Refresh Filesets Swing Worker) is taking 1597 ms. Decreasing delay to 3597 ms.
+// WARNING: HSwingWorker (Refresh Filesets Swing Worker) is taking 16067 ms. Increasing delay to 48201 ms.
+// WARNING: HSwingWorker (Update Runs Swing Worker) is taking 19877 ms. Increasing delay to 10000 ms.
+// HMemoryUtils.trashcanNow. Engine heap size: 2,400 MB. GUI used memory: 130 MB. Current time: 10/26/26, 12:21:21 AM IST
+// TclEventType: DG_GRAPH_STALE
+// TclEventType: FILE_SET_CHANGE
+// WARNING: HSwingWorker (Refresh Filesets Swing Worker) is taking 288 ms. Decreasing delay to 2288 ms.
+// Elapsed Time for: 'PAResourceItoN.MsgLongTask_MESSAGE_LONG_TASK/M.f': 35h:05m:17s
+// TclEventType: DG_GRAPH_GENERATED
+// Elapsed Time for: 'PAResourceItoN.MsgLongTask_MESSAGE_LONG_TASK/M.f': 35h:05m:21s
