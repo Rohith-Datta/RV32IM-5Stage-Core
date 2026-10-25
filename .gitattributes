@@ -1,0 +1,2 @@
+# Force GitHub Linguist to detect Verilog header files as Verilog (not SystemVerilog)
+*.vh linguist-language=Verilog

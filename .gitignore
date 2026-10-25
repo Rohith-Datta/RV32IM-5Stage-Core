@@ -1,15 +1,76 @@
 # Vivado / Simulator Artifacts
 *.log
 *.jou
+*.str
 *.pb
 *.wdb
 *.vcd
+*.backup.*
 xsim.dir/
 .Xil/
+*dfx_runtime.txt
+*.tmp
+*.tmp.*
+*isWriteableTest*
+.hdi*
 
-# OS specific files
+
+# OS and Office specific files
+__pycache__/
+*.pyc
 Thumbs.db
 Desktop.ini
 .DS_Store
+~$*
+*_UPDATED.docx
+build_team_branch.py
 # Compiler intermediate binaries
+*.o
 *.elf
+*.bin
+_tmp_*
+
+# Vivado project caches & runs
+vivado_project/*.cache/
+vivado_project/*.hw/
+vivado_project/*.ip_user_files/
+vivado_project/*.runs/
+vivado_project/*.sim/
+feature_1/vivado_project/*.cache/
+feature_1/vivado_project/*.hw/
+feature_1/vivado_project/*.ip_user_files/
+feature_1/vivado_project/*.runs/
+feature_1/vivado_project/*.sim/
+feature_1/vivado_project/*.srcs/
+feature_2/vivado_project/*.cache/
+feature_2/vivado_project/*.hw/
+feature_2/vivado_project/*.ip_user_files/
+feature_2/vivado_project/*.runs/
+feature_2/vivado_project/*.sim/
+feature_2/vivado_project/*.srcs/
+feature_3/vivado_project/*.cache/
+feature_3/vivado_project/*.hw/
+feature_3/vivado_project/*.ip_user_files/
+feature_3/vivado_project/*.runs/
+feature_3/vivado_project/*.sim/
+feature_3/vivado_project/*.srcs/
+feature_4/vivado_project/*.cache/
+feature_4/vivado_project/*.hw/
+feature_4/vivado_project/*.ip_user_files/
+feature_4/vivado_project/*.runs/
+feature_4/vivado_project/*.sim/
+feature_4/vivado_project/*.srcs/
+feature_5/vivado_project/*.cache/
+feature_5/vivado_project/*.hw/
+feature_5/vivado_project/*.ip_user_files/
+feature_5/vivado_project/*.runs/
+feature_5/vivado_project/*.sim/
+feature_5/vivado_project/*.srcs/
+feature_6/vivado_project/*.cache/
+feature_6/vivado_project/*.hw/
+feature_6/vivado_project/*.ip_user_files/
+feature_6/vivado_project/*.runs/
+feature_6/vivado_project/*.sim/
+feature_6/vivado_project/*.srcs/
+*.dcp
+

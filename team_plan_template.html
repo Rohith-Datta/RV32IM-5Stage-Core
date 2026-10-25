@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RV32IMF Group 13: 5-Member Team Execution & Parallel Integration Master Plan</title>
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 15mm 12mm 15mm 12mm;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1e293b;
+    background-color: #ffffff;
+    line-height: 1.45;
+    font-size: 11pt;
+    margin: 0;
+    padding: 0;
+  }
+  .header-card {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+    color: #ffffff;
+    padding: 20px 24px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .header-card h1 {
+    margin: 0 0 6px 0;
+    font-size: 18pt;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .header-card p {
+    margin: 0;
+    font-size: 10.5pt;
+    color: #93c5fd;
+  }
+  .badge-row {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 8.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .badge-blue { background: #38bdf8; color: #082f49; }
+  .badge-purple { background: #c084fc; color: #3b0764; }
+  .badge-emerald { background: #34d399; color: #022c22; }
+  .badge-amber { background: #fbbf24; color: #451a03; }
+
+  h2 {
+    color: #0f172a;
+    font-size: 13.5pt;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 5px;
+    margin-top: 22px;
+    margin-bottom: 12px;
+    font-weight: 700;
+  }
+  h3 {
+    color: #1e3a8a;
+    font-size: 11.5pt;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+  p, li {
+    font-size: 10pt;
+    color: #334155;
+  }
+  ul, ol {
+    margin-top: 4px;
+    margin-bottom: 10px;
+    padding-left: 20px;
+  }
+  li {
+    margin-bottom: 4px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 16px 0;
+    font-size: 9.5pt;
+  }
+  th {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    font-weight: 700;
+    text-align: left;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+  }
+  td {
+    padding: 7px 10px;
+    border: 1px solid #e2e8f0;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td {
+    background-color: #f8fafc;
+  }
+
+  .box {
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 12px 0;
+    font-size: 9.5pt;
+  }
+  .box-blue {
+    background-color: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    color: #1e40af;
+  }
+  .box-amber {
+    background-color: #fffbeb;
+    border-left: 4px solid #f59e0b;
+    color: #92400e;
+  }
+  .box-emerald {
+    background-color: #f0fdf4;
+    border-left: 4px solid #10b981;
+    color: #065f46;
+  }
+  .box-purple {
+    background-color: #faf5ff;
+    border-left: 4px solid #a855f7;
+    color: #581c87;
+  }
+
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    background-color: #f1f5f9;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 8.8pt;
+    color: #b91c1c;
+    border: 1px solid #e2e8f0;
+  }
+  pre {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    background-color: #0f172a;
+    color: #f8fafc;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 8.5pt;
+    line-height: 1.4;
+    overflow-x: auto;
+    margin: 8px 0;
+  }
+  pre code {
+    background: transparent;
+    color: #38bdf8;
+    padding: 0;
+    border: none;
+    font-size: 8.5pt;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+  .footer {
+    text-align: center;
+    font-size: 8pt;
+    color: #94a3b8;
+    margin-top: 20px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<!-- PAGE 1: STRATEGY & PARALLEL TIMELINE -->
+<div class="header-card">
+  <h1>RV32IMF 5-MEMBER SPRINT MASTER PLAN</h1>
+  <p>Pipelined RISC-V Processor (CS2202L) | Antigravity-Powered Rapid Execution</p>
+  <div class="badge-row">
+    <span class="badge badge-blue">Group A & B: L1 Caches</span>
+    <span class="badge badge-purple">Group C & D: IEEE 754 FPU</span>
+    <span class="badge badge-emerald">Person E: UART & Integration</span>
+    <span class="badge badge-amber">Goal: 220 Minutes Total</span>
+  </div>
+</div>
+
+<h2>1. Role Mapping & Feature Ownership</h2>
+<p>Because Antigravity generates 100% of the Verilog and testbenches, the team's job is <strong>architecture specification, unit testing, and structured integration</strong>. Assign your 5 real names to the roles below:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 14%;">Team Unit</th>
+      <th style="width: 22%;">Assigned Member(s)</th>
+      <th style="width: 26%;">Assigned Feature(s)</th>
+      <th style="width: 38%;">Primary Deliverables & Scope</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Group 1</strong></td>
+      <td><strong>Person A & Person B</strong></td>
+      <td>Feature 3 (L1 I-Cache)<br>Feature 6 (L1 D-Cache)</td>
+      <td><code>icache.v</code>, <code>dcache.v</code>, tag comparison, hit/miss FSM, 4-word refill, cache stalls.</td>
+    </tr>
+    <tr>
+      <td><strong>Group 2</strong></td>
+      <td><strong>Person C & Person D</strong></td>
+      <td>Feature 4 (IEEE 754 FPU)</td>
+      <td><code>fpu_unit.v</code> (FADD.S, FSUB.S, FMUL.S), <code>fpu_regfile.v</code> (f0-f31), single-precision arithmetic.</td>
+    </tr>
+    <tr>
+      <td><strong>Lead</strong></td>
+      <td><strong>Person E</strong></td>
+      <td>UART MMIO & Master Verification Lead</td>
+      <td><code>uart_tx.v</code> (115200 baud at <code>0x80000000</code>), Git master branch, merges, and demo test scripts.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="box box-amber">
+  <strong>The Non-Negotiable Success Rule:</strong> <em>Zero "Big-Bang" Merging!</em> Never wait until the end of the day to merge everything together. You will merge in <strong>3 incremental stages</strong> (UART first &rarr; FPU second &rarr; Caches third). If a feature has a bug, the rest of the processor stays 100% functional!
+</div>
+
+<h2>2. High-Efficiency Parallel Timeline (In Minutes)</h2>
+<p>Total time is compressed to <strong>~220 minutes (~3.5 hours)</strong> because teammates don't type manual RTL. Each phase runs in parallel:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 15%;">Elapsed Time</th>
+      <th style="width: 28%;">Group A & B (Caches)</th>
+      <th style="width: 28%;">Group C & D (IEEE FPU)</th>
+      <th style="width: 29%;">Person E (UART & Lead)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>T + 0 to 40 min</strong><br><em>(Phase 1: Standalone)</em></td>
+      <td>Prompt Antigravity for <code>icache.v</code> & <code>dcache.v</code> + testbenches <code>tb_icache.v</code>, <code>tb_dcache.v</code>.</td>
+      <td>Prompt Antigravity for <code>fpu_unit.v</code> & <code>fpu_regfile.v</code> + testbench <code>tb_fpu.v</code>.</td>
+      <td>Prompt Antigravity for <code>uart_tx.v</code>. Wire to base core at MMIO <code>0x80000000</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>T + 40 to 75 min</strong><br><em>(Phase 2: Unit Sim)</em></td>
+      <td>Run Vivado simulations on <code>tb_icache</code> & <code>tb_dcache</code>. Verify 1-cycle hit & multi-cycle miss stall.</td>
+      <td>Run Vivado simulation on <code>tb_fpu</code>. Verify 100+ vectors for addition, subtraction, multiplication.</td>
+      <td>Run test on base core + UART. <strong>VERIFY:</strong> Core prints <code>"HELLO RISCV"</code> over serial!</td>
+    </tr>
+    <tr>
+      <td><strong>T + 75 to 115 min</strong><br><em>(Phase 3: CHECKPOINT 1)</em></td>
+      <td>Document cache hit rate & latency metrics; review memory bus arbiter interface.</td>
+      <td colspan="2" style="background-color: #faf5ff; border-left: 3px solid #a855f7;">
+        <strong>🤝 PERSON E MERGES WITH C & D (FPU INTEGRATION):</strong><br>
+        Wire FPU into <code>execute_stage.v</code>. Run assembly test <code>2.5 + 3.75 = 6.25</code> and print result to UART. <strong>100% Working!</strong>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>T + 115 to 165 min</strong><br><em>(Phase 4: CHECKPOINT 2)</em></td>
+      <td colspan="2" style="background-color: #eff6ff; border-left: 3px solid #3b82f6;">
+        <strong>🤝 PERSON E MERGES WITH PERSON A (I-CACHE INTEGRATION):</strong><br>
+        Insert <code>icache.v</code> between Fetch (IF) stage and instruction memory. Verify core fetches instructions through cache and continues printing to UART.
+      </td>
+      <td>Supervises pull request and runs regression suite.</td>
+    </tr>
+    <tr>
+      <td><strong>T + 165 to 210 min</strong><br><em>(Phase 5: CHECKPOINT 3)</em></td>
+      <td colspan="2" style="background-color: #f0fdf4; border-left: 3px solid #10b981;">
+        <strong>🤝 PERSON E MERGES WITH PERSON B (D-CACHE INTEGRATION):</strong><br>
+        Insert <code>dcache.v</code> into Memory (MEM) stage. Run load/store stress test and floating point benchmark.
+      </td>
+      <td>Checks timing slack in Vivado. Confirms zero regressions.</td>
+    </tr>
+    <tr>
+      <td><strong>T + 210 to 220 min</strong><br><em>(Wrap-up)</em></td>
+      <td colspan="3" style="text-align: center; font-weight: bold; background-color: #ecfdf5; color: #065f46;">
+        🎉 FINAL COMMIT & PUSH TO GITHUB MAIN. 100% PROJECT COMPLETE & CALL THE DAY OFF!
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="footer">Page 1 of 4 | RV32IMF Group 13 Sprint Guide</div>
+
+<!-- PAGE 2: STEP-BY-STEP FOR PERSON E -->
+<div class="page-break"></div>
+
+<h2>3. Exact Workflow for Person E (UART & Verification Lead)</h2>
+
+<div class="box box-emerald">
+  <strong>Mission:</strong> Build the test harness that proves everything works. By minute 75, you will have the core printing messages over UART to your terminal. Then you lead the 3 checkpoints.
+</div>
+
+<h3>Step E1: Clone & Create Your Branch (Minute 0)</h3>
+<p>Open VS Code / Terminal in your workspace:</p>
+<pre><code>git checkout main
+git pull origin main
+git checkout -b feature-uart</code></pre>
+
+<h3>Step E2: Feed Prompt to Antigravity (Minute 5)</h3>
+<p>Copy and paste this prompt into Antigravity:</p>
+<div class="box box-blue">
+  <em>"Create a synthesizable 115200-baud UART transmitter module `uart_tx.v` (8 data bits, 1 stop bit, no parity) for a 100 MHz clock. Integrate it into `pipeline_5stage.v` as a memory-mapped peripheral: whenever an instruction writes a byte via Store Word/Byte to address `0x80000000`, the byte is pushed into the UART TX FIFO and transmitted on FPGA pin `D18` (Nexys A7 UART TX)."</em>
+</div>
+
+<h3>Step E3: Verify UART on Base Core (Minute 45)</h3>
+<p>Assemble and run this simple 3-line RISC-V test program:</p>
+<pre><code>li x1, 0x80000000   # UART MMIO Address
+li x2, 65           # ASCII 'A'
+sw x2, 0(x1)        # Transmit 'A'!</code></pre>
+<p>Open PuTTY or TeraTerm (Baud 115200, COM port). Verify that character <strong>'A'</strong> or <strong>"HELLO"</strong> appears on screen! Once this works, you are ready to verify everyone else's features.</p>
+
+<hr style="border: 0; border-top: 1px solid #cbd5e1; margin: 18px 0;">
+
+<h2>4. Exact Workflow for Group C & D (IEEE 754 FPU)</h2>
+
+<div class="box box-purple">
+  <strong>Mission:</strong> Implement single-precision 32-bit floating point arithmetic (FADD.S, FSUB.S, FMUL.S) and 32 FP registers (f0–f31).
+</div>
+
+<h3>Step CD1: Clone & Create Your Branch (Minute 0)</h3>
+<pre><code>git checkout main
+git pull origin main
+git checkout -b feature-fpu</code></pre>
+
+<h3>Step CD2: Feed Prompt to Antigravity (Minute 5)</h3>
+<div class="box box-blue">
+  <em>"Implement an IEEE 754 single-precision 32-bit Floating Point Unit in `feature_4/modules/fpu_unit.v`. Support operations: FADD.S (funct7=0000000), FSUB.S (funct7=0000100), and FMUL.S (funct7=0001000). Also generate a 32x32-bit floating point register file `fpu_regfile.v` with 2 read ports and 1 write port. Create a self-checking testbench `tb_fpu.v` verifying 100 directed and randomized test vectors (e.g. 1.0 + 2.0 = 3.0, 2.5 * 4.0 = 10.0, negative numbers, and zero)."</em>
+</div>
+
+<h3>Step CD3: Standalone Simulation in Vivado (Minute 40)</h3>
+<p>Run the testbench inside Vivado:</p>
+<pre><code>xvlog -sv feature_4/modules/fpu_unit.v feature_4/modules/fpu_regfile.v feature_4/tb_fpu.v
+xelab -debug typical tb_fpu -s sim_fpu
+xsim sim_fpu -R</code></pre>
+<p><strong>Success Criterion:</strong> <code>100% (100/100) Passed with 0 Errors</code>.</p>
+
+<h3>Step CD4: Merge Checkpoint 1 with Person E (Minute 80)</h3>
+<p>Connect FPU into the execution stage by making these 3 simple edits:</p>
+<ol>
+  <li>In <code>decode_stage.v</code>: Add <code>wire is_fpu = (opcode == 7'b1010011);</code></li>
+  <li>In <code>execute_stage.v</code>: Instantiate <code>fpu_unit u_fpu (...)</code></li>
+  <li>In the EX result MUX: Route <code>fpu_result</code> when <code>is_fpu</code> is high.</li>
+</ol>
+<p>Person E runs a program computing <code>2.5 + 3.75 = 6.25</code> and prints the IEEE float hex bits (<code>0x40C80000</code>) to UART. <strong>Checkpoint 1 PASSED!</strong></p>
+
+<div class="footer">Page 2 of 4 | RV32IMF Group 13 Sprint Guide</div>
+
+<!-- PAGE 3: STEP-BY-STEP FOR GROUP A & B (CACHES) -->
+<div class="page-break"></div>
+
+<h2>5. Exact Workflow for Group A & B (L1 I-Cache & D-Cache)</h2>
+
+<div class="box box-blue">
+  <strong>Mission:</strong> Eliminate memory bottlenecks by building a direct-mapped Instruction Cache (Person A) and Data Cache (Person B).
+</div>
+
+<h3>Step AB1: Clone & Create Your Branch (Minute 0)</h3>
+<pre><code>git checkout main
+git pull origin main
+git checkout -b feature-cache</code></pre>
+
+<h3>Step AB2: Division of Labor between A & B</h3>
+<ul>
+  <li><strong>Person A focuses on <code>icache.v</code>:</strong> Read-only, single-cycle hit latency, 4-word block refill FSM, outputs <code>icache_stall</code>.</li>
+  <li><strong>Person B focuses on <code>dcache.v</code>:</strong> Read/Write, write-through policy, word/byte alignment (SB, SH, SW), outputs <code>dcache_stall</code>.</li>
+</ul>
+
+<h3>Step AB3: Feed Prompt to Antigravity (Minute 5)</h3>
+<div class="box box-blue">
+  <em>"Implement a direct-mapped L1 Instruction Cache in `feature_3/modules/icache.v` with 1 KB capacity (64 lines of 16 bytes / 4 words each). Implement tag array, valid bit array, single-cycle hit comparison, and a 4-cycle burst refill FSM that asserts `icache_stall` on a miss. Also generate `feature_6/modules/dcache.v` with write-through policy for data memory. Include standalone testbenches `tb_icache.v` and `tb_dcache.v`."</em>
+</div>
+
+<h3>Step AB4: Standalone Simulation in Vivado (Minute 45)</h3>
+<pre><code>xvlog -sv feature_3/modules/icache.v feature_3/tb_icache.v
+xelab -debug typical tb_icache -s sim_icache
+xsim sim_icache -R</code></pre>
+<p><strong>Success Criterion:</strong> Verify that consecutive fetches to the same block report <code>HIT (0 stall cycles)</code>, and initial fetches report <code>MISS (asserts stall for refill)</code>.</p>
+
+<h3>Step AB5: Merge Checkpoint 2 (I-Cache) with Person E (Minute 120)</h3>
+<ol>
+  <li>Place <code>icache.v</code> between Fetch (IF) stage and memory bus.</li>
+  <li>Connect <code>icache_stall</code> to <code>hazard_unit.v</code> to freeze the PC and IF/ID register during a refill.</li>
+  <li>Person E runs the UART print test. If text prints cleanly, <strong>I-Cache integration is 100% successful!</strong></li>
+</ol>
+
+<h3>Step AB6: Merge Checkpoint 3 (D-Cache) with Person E (Minute 170)</h3>
+<ol>
+  <li>Place <code>dcache.v</code> in the Memory (MEM) stage.</li>
+  <li>Connect <code>dcache_stall</code> to freeze the entire pipeline during data miss refills.</li>
+  <li>Run full test suite: Multiplication + FPU Math + Load/Store + UART.</li>
+</ol>
+
+<hr style="border: 0; border-top: 1px solid #cbd5e1; margin: 18px 0;">
+
+<h2>6. Staged Integration Checkpoints Summary</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 18%;">Checkpoint</th>
+      <th style="width: 14%;">Target Time</th>
+      <th style="width: 32%;">Modules Integrated</th>
+      <th style="width: 36%;">Verification Proof</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Checkpoint 1</strong></td>
+      <td><strong>Minute 115</strong></td>
+      <td>5-Stage Core + Multiplier + <strong>UART + FPU</strong></td>
+      <td>Float multiplication printed on terminal: <code>2.5 * 4.0 = 10.0</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>Checkpoint 2</strong></td>
+      <td><strong>Minute 165</strong></td>
+      <td>Previous Core + <strong>L1 I-Cache</strong></td>
+      <td>Instructions execute from cache; hit rate logged; UART outputs.</td>
+    </tr>
+    <tr>
+      <td><strong>Checkpoint 3</strong></td>
+      <td><strong>Minute 210</strong></td>
+      <td>Full Core + <strong>L1 D-Cache</strong> (All Features Unified)</td>
+      <td>Full C benchmark suite passes (`run_c_tests.py all`).</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="footer">Page 3 of 4 | RV32IMF Group 13 Sprint Guide</div>
+
+<!-- PAGE 4: GIT CHEAT SHEET & TROUBLESHOOTING -->
+<div class="page-break"></div>
+
+<h2>7. Git Collaboration & Conflict Resolution (For LKG Kids)</h2>
+
+<p>Follow these exact terminal commands step-by-step. Do not improvise:</p>
+
+<h3>How to Push Your Completed Feature Branch</h3>
+<p>When your standalone feature passes tests, push your branch to GitHub:</p>
+<pre><code># Check what files you modified
+git status
+
+# Stage your files
+git add .
+
+# Commit with a clear message
+git commit -m "Completed and verified Feature standalone tests"
+
+# Push to your remote branch
+git push origin &lt;your-branch-name&gt;</code></pre>
+
+<h3>How Person E Merges into Main</h3>
+<pre><code># Switch to main and get latest
+git checkout main
+git pull origin main
+
+# Merge the feature branch
+git merge feature-fpu</code></pre>
+
+<h3>What if Git Shows a MERGE CONFLICT? (Zero Panic!)</h3>
+<p>If two people modified <code>execute_stage.v</code>, Git will flag a conflict. <strong>Do not panic.</strong> Simply ask Antigravity:</p>
+<div class="box box-amber">
+  <strong>Prompt to Antigravity:</strong><br>
+  <em>"Resolve the git merge conflict in `execute_stage.v` between `main` and branch `feature-fpu`. Preserve both the `multiplier_unit` result multiplexer and the new `fpu_unit` result multiplexer so both RV32M and RV32F instructions work seamlessly."</em>
+</div>
+<p>Antigravity will instantly resolve the conflict cleanly in 5 seconds.</p>
+
+<hr style="border: 0; border-top: 1px solid #cbd5e1; margin: 18px 0;">
+
+<h2>8. Emergency Troubleshooting Matrix</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 25%;">Symptom / Error</th>
+      <th style="width: 35%;">Probable Root Cause</th>
+      <th style="width: 40%;">Exact Instant Fix</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Core hangs / freezes on first instruction</strong></td>
+      <td><code>icache_stall</code> is permanently stuck high because <code>valid_bit</code> array was uninitialized.</td>
+      <td>In <code>icache.v</code>, add an active-low reset loop initializing all <code>valid[i] &lt;= 1'b0;</code> on <code>reset_n == 0</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>UART outputs weird / garbled symbols</strong></td>
+      <td>Baud rate clock divider mismatch (e.g. 50 MHz divider used instead of 100 MHz).</td>
+      <td>For 100 MHz clock and 115200 baud, set clock divider parameter to exactly <code>868</code> (100,000,000 / 115200).</td>
+    </tr>
+    <tr>
+      <td><strong>FPU produces NaN or 0 on valid inputs</strong></td>
+      <td>Significand hidden leading bit (<code>1.M</code>) was omitted during normalization.</td>
+      <td>Ensure mantissa is expanded to 24 bits: <code>{1'b1, fraction[22:0]}</code> for normalized numbers.</td>
+    </tr>
+    <tr>
+      <td><strong>Negative slack in Vivado after adding FPU</strong></td>
+      <td>FPU combinational path + ALU multiplexer exceeds clock period.</td>
+      <td>Ensure target clock constraint in <code>nexys_a7_100t.xdc</code> is set to <strong>20.0 ns (50 MHz)</strong>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="box box-emerald" style="margin-top: 25px; text-align: center;">
+  <strong style="font-size: 11pt;">Ready for Execution!</strong><br>
+  Map your real names to Roles A, B, C, D, E &bull; Follow the Minute Milestones &bull; Enjoy a seamless, victorious demo!
+</div>
+
+<div class="footer">Page 4 of 4 | RV32IMF Group 13 Sprint Guide &bull; Generated for Antigravity Fast Track</div>
+
+</body>
+</html>
