@@ -140,12 +140,14 @@ def load_imem_map(imem_hex_path):
 
 def main():
     parser = argparse.ArgumentParser(description="Feature 5: 5-Stage RV32IMF Processor Pipeline Trace Visualizer")
-    parser.add_argument("target", nargs="?", default="addition", help="Target test program")
+    parser.add_argument("target", nargs="?", default="dcache", help="Target test program (default: dcache)")
+    parser.add_argument("--bypass", "--no-cache", action="store_true", help="Bypass L1 D-Cache (SW0=1)")
     args = parser.parse_args()
 
+    mode_str = "D-CACHE BYPASSED (SW0=1)" if args.bypass else "D-CACHE ENABLED (SW0=0)"
     print("=" * 116)
     print("       RV32IMF 5-STAGE PIPELINE TRACE VISUALIZER WITH L1 D-CACHE")
-    print("       Core Engine: FEATURE 5 (Direct-Mapped 2 KB L1 Data Cache @ 50 MHz)")
+    print(f"       Core Engine: FEATURE 5 (Direct-Mapped 2 KB L1 Data Cache @ 50 MHz) | Mode: {mode_str}")
     print("=" * 116)
 
     build_script = os.path.join(C_TESTS_DIR, "build_hex.py")
@@ -157,11 +159,15 @@ def main():
     imem_map = load_imem_map(f5_imem_hex)
 
     print(f"\n[*] Loaded {len(imem_map)} instructions from {f5_imem_hex}")
-    print("[*] Elaborating and simulating via Vivado xsim in feature_5/simulation...")
+    print(f"[*] Compiling, elaborating, and simulating via Vivado xsim in feature_5/simulation...")
 
     sim_dir = os.path.join(FEATURE5_DIR, "simulation")
+    # Always recompile Verilog sources to ensure fresh snapshot
+    subprocess.run("xvlog -i ../modules -i ../modules/pipeline -i ../modules/stages -i ../modules/registers -i ../modules/fpga -i ../modules/uart -f filelist.txt", cwd=sim_dir, capture_output=True, text=True, shell=True)
     subprocess.run("xelab -top tb_pipeline_base -snapshot snap_tb_base -debug typical", cwd=sim_dir, capture_output=True, text=True, shell=True)
-    proc = subprocess.run("xsim snap_tb_base -runall", cwd=sim_dir, capture_output=True, text=True, shell=True)
+    
+    sim_cmd = "xsim snap_tb_base -testplusarg dcache_bypass -runall" if args.bypass else "xsim snap_tb_base -runall"
+    proc = subprocess.run(sim_cmd, cwd=sim_dir, capture_output=True, text=True, shell=True)
     print(proc.stdout)
 
 if __name__ == "__main__":

@@ -25,12 +25,15 @@
 //    - LED[9]: L1 D-Cache Miss Pulse Indicator
 //    - LED[15:10]: Low bits of committed register result (or final a0 return value)
 // 4. Clocking & Execution Controls:
-//    - sw[0] = 0, sw[1] = 0: Paced real-time streaming with UART (instruction by instruction)
-//    - sw[0] = 0, sw[1] = 1: 1 Hz Slow Clock mode for live visual observation
-//    - sw[0] = 1: Manual Single-Step mode via Center Pushbutton (btnc)
+//    - sw[0] = D-Cache Mode (0 = D-Cache Enabled, 1 = D-Cache Bypassed)
+//    - sw[1] = 1 Hz Slow Clock mode for live visual observation
+//    - sw[2] = Display select (0 = PC Address, 1 = Instruction Code)
+//    - sw[3] = Multiplier select (0 = DSP48E1, 1 = Booth Radix-4)
+//    - sw[15] = Step mode (0 = Continuous Run, 1 = Manual Single-Step via btnc)
 //    - cpu_resetn: Active-low synchronous reset button (Pin C12)
 // 5. USB-UART Serial Telemetry (115,200 Baud on Pin D4):
 //    - Real-time zero-lag stream of fetched instructions and cache/hazard telemetry
+//    - Formatted completion summary table with cache statistics
 // ============================================================================
 
 `timescale 1ns/1ps
@@ -39,11 +42,12 @@ module fpga_top_feature5 (
     input  wire        clk_100mhz,  // 100 MHz primary oscillator (Pin E3)
     input  wire        cpu_resetn,  // Active-low CPU reset pushbutton (Pin C12)
     input  wire        btnc,        // Center pushbutton for single-stepping (Pin N17)
-    input  wire [3:0]  sw,          // Slide switches:
-                                    //   sw[0] = Step mode (0=Continuous, 1=Manual step via btnc)
-                                    //   sw[1] = 1Hz slow clock (0=Auto-paced, 1=1Hz)
-                                    //   sw[2] = Display select (0=PC Address, 1=Instruction Code)
-                                    //   sw[3] = Multiplier select (0=DSP48E1, 1=Booth Radix-4)
+    input  wire [15:0] sw,          // Slide switches:
+                                    //   sw[0]  = D-Cache Mode (0=Enabled, 1=Bypassed)
+                                    //   sw[1]  = 1Hz slow clock (0=Auto-paced, 1=1Hz)
+                                    //   sw[2]  = Display select (0=PC Address, 1=Instruction Code)
+                                    //   sw[3]  = Multiplier select (0=DSP48E1, 1=Booth Radix-4)
+                                    //   sw[15] = Step mode (0=Continuous, 1=Manual step via btnc)
     output wire [7:0]  an,          // 8-digit Seven-Segment Anodes (Pins J17..U13)
     output wire [6:0]  seg,         // 7-segment Cathodes (Pins T10..L18)
     output wire        dp,          // Decimal point (Pin H15)
@@ -119,7 +123,16 @@ module fpga_top_feature5 (
     reg  [31:0] final_ret_pc;
 
     // ------------------------------------------------------------------------
-    // Auto-stream step generator paced by UART (sw[0]=0, sw[1]=0)
+    // Latched D-Cache Mode Selection (Latched at Reset Release)
+    // ------------------------------------------------------------------------
+    reg dcache_bypass_latched;
+    always @(posedge clk_100mhz or negedge sys_reset_n) begin
+        if (!sys_reset_n)
+            dcache_bypass_latched <= sw[0];
+    end
+
+    // ------------------------------------------------------------------------
+    // Auto-stream step generator paced by UART (sw[15]=0, sw[1]=0)
     // Matches Feature 1/2/3/4 behavior: advances 1 core cycle per UART line transmission
     // ------------------------------------------------------------------------
     reg auto_step_pending;
@@ -128,7 +141,7 @@ module fpga_top_feature5 (
         if (!sys_reset_n) begin
             auto_step_pending <= 1'b0;
             auto_step_pulse   <= 1'b0;
-        end else if (!sw[0] && !sw[1]) begin
+        end else if (!sw[15] && !sw[1]) begin
             if (!uart_busy_w && banner_done_w && !prog_done && !auto_step_pending) begin
                 auto_step_pulse   <= 1'b1;
                 auto_step_pending <= 1'b1;
@@ -144,10 +157,10 @@ module fpga_top_feature5 (
     end
 
     // Unified step pulse:
-    //   sw[0] = 0, sw[1] = 0: Paced real-time streaming with UART
-    //   sw[0] = 0, sw[1] = 1: 1 Hz Slow Clock mode
-    //   sw[0] = 1: Single-Step mode via Center Pushbutton (btnc)
-    wire core_step_pulse = (sw[0]) ? btn_pulse :
+    //   sw[15] = 1: Single-Step mode via Center Pushbutton (btnc)
+    //   sw[15] = 0, sw[1] = 1: 1 Hz Slow Clock mode
+    //   sw[15] = 0, sw[1] = 0: Paced real-time streaming with UART
+    wire core_step_pulse = (sw[15]) ? btn_pulse :
                            ((sw[1]) ? slow_step_pulse : auto_step_pulse);
 
     // Gated Core Clock: Advances exactly 1 cycle per instruction or stall cycle!
@@ -235,6 +248,7 @@ module fpga_top_feature5 (
         .reset_n          (sys_reset_n),
         .stall_ext        (prog_done),
         .use_dsp_i        (!sw[3]),
+        .dcache_bypass_i  (dcache_bypass_latched),
         .imem_addr        (imem_addr),
         .imem_rdata       (imem_rdata_core),
         .dmem_addr        (dmem_addr),
@@ -301,13 +315,27 @@ module fpga_top_feature5 (
         end
     end
 
+    // Performance and Execution Cycle Counters
+    reg [31:0] total_cycles;
+    reg [31:0] total_insts;
+    always @(posedge clk_100mhz or negedge sys_reset_n) begin
+        if (!sys_reset_n) begin
+            total_cycles <= 32'd0;
+            total_insts  <= 32'd0;
+        end else if (core_clk) begin
+            total_cycles <= total_cycles + 32'd1;
+            if (wb_reg_write && !hazard_stall)
+                total_insts <= total_insts + 32'd1;
+        end
+    end
+
     // Latch final return value a0 (x10) when committed
-    reg [7:0] final_result_a0;
+    reg [31:0] final_result_a0;
     always @(posedge clk_100mhz or negedge sys_reset_n) begin
         if (!sys_reset_n)
-            final_result_a0 <= 8'd0;
+            final_result_a0 <= 32'd0;
         else if (core_step_pulse && wb_reg_write && wb_dest_reg == 5'd10)
-            final_result_a0 <= wb_data[7:0];
+            final_result_a0 <= wb_data;
     end
 
     // ------------------------------------------------------------------------
@@ -331,11 +359,19 @@ module fpga_top_feature5 (
         .uart_addr_match (mmio_match),
         .fetch_pc        (uart_fetch_pc),
         .fetch_inst      (uart_fetch_inst),
-        .hazard_stall    (hazard_stall || dcache_stall),
+        .hazard_stall    (hazard_stall && !dcache_stall),
+        .dcache_stall    (dcache_stall),
         .step_trigger    (core_step_pulse && !prog_done),
         .uart_tx         (uart_tx),
         .uart_busy       (uart_busy_w),
-        .banner_done_o   (banner_done_w)
+        .banner_done_o   (banner_done_w),
+        .prog_done       (prog_done),
+        .dcache_bypass   (dcache_bypass_latched),
+        .stat_cycles     (total_cycles),
+        .stat_insts      (total_insts),
+        .stat_hits       (dcache_hit_count),
+        .stat_misses     (dcache_miss_count),
+        .stat_result     (final_result_a0)
     );
 
     // ------------------------------------------------------------------------

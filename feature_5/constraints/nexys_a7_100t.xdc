@@ -15,15 +15,29 @@ set_property -dict { PACKAGE_PIN C12   IOSTANDARD LVCMOS33 } [get_ports { cpu_re
 ## Center Pushbutton (btnc, Pin N17) for Single-Stepping
 set_property -dict { PACKAGE_PIN N17   IOSTANDARD LVCMOS33 } [get_ports { btnc }];
 
-## Slide Switches
-## sw[0] = Step mode (0=Continuous, 1=Manual step via btnc)
+## Slide Switches (sw[15:0])
+## sw[0]  = D-Cache Mode (0=D-Cache Enabled, 1=D-Cache Bypassed)
 set_property -dict { PACKAGE_PIN J15   IOSTANDARD LVCMOS33 } [get_ports { sw[0] }];
-## sw[1] = 1 Hz slow clock enable
+## sw[1]  = 1 Hz slow clock enable
 set_property -dict { PACKAGE_PIN L16   IOSTANDARD LVCMOS33 } [get_ports { sw[1] }];
-## sw[2] = 7-Seg Display select (0=PC Address, 1=Instruction Machine Code)
+## sw[2]  = 7-Seg Display select (0=PC Address, 1=Instruction Machine Code)
 set_property -dict { PACKAGE_PIN M13   IOSTANDARD LVCMOS33 } [get_ports { sw[2] }];
-## sw[3] = Multiplier Architecture (0=DSP48E1, 1=Booth Radix-4)
+## sw[3]  = Multiplier Architecture (0=DSP48E1, 1=Booth Radix-4)
 set_property -dict { PACKAGE_PIN R15   IOSTANDARD LVCMOS33 } [get_ports { sw[3] }];
+## sw[4]  = D-Cache Bypass alternate
+set_property -dict { PACKAGE_PIN R17   IOSTANDARD LVCMOS33 } [get_ports { sw[4] }];
+set_property -dict { PACKAGE_PIN T18   IOSTANDARD LVCMOS33 } [get_ports { sw[5] }];
+set_property -dict { PACKAGE_PIN U18   IOSTANDARD LVCMOS33 } [get_ports { sw[6] }];
+set_property -dict { PACKAGE_PIN R13   IOSTANDARD LVCMOS33 } [get_ports { sw[7] }];
+set_property -dict { PACKAGE_PIN T8    IOSTANDARD LVCMOS18 } [get_ports { sw[8] }];
+set_property -dict { PACKAGE_PIN U8    IOSTANDARD LVCMOS18 } [get_ports { sw[9] }];
+set_property -dict { PACKAGE_PIN R16   IOSTANDARD LVCMOS33 } [get_ports { sw[10] }];
+set_property -dict { PACKAGE_PIN T13   IOSTANDARD LVCMOS33 } [get_ports { sw[11] }];
+set_property -dict { PACKAGE_PIN H6    IOSTANDARD LVCMOS33 } [get_ports { sw[12] }];
+set_property -dict { PACKAGE_PIN U12   IOSTANDARD LVCMOS33 } [get_ports { sw[13] }];
+set_property -dict { PACKAGE_PIN U11   IOSTANDARD LVCMOS33 } [get_ports { sw[14] }];
+## sw[15] = Step Mode (0=Continuous Auto-Run, 1=Manual Single-Step via BTNC)
+set_property -dict { PACKAGE_PIN V10   IOSTANDARD LVCMOS33 } [get_ports { sw[15] }];
 
 ## 8-Digit Seven-Segment Display (Directly above LEDs)
 ## Cathodes: seg[6:0] = {CA, CB, CC, CD, CE, CF, CG}

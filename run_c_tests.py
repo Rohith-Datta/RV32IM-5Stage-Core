@@ -28,7 +28,9 @@ TESTS = {
     "multiplication": {"expected": 42,  "desc": "6 * 7 = 42"},
     "division":       {"expected": 16,  "desc": "100/7 + 100%7 = 14 + 2 = 16"},
     "negative":       {"expected": -1,  "desc": "4 - 5 = -1"},
-    "xor":            {"expected": 2,   "desc": "4 ^ 6 = 2"}
+    "xor":            {"expected": 2,   "desc": "4 ^ 6 = 2"},
+    "dcache":         {"expected": 40,  "desc": "L1 D-Cache burst refill & locality test (10+20+10=40)"},
+    "dcache_test":    {"expected": 40,  "desc": "L1 D-Cache burst refill & locality test (10+20+10=40)"}
 }
 
 def get_sim_config(feature_num):

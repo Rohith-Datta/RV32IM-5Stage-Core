@@ -12,12 +12,12 @@
 #define UART_TX_REG    (*(volatile unsigned int *)0x80000000)
 #define UART_STAT_REG  (*(volatile unsigned int *)0x80000004)
 
-static inline void uart_putc(char c) {
+static inline __attribute__((always_inline)) void uart_putc(char c) {
     while (UART_STAT_REG & 0x01); // Wait until transmitter / FIFO ready
     UART_TX_REG = (unsigned int)(unsigned char)c;
 }
 
-static inline void uart_puts(const char *str) {
+static inline __attribute__((always_inline)) void uart_puts(const char *str) {
     while (*str) {
         if (*str == '\n') {
             uart_putc('\r');
@@ -26,7 +26,7 @@ static inline void uart_puts(const char *str) {
     }
 }
 
-static inline void uart_puthex(unsigned int val) {
+static inline __attribute__((always_inline)) void uart_puthex(unsigned int val) {
     const char hex[] = "0123456789ABCDEF";
     uart_puts("0x");
     for (int i = 7; i >= 0; i--) {
@@ -34,7 +34,7 @@ static inline void uart_puthex(unsigned int val) {
     }
 }
 
-static inline void uart_putdec(int val) {
+static inline __attribute__((always_inline)) void uart_putdec(int val) {
     if (val < 0) {
         uart_putc('-');
         val = -val;

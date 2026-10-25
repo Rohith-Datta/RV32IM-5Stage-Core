@@ -50,6 +50,7 @@ module tb_uart;
         .fetch_pc       (32'h0000_0020),
         .fetch_inst     (32'h06400793),
         .hazard_stall   (1'b0),
+        .dcache_stall   (1'b0),
         .step_trigger   (1'b0),
         .uart_tx        (uart_tx),
         .uart_busy      (uart_busy),

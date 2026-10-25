@@ -7,28 +7,30 @@
 // Key Features Mapped to Board Peripherals:
 // 1. 8-Digit Seven-Segment Display (Directly above LEDs):
 //    - sw[2] = 0: Shows 32-bit Program Counter Fetch Address (pc_if, e.g. 00000014).
-//    - sw[2] = 1: Shows 32-bit Machine Instruction Code (imem_rdata, e.g. 002081D3 for FADD.S).
+//    - sw[2] = 1: Shows 32-bit Machine Instruction Code (imem_rdata, e.g. 00e787d3 for FADD.S).
+//    - When program completes (`ret`): Displays "--------" across all 8 digits!
 // 2. Hardware Engine Selection (Switch sw[3]):
 //    - sw[3] = 0: DSP48E1 Multiplier Mode
 //    - sw[3] = 1: Radix-4 Booth Multiplier Mode
 // 3. LED Hardware Diagnostics:
-//    - LED[0]: Hazard Stall Active (Load-use, Multi-Cycle Divider or FPU interlock)
+//    - LED[0]: Hazard Stall Active (FPU multi-cycle stall, Load-use, or Divider stall)
 //    - LED[1]: Data Forwarding Active (Operand bypass into ALU/MUL/DIV/FPU)
 //    - LED[2]: Branch / Speculative Flush
 //    - LED[3]: Instruction Writeback Commit (wb_reg_write)
-//    - LED[4]: Multiplier Unit Active Indicator (is_mul in EX)
-//    - LED[5]: Divider Unit Active Indicator (is_div / div_busy in EX)
-//    - LED[6]: FPU Unit Active Indicator (is_fpu / fpu_busy in EX)
+//    - LED[4]: Multiplier Unit Active Indicator (mul_active in EX)
+//    - LED[5]: Divider Unit Active Indicator (div_active || div_busy in EX)
+//    - LED[6]: FPU Unit Active Indicator (fpu_active || fpu_busy in EX)
 //    - LED[7]: Program Execution Completed (prog_done)
-//    - LED[15:8]: Low byte of committed result (wb_data[7:0])
+//    - LED[15:8]: Low byte of committed register result / final a0 return value (e.g. 40 = 0x28)
 // 4. Clocking & Execution Controls:
-//    - Standard 50 MHz core clock derived from 100 MHz board oscillator
-//    - sw[0] = 0, sw[1] = 0: Paced real-time streaming with UART
-//    - sw[0] = 0, sw[1] = 1: 1 Hz Slow Clock mode for live visual observation
-//    - sw[0] = 1: Manual Single-Step mode via Center Pushbutton (btnc)
+//    - sw[0] or sw[15]: Manual Single-Step mode via Center Pushbutton (btnc)
+//    - sw[1] = 1: 1 Hz Slow Clock mode for live visual observation
+//    - sw[0]=0, sw[1]=0, sw[15]=0: Paced real-time streaming with UART
 //    - cpu_resetn: Active-low synchronous reset button (Pin C12).
 // 5. USB-UART Serial Telemetry (115,200 Baud on Pin D4):
 //    - Real-time zero-lag stream of each fetched instruction & hazard stalls
+//    - Formatted post-run execution summary table reporting retired instructions,
+//      total elapsed cycles, FPU stalls, and return value a0
 // ============================================================================
 
 `timescale 1ns/1ps
@@ -37,11 +39,12 @@ module fpga_top_feature4 (
     input  wire        clk_100mhz,  // 100 MHz primary oscillator (Pin E3)
     input  wire        cpu_resetn,  // Active-low CPU reset pushbutton (Pin C12)
     input  wire        btnc,        // Center pushbutton for single-stepping (Pin N17)
-    input  wire [3:0]  sw,          // Slide switches:
-                                    //   sw[0] = Step mode (0=Continuous, 1=Manual step via btnc)
-                                    //   sw[1] = 1Hz slow clock (0=Auto-paced, 1=1Hz)
-                                    //   sw[2] = Display select (0=PC Address, 1=Instruction Code)
-                                    //   sw[3] = Multiplier select (0=DSP48E1, 1=Booth Radix-4)
+    input  wire [15:0] sw,          // Slide switches:
+                                    //   sw[0]  = Step mode (0=Continuous, 1=Manual step via btnc)
+                                    //   sw[1]  = 1Hz slow clock (0=Auto-paced, 1=1Hz)
+                                    //   sw[2]  = Display select (0=PC Address, 1=Instruction Code)
+                                    //   sw[3]  = Multiplier select (0=DSP48E1, 1=Booth Radix-4)
+                                    //   sw[15] = Step mode alternate (0=Continuous, 1=Manual step via btnc)
     output wire [7:0]  an,          // 8-digit Seven-Segment Anodes (Pins J17..U13)
     output wire [6:0]  seg,         // 7-segment Cathodes (Pins T10..L18)
     output wire        dp,          // Decimal point (Pin H15)
@@ -117,6 +120,9 @@ module fpga_top_feature4 (
         end
     end
 
+    // Step mode selection: sw[0] or sw[15]
+    wire step_mode_active = sw[0] || sw[15];
+
     // Multiplier hardware selection: sw[3]=0 -> DSP (1), sw[3]=1 -> Booth (0)
     wire use_dsp_mode = ~sw[3];
 
@@ -148,6 +154,7 @@ module fpga_top_feature4 (
     wire        hazard_flush_ex;
     wire [1:0]  forward_a;
     wire [1:0]  forward_b;
+
     wire        mul_active;
     wire        div_active;
     wire        div_busy;
@@ -158,7 +165,9 @@ module fpga_top_feature4 (
     wire        uart_busy;
     wire        banner_done;
 
+    // ------------------------------------------------------------------------
     // Automatic Halt on Program Completion
+    // ------------------------------------------------------------------------
     reg [3:0] post_ret_drain;
     reg       saw_ret;
     reg       prog_done;
@@ -166,9 +175,9 @@ module fpga_top_feature4 (
 
     always @(posedge clk_100mhz or negedge sys_reset_n) begin
         if (!sys_reset_n) begin
-            saw_ret          <= 1'b0;
-            post_ret_drain   <= 4'd0;
-            prog_done        <= 1'b0;
+            saw_ret        <= 1'b0;
+            post_ret_drain <= 4'd0;
+            prog_done      <= 1'b0;
         end else if (!prog_done) begin
             if (imem_rdata == 32'h0000_8067 && imem_addr != 32'h0) begin
                 saw_ret <= 1'b1;
@@ -183,14 +192,14 @@ module fpga_top_feature4 (
         end
     end
 
-    // Auto-stream step generator (sw[0]=0, sw[1]=0):
+    // Auto-stream step generator (paced by UART):
     reg auto_step_pending;
     reg auto_step_pulse;
     always @(posedge clk_100mhz or negedge sys_reset_n) begin
         if (!sys_reset_n) begin
             auto_step_pending <= 1'b0;
             auto_step_pulse   <= 1'b0;
-        end else if (!sw[0] && !sw[1]) begin
+        end else if (!step_mode_active && !sw[1]) begin
             if (!uart_busy && banner_done && !prog_done && !auto_step_pending) begin
                 auto_step_pulse   <= 1'b1;
                 auto_step_pending <= 1'b1;
@@ -206,7 +215,7 @@ module fpga_top_feature4 (
     end
 
     // Unified step pulse:
-    assign core_step_pulse = (sw[0]) ? btn_pulse :
+    assign core_step_pulse = (step_mode_active) ? btn_pulse :
                              ((sw[1]) ? slow_step_pulse : auto_step_pulse);
 
     wire core_clk = core_step_pulse && !prog_done;
@@ -224,7 +233,37 @@ module fpga_top_feature4 (
     wire [31:0] uart_fetch_inst = (saw_ret || prog_done) ? 32'h0000_8067 : imem_rdata;
 
     // ------------------------------------------------------------------------
-    // 5-Stage RV32IMF Processor Core Instance (Feature 4)
+    // Hardware Execution & Diagnostic Counters
+    // ------------------------------------------------------------------------
+    reg [31:0] total_cycles;
+    reg [31:0] total_insts;
+    reg [31:0] total_fpu_stalls;
+    reg [31:0] final_return_a0;
+
+    always @(posedge clk_100mhz or negedge sys_reset_n) begin
+        if (!sys_reset_n) begin
+            total_cycles     <= 32'd0;
+            total_insts      <= 32'd0;
+            total_fpu_stalls <= 32'd0;
+            final_return_a0  <= 32'd0;
+        end else if (core_step_pulse && !prog_done) begin
+            total_cycles <= total_cycles + 32'd1;
+
+            if (wb_reg_write && (wb_dest_reg != 5'd0)) begin
+                total_insts <= total_insts + 32'd1;
+                if (wb_dest_reg == 5'd10) begin
+                    final_return_a0 <= wb_data;
+                end
+            end
+
+            if (fpu_busy || (fpu_active && hazard_stall)) begin
+                total_fpu_stalls <= total_fpu_stalls + 32'd1;
+            end
+        end
+    end
+
+    // ------------------------------------------------------------------------
+    // 5-Stage RV32IMF Processor Core Instance (Feature 4: FPU Standalone)
     // ------------------------------------------------------------------------
     wire [31:0] imem_rdata_core = saw_ret ? 32'h0000_0013 : imem_rdata;
 
@@ -265,10 +304,10 @@ module fpga_top_feature4 (
     );
 
     // ------------------------------------------------------------------------
-    // Memory Subsystem
+    // Memory Subsystem (Standalone BRAM Models - NO CACHE)
     // ------------------------------------------------------------------------
     instr_mem #(
-        .HEX_FILE("imem.hex"),
+        .HEX_FILE("C:/CS2202L/RISCV/feature_4/mem/imem.hex"),
         .WORDS(1024)
     ) u_imem (
         .clk  (core_clk),
@@ -298,7 +337,12 @@ module fpga_top_feature4 (
         .step_trigger   (core_step_pulse && !prog_done),
         .uart_tx        (uart_tx),
         .uart_busy      (uart_busy),
-        .banner_done_o  (banner_done)
+        .banner_done_o  (banner_done),
+        .prog_done      (prog_done),
+        .stat_cycles    (total_cycles),
+        .stat_insts     (total_insts),
+        .stat_stalls    (total_fpu_stalls),
+        .stat_result    (final_return_a0)
     );
 
     // RAM vs MMIO Data Multiplexing
@@ -308,7 +352,7 @@ module fpga_top_feature4 (
     wire dmem_ram_re  = dmem_re && !uart_addr_match;
 
     data_mem #(
-        .HEX_FILE("dmem.hex"),
+        .HEX_FILE("C:/CS2202L/RISCV/feature_4/mem/dmem.hex"),
         .WORDS(1024)
     ) u_dmem (
         .clk  (core_clk),
@@ -399,22 +443,13 @@ module fpga_top_feature4 (
         end
     end
 
-    // Latch final return value a0 (x10) when it commits to register file
-    reg [7:0] final_result_a0;
-    always @(posedge clk_100mhz or negedge sys_reset_n) begin
-        if (!sys_reset_n)
-            final_result_a0 <= 8'd0;
-        else if (wb_reg_write && wb_dest_reg == 5'd10)
-            final_result_a0 <= wb_data[7:0];
-    end
-
     // Direct or Stretched LED driving
-    wire led_hazard = (sw[0] || sw[1]) ? hazard_stall           : (hazard_stretch_cnt > 0);
-    wire led_fwd    = (sw[0] || sw[1]) ? fwd_active             : (fwd_stretch_cnt > 0);
-    wire led_flush  = (sw[0] || sw[1]) ? hazard_flush_id        : (flush_stretch_cnt > 0);
-    wire led_mul    = (sw[0] || sw[1]) ? mul_active             : (mul_stretch_cnt > 0);
-    wire led_div    = (sw[0] || sw[1]) ? (div_active || div_busy) : (div_stretch_cnt > 0);
-    wire led_fpu    = (sw[0] || sw[1]) ? (fpu_active || fpu_busy) : (fpu_stretch_cnt > 0);
+    wire led_hazard = (step_mode_active || sw[1]) ? hazard_stall           : (hazard_stretch_cnt > 0);
+    wire led_fwd    = (step_mode_active || sw[1]) ? fwd_active             : (fwd_stretch_cnt > 0);
+    wire led_flush  = (step_mode_active || sw[1]) ? hazard_flush_id        : (flush_stretch_cnt > 0);
+    wire led_mul    = (step_mode_active || sw[1]) ? mul_active             : (mul_stretch_cnt > 0);
+    wire led_div    = (step_mode_active || sw[1]) ? (div_active || div_busy) : (div_stretch_cnt > 0);
+    wire led_fpu    = (step_mode_active || sw[1]) ? (fpu_active || fpu_busy) : (fpu_stretch_cnt > 0);
 
     // LED Port Assignments
     assign led[0]    = led_hazard;            // LED[0]: Data Hazard Detected (Load-use, Div, or FPU stall)
@@ -425,6 +460,6 @@ module fpga_top_feature4 (
     assign led[5]    = led_div;               // LED[5]: Divider Unit Active!
     assign led[6]    = led_fpu;               // LED[6]: FPU Unit Active! (Feature 4 Indicator)
     assign led[7]    = prog_done;             // LED[7]: Program Execution Completed
-    assign led[15:8] = prog_done ? final_result_a0 : wb_data[7:0];
+    assign led[15:8] = prog_done ? final_return_a0[7:0] : wb_data[7:0];
 
 endmodule

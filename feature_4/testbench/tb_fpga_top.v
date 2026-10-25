@@ -35,7 +35,8 @@ module tb_fpga_top;
         .an         (an),
         .seg        (seg),
         .dp         (dp),
-        .uart_tx    (uart_tx)
+        .uart_tx    (uart_tx),
+        .uart_rx    (1'b1)
     );
 
     initial begin

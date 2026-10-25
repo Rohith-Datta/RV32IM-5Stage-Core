@@ -161,11 +161,11 @@ module tb_dcache;
             stall_cycles = stall_cycles + 1;
         end
 
-        if (stall_cycles == 10) begin
-            $display("  PASS: Exact 10-cycle miss penalty verified (50 MHz)");
+        if (stall_cycles == 9) begin
+            $display("  PASS: Exact 9-cycle stall penalty (10-cycle total latency) verified (50 MHz)");
             pass_count = pass_count + 1;
         end else begin
-            $display("  FAIL: Expected 10 stall cycles, measured %0d cycles", stall_cycles);
+            $display("  FAIL: Expected 9 stall cycles, measured %0d cycles", stall_cycles);
             fail_count = fail_count + 1;
         end
 

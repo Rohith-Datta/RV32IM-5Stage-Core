@@ -38,7 +38,15 @@ PROGRAMS = {
     "negative.c":          "negative.c",
     "xor":                 "xor.c",
     "code_xor":            "code_xor.c",
-    "xor.c":               "xor.c"
+    "xor.c":               "xor.c",
+    "dcache":              "dcache_test.c",
+    "dcache_test":         "dcache_test.c",
+    "dcache.c":            "dcache_test.c",
+    "dcache_test.c":       "dcache_test.c",
+    "fpu":                 "fpu.c",
+    "fpu_test":            "fpu.c",
+    "fpu.c":               "fpu.c",
+    "fpu_test.c":          "fpu.c"
 }
 
 def hex_change(val):
@@ -102,16 +110,24 @@ def build(prog_name):
     bin2hex(imem_bin, imem_hex)
     bin2hex(dmem_bin, dmem_hex)
     
-    # Copy to feature_1/mem .. feature_6/mem
-    for mem_dir in [F1_MEM_DIR, F2_MEM_DIR, F3_MEM_DIR, F4_MEM_DIR, F5_MEM_DIR, F6_MEM_DIR]:
+    # Copy to feature_1/mem .. feature_6/mem, plus simulation and vivado_project
+    for feat_idx in range(1, 7):
+        feat_dir = os.path.join(ROOT_DIR, f"feature_{feat_idx}")
+        mem_dir = os.path.join(feat_dir, "mem")
         os.makedirs(mem_dir, exist_ok=True)
         shutil.copy2(imem_hex, os.path.join(mem_dir, "imem.hex"))
         shutil.copy2(dmem_hex, os.path.join(mem_dir, "dmem.hex"))
         shutil.copy2(dis_file, os.path.join(mem_dir, "code.dis"))
         shutil.copy2(elf_file, os.path.join(mem_dir, "code.elf"))
         shutil.copy2(src_file, os.path.join(mem_dir, PROGRAMS[prog_name]))
+
+        for sub in ["simulation", "vivado_project"]:
+            target_sub = os.path.join(feat_dir, sub)
+            if os.path.exists(target_sub):
+                shutil.copy2(imem_hex, os.path.join(target_sub, "imem.hex"))
+                shutil.copy2(dmem_hex, os.path.join(target_sub, "dmem.hex"))
     
-    print(f"[+] Successfully built and deployed {prog_name} to feature_1..6 /mem/")
+    print(f"[+] Successfully built and deployed {prog_name} to feature_1..6 (mem, simulation, vivado_project)")
 
 if __name__ == "__main__":
     prog = sys.argv[1] if len(sys.argv) > 1 else "addition"

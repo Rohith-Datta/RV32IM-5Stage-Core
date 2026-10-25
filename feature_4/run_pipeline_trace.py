@@ -101,6 +101,7 @@ def disassemble_word(word):
         fp_names = {
             0x00: 'fadd.s',
             0x04: 'fsub.s',
+            0x08: 'fmul.s',
             0x10: 'fmul.s',
             0x0C: 'fdiv.s'
         }
@@ -206,7 +207,7 @@ def run_simulation(target_name, imem_map, sim_dir):
                 "wb_data": int(m.group(14), 16),
             })
 
-    m_val = re.search(r"FINAL RETURN VALUE a0 \(x10\) =\s*(-?\d+)", out)
+    m_val = re.search(r"FINAL RETURN VALUE a0 \(x10\)\s*=\s*(-?\d+)", out)
     ret_val = int(m_val.group(1)) if m_val else None
 
     return trace_records, ret_val, out

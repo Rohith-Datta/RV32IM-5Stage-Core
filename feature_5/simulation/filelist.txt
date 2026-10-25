@@ -24,3 +24,4 @@
 ../testbench/tb_feature5_pipeline.v
 ../testbench/tb_pipeline_base.v
 ../testbench/tb_uart.v
+../testbench/tb_fpga_top.v

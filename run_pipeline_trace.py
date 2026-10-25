@@ -97,8 +97,17 @@ def disassemble_word(word):
             return f"{m_names[funct3]} {r_d}, {r_1}, {r_2}"
         if funct3 == 0:
             return f"sub {r_d}, {r_1}, {r_2}" if funct7 == 0x20 else f"add {r_d}, {r_1}, {r_2}"
-        names = ['add/sub', 'sll', 'slt', 'sltu', 'xor', 'srl/sra', 'or', 'and']
         return f"{names[funct3]} {r_d}, {r_1}, {r_2}"
+    elif opcode == 0x53:  # OP_FP (RV32F)
+        fp_names = {
+            0x00: 'fadd.s',
+            0x04: 'fsub.s',
+            0x08: 'fmul.s',
+            0x0C: 'fdiv.s',
+            0x10: 'fmul.s'
+        }
+        name = fp_names.get(funct7, f"fp_0x{funct7:02x}")
+        return f"{name} {r_d}, {r_1}, {r_2}"
     elif opcode == 0x03:  # LOAD
         names = ['lb', 'lh', 'lw', 'res', 'lbu', 'lhu']
         return f"{names[funct3]} {r_d}, {imm_i}({r_1})"
@@ -532,16 +541,21 @@ def main():
                         help="Target core feature: 1 (RV32I baseline), 2 (RV32IM multiplier), 3 (RV32IM divider), 4 (RV32IMF FPU), 5 (RV32IMF with D-Cache), or auto (default)")
     parser.add_argument("--asm", type=str, default=None,
                         help="Direct assembly string (e.g. 'addi x1, x0, 10; addi x2, x0, 2; add x3, x1, x2; ret')")
+    parser.add_argument("--bypass", "--no-cache", action="store_true",
+                        help="Bypass L1 D-Cache for Feature 5 (SW0=1)")
     parser.add_argument("--bitstream", action="store_true",
                         help="Automatically regenerate FPGA bitstream in Vivado after compiling hex")
 
     args = parser.parse_args()
     target = args.target
 
-    if args.feature == "5":
+    if args.feature == "5" or "dcache" in target:
         f5_script = os.path.join(FEATURE5_DIR, "run_pipeline_trace.py")
-        sys.exit(subprocess.call([sys.executable, f5_script, target], cwd=ROOT_DIR))
-    if args.feature == "4":
+        cmd = [sys.executable, f5_script, target]
+        if args.bypass:
+            cmd.append("--bypass")
+        sys.exit(subprocess.call(cmd, cwd=ROOT_DIR))
+    if args.feature == "4" or "fpu" in target:
         f4_script = os.path.join(FEATURE4_DIR, "run_pipeline_trace.py")
         sys.exit(subprocess.call([sys.executable, f4_script, target], cwd=ROOT_DIR))
 

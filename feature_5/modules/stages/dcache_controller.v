@@ -40,6 +40,7 @@ module dcache_controller #(
     input  wire        clk,
     input  wire        reset_n,
     input  wire        counter_reset_i,
+    input  wire        cache_bypass_i,  // 0 = D-Cache Enabled, 1 = D-Cache Bypassed
 
     // CPU Pipeline Interface (from EX/MEM stage & memory_stage)
     input  wire [31:0] cpu_addr,        // Target memory address from EX/MEM
@@ -91,30 +92,35 @@ module dcache_controller #(
     wire                   line_valid = valid_array[curr_index];
     wire [TAG_WIDTH-1:0]   line_tag   = tag_array[curr_index];
 
-    wire hit_condition  = line_valid && (line_tag == curr_tag);
+    wire bypass_act     = (cache_bypass_i === 1'b1);
+    wire hit_condition  = !bypass_act && line_valid && (line_tag == curr_tag);
     wire load_miss      = cpu_re && !hit_condition;
     wire store_miss     = cpu_we && !hit_condition;
 
     // ------------------------------------------------------------------------
     // FSM States & Registers
     // ------------------------------------------------------------------------
-    localparam STATE_IDLE   = 1'b0;
-    localparam STATE_REFILL = 1'b1;
+    localparam STATE_IDLE   = 2'b00;
+    localparam STATE_REFILL = 2'b01;
+    localparam STATE_BYPASS = 2'b10;
 
-    reg        state;
+    reg [1:0]  state;
     reg [3:0]  refill_cnt;
     reg [31:0] latched_addr;
+    reg [31:0] bypass_word;
 
-    wire [INDEX_WIDTH-1:0] refill_index = latched_addr[10:4];
-    wire [TAG_WIDTH-1:0]   refill_tag   = latched_addr[31:11];
+    wire [INDEX_WIDTH-1:0]  refill_index  = latched_addr[10:4];
+    wire [TAG_WIDTH-1:0]    refill_tag    = latched_addr[31:11];
+    wire [OFFSET_WIDTH-1:0] refill_offset = latched_addr[3:2];
 
     // Combinational hit/miss status
-    assign cache_hit  = (state == STATE_IDLE) && ((cpu_re && hit_condition) || (cpu_we && hit_condition)) && reset_n;
+    assign cache_hit  = (state == STATE_IDLE) && !bypass_act && ((cpu_re && hit_condition) || (cpu_we && hit_condition)) && reset_n;
     assign cache_miss = (state == STATE_REFILL) || ((state == STATE_IDLE) && (load_miss || store_miss) && reset_n);
 
     // Pipeline stall: ONLY asserts on Load Miss!
-    // Store misses use No-Write-Allocate / Write-Around with 0 stall cycles.
-    assign dcache_stall = (state == STATE_REFILL) || ((state == STATE_IDLE) && load_miss && reset_n);
+    // In STATE_BYPASS, deassert stall for exactly 1 cycle so MEM stage captures bypass data!
+    assign dcache_stall = (state == STATE_BYPASS) ? 1'b0 :
+                          (state == STATE_REFILL) || ((state == STATE_IDLE) && load_miss && reset_n);
 
     // ------------------------------------------------------------------------
     // Combinational Word Selection (Read Port)
@@ -136,7 +142,8 @@ module dcache_controller #(
     end
 
     // Raw read data to MEM stage load extender
-    assign cpu_rdata = (hit_condition && cpu_re) ? selected_word : 32'h0;
+    assign cpu_rdata = (state == STATE_BYPASS) ? bypass_word :
+                       (hit_condition && cpu_re) ? selected_word : 32'h0;
 
     // ------------------------------------------------------------------------
     // Backing Memory Bus & Write Buffer Multiplexing
@@ -178,7 +185,8 @@ module dcache_controller #(
             if (cpu_wstrb[2]) data_mem0[curr_index][23:16] <= cpu_wdata[23:16];
             if (cpu_wstrb[3]) data_mem0[curr_index][31:24] <= cpu_wdata[31:24];
         end else if ((state == STATE_REFILL) && (refill_cnt == 4'd3)) begin
-            data_mem0[refill_index] <= mem_rdata;
+            if (!bypass_act) data_mem0[refill_index] <= mem_rdata;
+            if (refill_offset == 2'b00) bypass_word <= mem_rdata;
         end
     end
 
@@ -190,7 +198,8 @@ module dcache_controller #(
             if (cpu_wstrb[2]) data_mem1[curr_index][23:16] <= cpu_wdata[23:16];
             if (cpu_wstrb[3]) data_mem1[curr_index][31:24] <= cpu_wdata[31:24];
         end else if ((state == STATE_REFILL) && (refill_cnt == 4'd4)) begin
-            data_mem1[refill_index] <= mem_rdata;
+            if (!bypass_act) data_mem1[refill_index] <= mem_rdata;
+            if (refill_offset == 2'b01) bypass_word <= mem_rdata;
         end
     end
 
@@ -202,7 +211,8 @@ module dcache_controller #(
             if (cpu_wstrb[2]) data_mem2[curr_index][23:16] <= cpu_wdata[23:16];
             if (cpu_wstrb[3]) data_mem2[curr_index][31:24] <= cpu_wdata[31:24];
         end else if ((state == STATE_REFILL) && (refill_cnt == 4'd5)) begin
-            data_mem2[refill_index] <= mem_rdata;
+            if (!bypass_act) data_mem2[refill_index] <= mem_rdata;
+            if (refill_offset == 2'b10) bypass_word <= mem_rdata;
         end
     end
 
@@ -214,7 +224,8 @@ module dcache_controller #(
             if (cpu_wstrb[2]) data_mem3[curr_index][23:16] <= cpu_wdata[23:16];
             if (cpu_wstrb[3]) data_mem3[curr_index][31:24] <= cpu_wdata[31:24];
         end else if ((state == STATE_REFILL) && (refill_cnt == 4'd6)) begin
-            data_mem3[refill_index] <= mem_rdata;
+            if (!bypass_act) data_mem3[refill_index] <= mem_rdata;
+            if (refill_offset == 2'b11) bypass_word <= mem_rdata;
         end
     end
 
@@ -228,6 +239,7 @@ module dcache_controller #(
             state         <= STATE_IDLE;
             refill_cnt    <= 4'd0;
             latched_addr  <= 32'd0;
+            bypass_word   <= 32'd0;
             hit_count     <= 32'd0;
             miss_count    <= 32'd0;
             just_refilled <= 1'b0;
@@ -264,14 +276,27 @@ module dcache_controller #(
                 STATE_REFILL: begin
                     refill_cnt <= refill_cnt + 4'd1;
 
-                    if (refill_cnt == 4'd8) begin
-                        // Finalize line: commit tag and set valid bit
-                        tag_array[refill_index]   <= refill_tag;
-                        valid_array[refill_index] <= 1'b1;
-                        state                     <= STATE_IDLE;
-                        refill_cnt                <= 4'd0;
-                        just_refilled             <= 1'b1;
+                    if (refill_cnt == 4'd7) begin
+                        if (bypass_act) begin
+                            // In bypass mode, do not write tag or valid bit
+                            state      <= STATE_BYPASS;
+                            refill_cnt <= 4'd0;
+                        end else begin
+                            // Finalize line: commit tag and set valid bit
+                            tag_array[refill_index]   <= refill_tag;
+                            valid_array[refill_index] <= 1'b1;
+                            state                     <= STATE_IDLE;
+                            refill_cnt                <= 4'd0;
+                            just_refilled             <= 1'b1;
+                        end
                     end
+                end
+
+                STATE_BYPASS: begin
+                    // Release the CPU for exactly 1 cycle to latch load data
+                    state         <= STATE_IDLE;
+                    refill_cnt    <= 4'd0;
+                    just_refilled <= 1'b0;
                 end
             endcase
         end

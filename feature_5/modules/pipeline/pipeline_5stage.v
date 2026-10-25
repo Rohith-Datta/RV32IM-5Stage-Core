@@ -19,8 +19,9 @@ module pipeline_5stage #(
 )(
     input  wire        clk,
     input  wire        reset_n,
-    input  wire        stall_ext,     // External freeze (e.g. UART / hardware pause)
-    input  wire        use_dsp_i,     // 1: DSP48E1, 0: Booth Radix-4 Multiplier
+    input  wire        stall_ext,        // External freeze (e.g. UART / hardware pause)
+    input  wire        use_dsp_i,        // 1: DSP48E1, 0: Booth Radix-4 Multiplier
+    input  wire        dcache_bypass_i,  // 0: D-Cache Enabled, 1: D-Cache Bypassed
 
     // Instruction Memory Bus (IF stage directly to Backing IMEM)
     output wire [31:0] imem_addr,
@@ -434,6 +435,7 @@ module pipeline_5stage #(
         .clk             (clk),
         .reset_n         (reset_n),
         .counter_reset_i (1'b0),
+        .cache_bypass_i  (dcache_bypass_i),
         .cpu_addr        (dmem_stage_addr),
         .cpu_wdata       (dmem_stage_wdata),
         .cpu_wstrb       (dmem_stage_wstrb),

@@ -1,29 +1,40 @@
 // ============================================================================
 // File: tb_pipeline_base.v
-// Module: tb_pipeline_base
-// Description: Full 5-Stage RV32IMF Pipeline Testbench (Feature 4 Baseline)
-// Project: Pipelined RV32IMF RISC-V Core (Feature 4: IEEE 754 FPU)
-// Tests: RV32I Base ALU, Memory Stage, and Hazard Resolution with 50 MHz Clock
+// Description: Full System Integration Testbench for 5-Stage RV32IMF Processor (Feature 4)
+// Project: Pipelined RV32IMF RISC-V Core (Feature 4: IEEE 754 Floating-Point Unit)
+// Runs: Compiled Bare-Metal C Programs (FPU, Division, Multiplication, etc.)
+// Features: Cycle-by-cycle trace logging, FPU multi-cycle stall tracking, and IPC measurement
 // ============================================================================
 
 `timescale 1ns/1ps
 
 module tb_pipeline_base;
 
+    // ------------------------------------------------------------------------
+    // Clock and Reset Generation
+    // ------------------------------------------------------------------------
     reg clk;
     reg reset_n;
 
-    // 50 MHz clock (20 ns period: 10 ns high, 10 ns low)
+    // 50 MHz core clock (20 ns period)
     initial begin
         clk = 0;
         forever #10 clk = ~clk;
     end
 
-    // Instruction Memory Bus
+    // Active-low reset pulse
+    initial begin
+        reset_n = 0;
+        #100;
+        reset_n = 1;
+    end
+
+    // ------------------------------------------------------------------------
+    // Memory and Processor Interconnects
+    // ------------------------------------------------------------------------
     wire [31:0] imem_addr;
     wire [31:0] imem_rdata;
 
-    // Data Memory Bus
     wire [31:0] dmem_addr;
     wire [31:0] dmem_wdata;
     wire [3:0]  dmem_wstrb;
@@ -55,7 +66,7 @@ module tb_pipeline_base;
     wire        exception;
 
     // ------------------------------------------------------------------------
-    // DUT: 5-Stage Pipelined RV32IMF Core
+    // DUT: 5-Stage Pipelined RV32IMF Core (Feature 4)
     // ------------------------------------------------------------------------
     pipeline_5stage #(
         .RESET_PC(32'h0000_0000)
@@ -93,76 +104,116 @@ module tb_pipeline_base;
         .exception      (exception)
     );
 
-    // Memory Models
-    reg [31:0] mem_array [0:255];
-    assign imem_rdata = mem_array[imem_addr[9:2]];
-    assign dmem_rdata = mem_array[dmem_addr[9:2]];
+    // ------------------------------------------------------------------------
+    // Instruction Memory (IMEM)
+    // ------------------------------------------------------------------------
+    instr_mem #(
+        .HEX_FILE("C:/CS2202L/RISCV/feature_4/mem/imem.hex"),
+        .WORDS(1024)
+    ) IMEM (
+        .clk  (clk),
+        .pc   (imem_addr),
+        .instr(imem_rdata)
+    );
+
+    // ------------------------------------------------------------------------
+    // Data Memory (DMEM) & UART MMIO Interconnect
+    // ------------------------------------------------------------------------
+    wire uart_mmio_match = (dmem_addr[31:16] == 16'h8000);
+    wire [31:0] dmem_ram_rdata;
+    assign dmem_rdata = uart_mmio_match ? 32'h0000_0000 : dmem_ram_rdata;
 
     always @(posedge clk) begin
-        if (dmem_we) begin
-            if (dmem_wstrb[0]) mem_array[dmem_addr[9:2]][7:0]   <= dmem_wdata[7:0];
-            if (dmem_wstrb[1]) mem_array[dmem_addr[9:2]][15:8]  <= dmem_wdata[15:8];
-            if (dmem_wstrb[2]) mem_array[dmem_addr[9:2]][23:16] <= dmem_wdata[23:16];
-            if (dmem_wstrb[3]) mem_array[dmem_addr[9:2]][31:24] <= dmem_wdata[31:24];
+        if (dmem_we && uart_mmio_match && (dmem_addr[3:0] == 4'h0)) begin
+            $write("%c", dmem_wdata[7:0]);
+            $fflush();
         end
     end
 
-    integer cycle_count;
-    integer wb_count;
+    data_mem #(
+        .HEX_FILE("C:/CS2202L/RISCV/feature_4/mem/dmem.hex"),
+        .WORDS(1024)
+    ) DMEM (
+        .clk  (clk),
+        .re   (dmem_re && !uart_mmio_match),
+        .raddr(dmem_addr),
+        .rdata(dmem_ram_rdata),
+        .we   (dmem_we && !uart_mmio_match),
+        .waddr(dmem_addr),
+        .wdata(dmem_wdata),
+        .wstrb(dmem_wstrb)
+    );
 
+    // ------------------------------------------------------------------------
+    // Execution Statistics & Terminal Logging
+    // ------------------------------------------------------------------------
+    integer cycle_count = 0;
+    integer inst_retired = 0;
+    integer stall_cycles = 0;
+    integer flush_cycles = 0;
+    integer ret_drain_cycles = 0;
+
+    reg [31:0] prev_result;
     initial begin
-        $display("============================================================================");
-        $display("       STARTING TESTBENCH: tb_pipeline_base (Feature 4 Core Verification)   ");
-        $display("                 Clock Frequency: 50 MHz (Period: 20 ns)                   ");
-        $display("============================================================================");
-
-        begin : init_prog
-            integer k;
-            for (k = 0; k < 256; k = k + 1) mem_array[k] = 32'h00000013;
-        end
-
-        // Base RV32I addition loop:
-        // x1 = 10, x2 = 20, x3 = x1 + x2 = 30
-        mem_array[0] = 32'h00A00093; // addi x1, x0, 10
-        mem_array[1] = 32'h01400113; // addi x2, x0, 20
-        mem_array[2] = 32'h002081B3; // add  x3, x1, x2 (30)
-        mem_array[3] = 32'h00302023; // sw   x3, 0(x0)
-        mem_array[4] = 32'h00002203; // lw   x4, 0(x0)
-        mem_array[5] = 32'h00120293; // addi x5, x4, 1   (31, tests load-use stall!)
-
-        reset_n = 0;
-        cycle_count = 0;
-        wb_count = 0;
-
-        #40;
-        @(posedge clk);
-        #1;
-        reset_n = 1;
+        prev_result = 32'hffffffff;
     end
 
+    // Cycle Monitor & Logging
     always @(posedge clk) begin
         if (reset_n) begin
             cycle_count <= cycle_count + 1;
+
+            if (hazard_stall || fpu_busy)
+                stall_cycles <= stall_cycles + 1;
+            if (hazard_flush_id)
+                flush_cycles <= flush_cycles + 1;
+
             if (wb_reg_write && wb_dest_reg != 5'd0) begin
-                wb_count <= wb_count + 1;
-                $display("Time=%0t | WB: PC=0x%08h | Reg x%0d <= 0x%08h", $time, pc_wb, wb_dest_reg, wb_data);
+                inst_retired <= inst_retired + 1;
+                if (wb_data !== prev_result) begin
+                    if (wb_data < 32'h0000FFFF || wb_data == 32'hFFFFFFFF) begin
+                        $display("time: %16d ,result = %10d", $time, $signed(wb_data));
+                    end
+                    prev_result <= wb_data;
+                end
+            end
+
+            // Trace PC progression
+            $display("next_pc = %08x", pc_if);
+            $display("[TRACE] CC=%0d | IF_PC=%08h | IF_INST=%08h | ID_PC=%08h | EX_PC=%08h | MEM_PC=%08h | WB_PC=%08h | FWD_A=%0d | FWD_B=%0d | STALL=%0d | FLUSH=%0d | WB_WE=%0d | WB_RD=%0d | WB_DATA=%08h",
+                     cycle_count, pc_if, imem_rdata, pc_id, pc_ex, pc_mem, pc_wb, forward_a, forward_b, (hazard_stall || fpu_busy), hazard_flush_id, wb_reg_write, wb_dest_reg, wb_data);
+
+            // Program Termination condition
+            // Detect return instruction (ret = 32'h00008067: jalr x0, ra, 0)
+            if (imem_rdata == 32'h00008067 && !hazard_stall && !fpu_busy && cycle_count > 5) begin
+                if (ret_drain_cycles == 0)
+                    ret_drain_cycles <= cycle_count + 4;
+            end
+
+            if (ret_drain_cycles != 0 && cycle_count >= ret_drain_cycles && !hazard_stall && !fpu_busy) begin
+                $display("All instructions are Fetched");
+                $display("next_pc = 00000000");
+                $display("\n=================================================================");
+                $display("           PROGRAM EXECUTION COMPLETED SUCCESSFULLY!             ");
+                $display("=================================================================");
+                $display("Total Elapsed Cycles           : %0d", cycle_count);
+                $display("Instructions Retired           : %0d", inst_retired);
+                $display("Stall Cycles (FPU/Hazards)     : %0d", stall_cycles);
+                $display("Branch Flush Cycles            : %0d", flush_cycles);
+                $display("Calculated IPC                 : %0.2f", $itor(inst_retired) / $itor(cycle_count));
+                $display("FINAL RETURN VALUE a0 (x10)    = %0d (0x%08h)", $signed(DUT.u_decode_stage.regs[10]), DUT.u_decode_stage.regs[10]);
+                $display("FINAL TEMP RESULT  a5 (x15)    = %0d (0x%08h)", $signed(DUT.u_decode_stage.regs[15]), DUT.u_decode_stage.regs[15]);
+                $display("=================================================================\n");
+                $finish;
             end
         end
     end
 
+    // Timeout watchdog
     initial begin
-        #1500;
-        $display("\n============================================================================");
-        $display("            TB_PIPELINE_BASE VERIFICATION SUMMARY                           ");
-        $display("============================================================================");
-        $display(" Total Cycles Simulated : %0d", cycle_count);
-        $display(" Total Instructions WB  : %0d", wb_count);
-        if (wb_count >= 5) begin
-            $display(" STATUS: BASE RV32I PIPELINE RETIRED ALL INSTRUCTIONS SUCCESSFULLY!");
-        end else begin
-            $display(" STATUS: FAILED!");
-        end
-        $display("============================================================================\n");
+        #50000;
+        $display("\n[WATCHDOG TIMEOUT] Simulation reached 50000 ns limit.");
+        $display("Total Cycles: %0d, Instructions Retired: %0d", cycle_count, inst_retired);
         $finish;
     end
 

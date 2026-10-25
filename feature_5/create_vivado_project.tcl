@@ -77,6 +77,7 @@ set SIM_FILES [list \
     [file join $SCRIPT_DIR "testbench" "tb_feature5_pipeline.v"] \
     [file join $SCRIPT_DIR "testbench" "tb_pipeline_base.v"] \
     [file join $SCRIPT_DIR "testbench" "tb_uart.v"] \
+    [file join $SCRIPT_DIR "testbench" "tb_fpga_top.v"] \
     [file join $SCRIPT_DIR "mem" "imem.hex"] \
     [file join $SCRIPT_DIR "mem" "dmem.hex"] \
 ]

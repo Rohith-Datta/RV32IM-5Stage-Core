@@ -1,7 +1,7 @@
 ## ============================================================================
 ## File: nexys_a7_100t.xdc
 ## Board: Digilent Nexys A7-100T (Xilinx Artix-7 XC7A100T-1CSG324C)
-## Project: Feature 2 - Hardware Multiplier with DSP48E1 & Booth RTL
+## Project: Feature 4 - IEEE 754 Single-Precision Floating-Point Unit (RV32IMF)
 ## ============================================================================
 
 ## Clock signal (100 MHz oscillator & 50 MHz Derived Core Clock)
@@ -15,15 +15,28 @@ set_property -dict { PACKAGE_PIN C12   IOSTANDARD LVCMOS33 } [get_ports { cpu_re
 ## Center Pushbutton (btnc, Pin N17) for Single-Stepping
 set_property -dict { PACKAGE_PIN N17   IOSTANDARD LVCMOS33 } [get_ports { btnc }];
 
-## Slide Switches
-## sw[0] = Step mode (0=Continuous, 1=Manual step via btnc)
+## Slide Switches (sw[15:0])
+## sw[0]  = Step mode (0=Continuous, 1=Manual step via btnc)
 set_property -dict { PACKAGE_PIN J15   IOSTANDARD LVCMOS33 } [get_ports { sw[0] }];
-## sw[1] = 1 Hz slow clock enable
+## sw[1]  = 1 Hz slow clock enable
 set_property -dict { PACKAGE_PIN L16   IOSTANDARD LVCMOS33 } [get_ports { sw[1] }];
-## sw[2] = 7-Seg Display select (0=PC Address, 1=Instruction Machine Code)
+## sw[2]  = 7-Seg Display select (0=PC Address, 1=Instruction Machine Code)
 set_property -dict { PACKAGE_PIN M13   IOSTANDARD LVCMOS33 } [get_ports { sw[2] }];
-## sw[3] = Multiplier Architecture (0=DSP48E1, 1=Booth Radix-4)
+## sw[3]  = Multiplier Architecture (0=DSP48E1, 1=Booth Radix-4)
 set_property -dict { PACKAGE_PIN R15   IOSTANDARD LVCMOS33 } [get_ports { sw[3] }];
+set_property -dict { PACKAGE_PIN R17   IOSTANDARD LVCMOS33 } [get_ports { sw[4] }];
+set_property -dict { PACKAGE_PIN T18   IOSTANDARD LVCMOS33 } [get_ports { sw[5] }];
+set_property -dict { PACKAGE_PIN U18   IOSTANDARD LVCMOS33 } [get_ports { sw[6] }];
+set_property -dict { PACKAGE_PIN R13   IOSTANDARD LVCMOS33 } [get_ports { sw[7] }];
+set_property -dict { PACKAGE_PIN T8    IOSTANDARD LVCMOS18 } [get_ports { sw[8] }];
+set_property -dict { PACKAGE_PIN U8    IOSTANDARD LVCMOS18 } [get_ports { sw[9] }];
+set_property -dict { PACKAGE_PIN R16   IOSTANDARD LVCMOS33 } [get_ports { sw[10] }];
+set_property -dict { PACKAGE_PIN T13   IOSTANDARD LVCMOS33 } [get_ports { sw[11] }];
+set_property -dict { PACKAGE_PIN H6    IOSTANDARD LVCMOS33 } [get_ports { sw[12] }];
+set_property -dict { PACKAGE_PIN U12   IOSTANDARD LVCMOS33 } [get_ports { sw[13] }];
+set_property -dict { PACKAGE_PIN U11   IOSTANDARD LVCMOS33 } [get_ports { sw[14] }];
+## sw[15] = Step mode alternate (0=Continuous, 1=Manual step via btnc)
+set_property -dict { PACKAGE_PIN V10   IOSTANDARD LVCMOS33 } [get_ports { sw[15] }];
 
 ## 8-Digit Seven-Segment Display (Directly above LEDs)
 ## Cathodes: seg[6:0] = {CA, CB, CC, CD, CE, CF, CG}
@@ -57,12 +70,13 @@ set_property -dict { PACKAGE_PIN J13   IOSTANDARD LVCMOS33 } [get_ports { led[2]
 set_property -dict { PACKAGE_PIN N14   IOSTANDARD LVCMOS33 } [get_ports { led[3] }];
 ## LED[4]: Multiplier Unit Active LED
 set_property -dict { PACKAGE_PIN R18   IOSTANDARD LVCMOS33 } [get_ports { led[4] }];
-## LED[5]: DSP Hardware Mode Active LED
+## LED[5]: Divider Unit Active LED
 set_property -dict { PACKAGE_PIN V17   IOSTANDARD LVCMOS33 } [get_ports { led[5] }];
-## LED[7:6]: Forward B Code
+## LED[6]: FPU Unit Active LED
 set_property -dict { PACKAGE_PIN U17   IOSTANDARD LVCMOS33 } [get_ports { led[6] }];
+## LED[7]: Program Complete LED
 set_property -dict { PACKAGE_PIN U16   IOSTANDARD LVCMOS33 } [get_ports { led[7] }];
-## LED[15:8]: Low byte of committed register result (wb_data[7:0])
+## LED[15:8]: Committed register / return value a0
 set_property -dict { PACKAGE_PIN V16   IOSTANDARD LVCMOS33 } [get_ports { led[8]  }];
 set_property -dict { PACKAGE_PIN T15   IOSTANDARD LVCMOS33 } [get_ports { led[9]  }];
 set_property -dict { PACKAGE_PIN U14   IOSTANDARD LVCMOS33 } [get_ports { led[10] }];

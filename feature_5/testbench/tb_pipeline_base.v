@@ -71,6 +71,16 @@ module tb_pipeline_base #(
     wire [31:0] dcache_hit_count;
     wire [31:0] dcache_miss_count;
 
+    reg dcache_bypass_tb = 1'b0;
+    initial begin
+        if ($test$plusargs("dcache_bypass")) begin
+            dcache_bypass_tb = 1'b1;
+            $display("[TB] D-Cache BYPASS mode selected (+dcache_bypass)");
+        end else begin
+            $display("[TB] D-Cache ENABLED mode selected");
+        end
+    end
+
     // ------------------------------------------------------------------------
     // DUT: 5-Stage Pipelined RV32IMF Core with L1 D-Cache
     // ------------------------------------------------------------------------
@@ -81,6 +91,7 @@ module tb_pipeline_base #(
         .reset_n           (reset_n),
         .stall_ext         (1'b0),
         .use_dsp_i         (1'b1),
+        .dcache_bypass_i   (dcache_bypass_tb),
         .imem_addr         (imem_addr),
         .imem_rdata        (imem_rdata),
         .dmem_addr         (dmem_addr),
@@ -281,11 +292,11 @@ module tb_pipeline_base #(
         end
     end
 
-    // Watchdog timeout
+    // Watchdog timeout (2 ms allows full UART character streams to complete)
     initial begin
         if (!RUN_BASE_SANITY) begin
-            #100000;
-            $display("\n[WATCHDOG TIMEOUT] Simulation reached 100000 ns limit.");
+            #2000000;
+            $display("\n[WATCHDOG TIMEOUT] Simulation reached limit.");
             $display("Total Cycles: %0d, Instructions Retired: %0d", cycle_count, inst_retired);
             $display("L1 D-Cache Hits: %0d, Misses: %0d", dcache_hit_count, dcache_miss_count);
             $display("FINAL RETURN VALUE a0 (x10) = %0d (0x%08h)", $signed(u_core.u_decode_stage.regs[10]), u_core.u_decode_stage.regs[10]);
