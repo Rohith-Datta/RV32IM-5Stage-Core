@@ -89,7 +89,9 @@
   <FileSets Version="1" Minor="32">
     <FileSet Name="sources_1" Type="DesignSrcs" RelSrcDir="$PSRCDIR/sources_1" RelGenDir="$PGENDIR/sources_1">
       <Filter Type="Srcs"/>
-      <File Path="$PPRDIR/../modules/pipeline/pipe.v">
+      <File Path="$PPRDIR/../mem/imem.hex"/>
+      <File Path="$PPRDIR/../mem/dmem.hex"/>
+      <File Path="$PPRDIR/../modules/fpga/fpga_top_feature4.v">
         <FileInfo>
           <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -97,8 +99,6 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../mem/imem.hex"/>
-      <File Path="$PPRDIR/../mem/dmem.hex"/>
       <File Path="$PPRDIR/../modules/stages/booth_radix4_multiplier.v">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -204,6 +204,13 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
+      <File Path="$PPRDIR/../modules/pipeline/pipe.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <File Path="$PPRDIR/../modules/pipeline/pipeline_5stage.v">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -233,13 +240,6 @@
         </FileInfo>
       </File>
       <File Path="$PPRDIR/../modules/stages/writeback_stage.v">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../modules/fpga/fpga_top_feature4.v">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>

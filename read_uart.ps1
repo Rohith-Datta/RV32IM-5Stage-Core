@@ -111,7 +111,7 @@ function Disassemble-RV32 {
         return "lui $rdName, 0x$(($inst -shr 12).ToString('x'))"
     }
 
-    # OP_FP / RV32F (0x53)
+    # OP-FP / RV32F (0x53)
     if ($opcode -eq 0x53) {
         $name = switch ([int]$funct7) {
             0x00 { "fadd.s" }

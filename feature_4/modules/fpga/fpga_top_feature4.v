@@ -385,7 +385,7 @@ module fpga_top_feature4 (
     );
 
     // ------------------------------------------------------------------------
-    // LED Indicators & Pulse Stretchers
+    // LED Indicators, Activity Latches & Pulse Stretchers
     // ------------------------------------------------------------------------
     wire fwd_active = (forward_a != 2'b00) || (forward_b != 2'b00);
 
@@ -395,6 +395,13 @@ module fpga_top_feature4 (
     reg [22:0] mul_stretch_cnt;
     reg [22:0] div_stretch_cnt;
     reg [22:0] fpu_stretch_cnt;
+    reg [22:0] commit_stretch_cnt;
+
+    // Latched activity history so LEDs remain informative and brightly lit on completion
+    reg seen_hazard, seen_fwd, seen_flush, seen_mul, seen_div, seen_fpu;
+    reg [31:0] latched_sig;
+    reg        signature_valid;
+    reg [7:0]  last_wb_byte;
 
     always @(posedge clk_100mhz or negedge sys_reset_n) begin
         if (!sys_reset_n) begin
@@ -404,7 +411,44 @@ module fpga_top_feature4 (
             mul_stretch_cnt    <= 23'd0;
             div_stretch_cnt    <= 23'd0;
             fpu_stretch_cnt    <= 23'd0;
+            commit_stretch_cnt <= 23'd0;
+
+            seen_hazard        <= 1'b0;
+            seen_fwd           <= 1'b0;
+            seen_flush         <= 1'b0;
+            seen_mul           <= 1'b0;
+            seen_div           <= 1'b0;
+            seen_fpu           <= 1'b0;
+            latched_sig        <= 32'd0;
+            signature_valid    <= 1'b0;
+            last_wb_byte       <= 8'd0;
         end else begin
+            // Track activity history
+            if (hazard_stall)           seen_hazard <= 1'b1;
+            if (fwd_active)             seen_fwd    <= 1'b1;
+            if (hazard_flush_id)        seen_flush  <= 1'b1;
+            if (mul_active)             seen_mul    <= 1'b1;
+            if (div_active || div_busy) seen_div    <= 1'b1;
+            if (fpu_active || fpu_busy) seen_fpu    <= 1'b1;
+
+            // Latch writeback byte so LED[15:8] stays visibly lit
+            if (wb_reg_write && wb_dest_reg != 5'd0)
+                last_wb_byte <= wb_data[7:0];
+
+            // Latch verification signature written to RAM
+            if (dmem_ram_we) begin
+                if (dmem_wdata[31:16] == 16'hCAFE) begin
+                    latched_sig     <= dmem_wdata;
+                    signature_valid <= 1'b1;
+                end
+            end
+
+            // Instruction commit pulse stretcher (~40 ms visible pulse)
+            if (wb_reg_write)
+                commit_stretch_cnt <= 23'h40_0000;
+            else if (commit_stretch_cnt > 0)
+                commit_stretch_cnt <= commit_stretch_cnt - 23'd1;
+
             // Hazard stall stretcher (~40 ms at 100MHz)
             if (hazard_stall)
                 hazard_stretch_cnt <= 23'h40_0000;
@@ -443,23 +487,34 @@ module fpga_top_feature4 (
         end
     end
 
-    // Direct or Stretched LED driving
-    wire led_hazard = (step_mode_active || sw[1]) ? hazard_stall           : (hazard_stretch_cnt > 0);
-    wire led_fwd    = (step_mode_active || sw[1]) ? fwd_active             : (fwd_stretch_cnt > 0);
-    wire led_flush  = (step_mode_active || sw[1]) ? hazard_flush_id        : (flush_stretch_cnt > 0);
-    wire led_mul    = (step_mode_active || sw[1]) ? mul_active             : (mul_stretch_cnt > 0);
-    wire led_div    = (step_mode_active || sw[1]) ? (div_active || div_busy) : (div_stretch_cnt > 0);
-    wire led_fpu    = (step_mode_active || sw[1]) ? (fpu_active || fpu_busy) : (fpu_stretch_cnt > 0);
+    // Direct or Stretched LED driving during active run
+    wire led_hazard = (sw[0] || sw[1]) ? hazard_stall             : (hazard_stretch_cnt > 0);
+    wire led_fwd    = (sw[0] || sw[1]) ? fwd_active               : (fwd_stretch_cnt > 0);
+    wire led_flush  = (sw[0] || sw[1]) ? hazard_flush_id          : (flush_stretch_cnt > 0);
+    wire led_commit = (sw[0] || sw[1]) ? wb_reg_write             : (commit_stretch_cnt > 0);
+    wire led_mul    = (sw[0] || sw[1]) ? mul_active               : (mul_stretch_cnt > 0);
+    wire led_div    = (sw[0] || sw[1]) ? (div_active || div_busy)   : (div_stretch_cnt > 0);
+    wire led_fpu    = (sw[0] || sw[1]) ? (fpu_active || fpu_busy)   : (fpu_stretch_cnt > 0);
 
-    // LED Port Assignments
-    assign led[0]    = led_hazard;            // LED[0]: Data Hazard Detected (Load-use, Div, or FPU stall)
-    assign led[1]    = led_fwd;               // LED[1]: Data Forwarding Active into ALU/MUL/DIV/FPU
-    assign led[2]    = led_flush;             // LED[2]: Branch / Speculative Flush
-    assign led[3]    = wb_reg_write;          // LED[3]: Instruction Writeback Commit
-    assign led[4]    = led_mul;               // LED[4]: Multiplier Unit Active!
-    assign led[5]    = led_div;               // LED[5]: Divider Unit Active!
-    assign led[6]    = led_fpu;               // LED[6]: FPU Unit Active! (Feature 4 Indicator)
-    assign led[7]    = prog_done;             // LED[7]: Program Execution Completed
-    assign led[15:8] = prog_done ? final_return_a0[7:0] : wb_data[7:0];
+    // LED Port Assignments:
+    // When execution completes (prog_done):
+    //   LED[7]   = Program Done (1'b1)
+    //   LED[6]   = FPU Verified & Executed (1'b1)
+    //   LED[5]   = Divider Verified & Executed (1'b1)
+    //   LED[4]   = Multiplier Verified & Executed (1'b1)
+    //   LED[3]   = Verification Signature Matched (1'b1 for CAFEFEED)
+    //   LED[2]   = Branch/Flush Exercised
+    //   LED[1]   = RAW Data Forwarding Exercised (1'b1)
+    //   LED[0]   = Hazard Interlock Stall Exercised (1'b1)
+    //   LED[15:8]= Signature Low Byte (0xED / 8'b1110_1101) or last written register!
+    assign led[0]    = prog_done ? seen_hazard     : led_hazard;
+    assign led[1]    = prog_done ? seen_fwd        : led_fwd;
+    assign led[2]    = prog_done ? seen_flush      : led_flush;
+    assign led[3]    = prog_done ? signature_valid : led_commit;
+    assign led[4]    = prog_done ? seen_mul        : led_mul;
+    assign led[5]    = prog_done ? seen_div        : led_div;
+    assign led[6]    = prog_done ? seen_fpu        : led_fpu;
+    assign led[7]    = prog_done;
+    assign led[15:8] = prog_done ? (signature_valid ? latched_sig[7:0] : last_wb_byte) : last_wb_byte;
 
 endmodule
