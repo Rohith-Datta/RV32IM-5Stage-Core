@@ -23,6 +23,7 @@ Desktop.ini
 .DS_Store
 ~$*
 *_UPDATED.docx
+build_team_branch.py
 # Compiler intermediate binaries
 *.o
 *.elf
