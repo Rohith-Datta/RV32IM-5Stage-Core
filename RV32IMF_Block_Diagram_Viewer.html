@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RV32IMF 5-Stage Core Hardware Block Diagram — Group 13</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #0b1120; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+    .btn {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body class="text-slate-100 p-4 sm:p-6 min-h-screen flex flex-col">
+  <div class="max-w-[2600px] w-full mx-auto flex-1 flex flex-col space-y-4">
+    
+    <!-- Top Bar with Direct Download Buttons -->
+    <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-xl">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded text-xs font-semibold uppercase">CS2202L System Design Lab</span>
+          <span class="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded text-xs font-semibold">Group 13 Top-Level Architecture</span>
+        </div>
+        <h1 class="text-xl sm:text-2xl font-black text-white mt-1">RV32IMF 5-Stage Hardware Block Diagram</h1>
+        <p class="text-slate-400 text-xs">Clear Signals, Bus Widths, Forwarding Bypasses, Caches, Accelerators &amp; Hazard Interlocks</p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-3">
+        <button id="dlSvgBtn" class="btn px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow flex items-center gap-2 text-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Download Vector SVG
+        </button>
+
+        <button id="dlPngBtn" class="btn px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg shadow flex items-center gap-2 text-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Download High-Res PNG (3000px)
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Diagram Viewport Container -->
+    <div class="flex-1 bg-white border border-slate-700 rounded-xl shadow-2xl overflow-auto p-4 flex items-center justify-center">
+      <div id="svgContainer" class="w-full h-auto min-w-[1400px]">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2500 1480" width="2500" height="1480">
+<defs>
+      <!-- Arrow Markers -->
+      <marker id="arrowData" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0 0, 9 3.5, 0 7" fill="#0284c7"/>
+      </marker>
+      <marker id="arrowCtrl" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0 0, 9 3.5, 0 7" fill="#dc2626"/>
+      </marker>
+      <marker id="arrowFwd" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0 0, 9 3.5, 0 7" fill="#9333ea"/>
+      </marker>
+      <marker id="arrowClock" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+        <polygon points="0 0, 7 2.5, 0 5" fill="#0891b2"/>
+      </marker>
+      <marker id="arrowReset" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+        <polygon points="0 0, 7 2.5, 0 5" fill="#ea580c"/>
+      </marker>
+      
+      <!-- Box Shadow Filter -->
+      <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+        <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.08"/>
+      </filter>
+    </defs>
+<rect width="2500" height="1480" fill="#ffffff"/>
+
+    <!-- Top Header Banner -->
+    <rect x="0" y="0" width="2500" height="92" fill="#0f2042"/>
+    <rect x="0" y="92" width="2500" height="4" fill="#d9822b"/>
+    <text x="45" y="42" fill="#d9822b" font-family="Calibri, Arial, sans-serif" font-size="16" font-weight="bold" letter-spacing="1.5">CS2202L SYSTEM DESIGN LAB | GROUP 13</text>
+    <text x="45" y="75" fill="#ffffff" font-family="Calibri, Arial, sans-serif" font-size="28" font-weight="bold">RV32IMF 5-Stage Pipelined Processor Core — Top-Level Hardware Architecture</text>
+    <rect x="2060" y="16" width="395" height="60" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <text x="2080" y="38" fill="#94a3b8" font-family="Calibri, Arial, sans-serif" font-size="13">Target FPGA Device:</text>
+    <text x="2080" y="61" fill="#fde047" font-family="Calibri, Arial, sans-serif" font-size="16" font-weight="bold">Xilinx Artix-7 (XC7A100T-1CSG324C)</text>
+    
+
+    <!-- Signal Legend Strip -->
+    <rect x="45" y="106" width="2410" height="46" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+    
+    <line x1="70" y1="129" x2="110" y2="129" stroke="#0284c7" stroke-width="3.5" marker-end="url(#arrowData)"/>
+    <text x="120" y="134" fill="#0369a1" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold">32-bit Data Bus [31:0]</text>
+
+    <line x1="360" y1="129" x2="400" y2="129" stroke="#dc2626" stroke-width="2.5" marker-end="url(#arrowCtrl)"/>
+    <text x="410" y="134" fill="#b91c1c" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold">Control / Stall / Flush Signal</text>
+
+    <line x1="700" y1="129" x2="740" y2="129" stroke="#9333ea" stroke-width="2.5" stroke-dasharray="6 3" marker-end="url(#arrowFwd)"/>
+    <text x="750" y="134" fill="#7e22ce" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold">Dual RAW Forwarding Bypass</text>
+
+    <line x1="1050" y1="129" x2="1090" y2="129" stroke="#0891b2" stroke-width="2" stroke-dasharray="4 2"/>
+    <text x="1100" y="134" fill="#0e7490" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold">Clock Bus (clk, 100 MHz)</text>
+
+    <line x1="1370" y1="129" x2="1410" y2="129" stroke="#ea580c" stroke-width="2" stroke-dasharray="4 2"/>
+    <text x="1420" y="134" fill="#c2410c" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold">Synchronous Reset (reset_n)</text>
+
+    <rect x="1700" y="118" width="22" height="22" rx="4" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+    <text x="1730" y="134" fill="#b45309" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold">Integrated Core Features (Features 1–9)</text>
+
+    <rect x="2120" y="118" width="22" height="22" rx="4" fill="#1e293b"/>
+    <text x="2150" y="134" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold">Pipeline Registers</text>
+    
+
+    <!-- Stage 1: IF Background -->
+    <rect x="45" y="165" width="390" height="1135" rx="12" fill="#f0f9ff" stroke="#bae6fd" stroke-width="2" stroke-dasharray="8 4"/>
+    <rect x="60" y="178" width="360" height="34" rx="6" fill="#0284c7"/>
+    <text x="240" y="201" fill="#ffffff" font-family="Calibri, Arial, sans-serif" font-size="17" font-weight="bold" text-anchor="middle" letter-spacing="1">STAGE 1: INSTRUCTION FETCH (IF)</text>
+
+    <!-- Stage 2: ID Background -->
+    <rect x="515" y="165" width="450" height="1135" rx="12" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="2" stroke-dasharray="8 4"/>
+    <rect x="530" y="178" width="420" height="34" rx="6" fill="#16a34a"/>
+    <text x="740" y="201" fill="#ffffff" font-family="Calibri, Arial, sans-serif" font-size="17" font-weight="bold" text-anchor="middle" letter-spacing="1">STAGE 2: INSTRUCTION DECODE (ID)</text>
+
+    <!-- Stage 3: EX Background -->
+    <rect x="1045" y="165" width="660" height="1135" rx="12" fill="#fffbeb" stroke="#fde68a" stroke-width="2" stroke-dasharray="8 4"/>
+    <rect x="1060" y="178" width="630" height="34" rx="6" fill="#d97706"/>
+    <text x="1375" y="201" fill="#ffffff" font-family="Calibri, Arial, sans-serif" font-size="17" font-weight="bold" text-anchor="middle" letter-spacing="1">STAGE 3: EXECUTION &amp; ACCELERATORS (EX)</text>
+
+    <!-- Stage 4: MEM Background -->
+    <rect x="1785" y="165" width="330" height="1135" rx="12" fill="#faf5ff" stroke="#e9d5ff" stroke-width="2" stroke-dasharray="8 4"/>
+    <rect x="1800" y="178" width="300" height="34" rx="6" fill="#9333ea"/>
+    <text x="1950" y="201" fill="#ffffff" font-family="Calibri, Arial, sans-serif" font-size="17" font-weight="bold" text-anchor="middle" letter-spacing="1">STAGE 4: MEMORY ACCESS (MEM)</text>
+
+    <!-- Stage 5: WB Background -->
+    <rect x="2195" y="165" width="260" height="1135" rx="12" fill="#fff1f2" stroke="#fecdd3" stroke-width="2" stroke-dasharray="8 4"/>
+    <rect x="2210" y="178" width="230" height="34" rx="6" fill="#e11d48"/>
+    <text x="2325" y="201" fill="#ffffff" font-family="Calibri, Arial, sans-serif" font-size="17" font-weight="bold" text-anchor="middle" letter-spacing="1">STAGE 5: WRITEBACK</text>
+    
+<rect x="450" y="175" width="45" height="1115" rx="8" fill="#1e293b" stroke="#0f172a" stroke-width="2" filter="url(#cardShadow)"/>
+<text x="473" y="710" fill="#f8fafc" font-family="Calibri, Arial, sans-serif" font-size="15" font-weight="bold" text-anchor="middle" transform="rotate(-90 473 710)" letter-spacing="3">IF / ID PIPELINE REGISTER</text>
+<rect x="454" y="185" width="37" height="42" rx="4" fill="#334155"/>
+<text x="473" y="202" fill="#f87171" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" text-anchor="middle">flush</text>
+<text x="473" y="218" fill="#38bdf8" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" text-anchor="middle">~stall</text>
+<rect x="980" y="175" width="45" height="1115" rx="8" fill="#1e293b" stroke="#0f172a" stroke-width="2" filter="url(#cardShadow)"/>
+<text x="1003" y="710" fill="#f8fafc" font-family="Calibri, Arial, sans-serif" font-size="15" font-weight="bold" text-anchor="middle" transform="rotate(-90 1003 710)" letter-spacing="3">ID / EX PIPELINE REGISTER</text>
+<rect x="984" y="185" width="37" height="42" rx="4" fill="#334155"/>
+<text x="1003" y="202" fill="#f87171" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" text-anchor="middle">flush</text>
+<text x="1003" y="218" fill="#38bdf8" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" text-anchor="middle">~stall</text>
+<rect x="1720" y="175" width="45" height="1115" rx="8" fill="#1e293b" stroke="#0f172a" stroke-width="2" filter="url(#cardShadow)"/>
+<text x="1743" y="710" fill="#f8fafc" font-family="Calibri, Arial, sans-serif" font-size="15" font-weight="bold" text-anchor="middle" transform="rotate(-90 1743 710)" letter-spacing="3">EX / MEM PIPELINE REGISTER</text>
+<rect x="1724" y="185" width="37" height="42" rx="4" fill="#334155"/>
+<text x="1743" y="202" fill="#f87171" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" text-anchor="middle">flush</text>
+<text x="1743" y="218" fill="#38bdf8" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" text-anchor="middle">~stall</text>
+<rect x="2130" y="175" width="45" height="1115" rx="8" fill="#1e293b" stroke="#0f172a" stroke-width="2" filter="url(#cardShadow)"/>
+<text x="2153" y="710" fill="#f8fafc" font-family="Calibri, Arial, sans-serif" font-size="15" font-weight="bold" text-anchor="middle" transform="rotate(-90 2153 710)" letter-spacing="3">MEM / WB PIPELINE REGISTER</text>
+<rect x="2134" y="185" width="37" height="42" rx="4" fill="#334155"/>
+<text x="2153" y="202" fill="#f87171" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" text-anchor="middle">clear</text>
+<text x="2153" y="218" fill="#38bdf8" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" text-anchor="middle">~stall</text>
+
+    <!-- Feature 7: Static 32-Entry BTB -->
+    <g filter="url(#cardShadow)">
+      <rect x="70" y="240" width="340" height="135" rx="8" fill="#ffffff" stroke="#d97706" stroke-width="2.5"/>
+      <rect x="70" y="240" width="340" height="30" rx="8" fill="#fef3c7"/>
+      <text x="85" y="261" fill="#b45309" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold">★ Feature 7: Static 32-Entry BTB</text>
+      <text x="85" y="292" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="12">Tag Array [31:7] | Target Cache [31:0]</text>
+      <text x="85" y="314" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="12">Lookup Input: pc [31:0] (1-Cycle Predict)</text>
+      <text x="85" y="336" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">Update: ex_pc, actual_target, taken from EX</text>
+      <text x="85" y="358" fill="#b45309" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">Outputs: btb_hit [1b], btb_target [31:0]</text>
+    </g>
+
+    <!-- PC MUX (4-to-1) -->
+    <polygon points="75,440 145,465 145,595 75,620" fill="#f1f5f9" stroke="#0284c7" stroke-width="2.5" filter="url(#cardShadow)"/>
+    <text x="110" y="530" fill="#0f172a" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold" text-anchor="middle" transform="rotate(-90 110 530)">PC MUX (4:1)</text>
+    <text x="80" y="475" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">00: +4</text>
+    <text x="80" y="515" fill="#d97706" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">01: btb</text>
+    <text x="80" y="555" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">10: branch</text>
+    <text x="80" y="595" fill="#7c3aed" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">11: jalr</text>
+
+    <!-- PC Mux Select Wire from Hazard / Control -->
+    <line x1="110" y1="400" x2="110" y2="452" stroke="#dc2626" stroke-width="2" marker-end="url(#arrowCtrl)"/>
+    <text x="115" y="420" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">pc_src [1:0]</text>
+
+    <!-- PC Register -->
+    <g filter="url(#cardShadow)">
+      <rect x="185" y="485" width="105" height="90" rx="8" fill="#ffffff" stroke="#0284c7" stroke-width="2.5"/>
+      <rect x="185" y="485" width="105" height="26" rx="8" fill="#e0f2fe"/>
+      <text x="237" y="504" fill="#0369a1" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle">PC Reg</text>
+      <text x="237" y="532" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold" text-anchor="middle">pc [31:0]</text>
+      <text x="237" y="556" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">EN: ~pc_stall</text>
+    </g>
+
+    <!-- Adder (+4) -->
+    <g filter="url(#cardShadow)">
+      <rect x="330" y="430" width="85" height="65" rx="6" fill="#ffffff" stroke="#0284c7" stroke-width="2"/>
+      <text x="372" y="456" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="15" font-weight="bold" text-anchor="middle">ADD (+4)</text>
+      <text x="372" y="478" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11" text-anchor="middle">pc + 4</text>
+    </g>
+
+    <!-- Feature 3: L1 Instruction Cache -->
+    <g filter="url(#cardShadow)">
+      <rect x="70" y="660" width="340" height="235" rx="8" fill="#ffffff" stroke="#d97706" stroke-width="2.5"/>
+      <rect x="70" y="660" width="340" height="30" rx="8" fill="#fef3c7"/>
+      <text x="85" y="681" fill="#b45309" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold">★ Feature 3: L1 I-Cache (2 KB)</text>
+      <text x="85" y="710" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="12">Direct-Mapped | 128 Lines × 16 Bytes</text>
+      <text x="85" y="730" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">Addr Split: Tag[31:11], Index[10:4], Offset[3:0]</text>
+      <text x="85" y="750" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">Hit Latency: 1 Clock Cycle (Block RAM)</text>
+      <rect x="85" y="765" width="310" height="70" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+      <text x="100" y="786" fill="#0f172a" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">Burst Refill FSM (10 Cycles on Miss):</text>
+      <text x="100" y="806" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">128-bit Burst (4 × 32-bit words) from Main DRAM</text>
+      <text x="100" y="824" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">Asserts: icache_stall=1 (Freezes Pipeline)</text>
+      <text x="85" y="855" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold">Output: instr [31:0] to IF/ID Register</text>
+      <text x="85" y="875" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">Status: icache_stall [1b] to Hazard Unit</text>
+    </g>
+
+    <!-- Wires in IF Stage -->
+    <!-- PC Mux to PC Reg -->
+    <line x1="145" y1="530" x2="185" y2="530" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowData)"/>
+    <text x="148" y="520" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold">next_pc</text>
+
+    <!-- PC Reg to Adder, I-Cache, and BTB -->
+    <line x1="290" y1="530" x2="310" y2="530" stroke="#0284c7" stroke-width="3"/>
+    <line x1="310" y1="530" x2="310" y2="465" stroke="#0284c7" stroke-width="3"/>
+    <line x1="310" y1="465" x2="330" y2="465" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowData)"/>
+    
+    <line x1="310" y1="530" x2="310" y2="660" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowData)"/>
+    <text x="315" y="615" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">pc [31:0]</text>
+
+    <!-- PC to BTB -->
+    <path d="M 290 515 L 300 515 L 300 320 L 410 320" fill="none" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrowData)"/>
+
+    <!-- Adder to IF/ID and PC MUX 00 input -->
+    <line x1="415" y1="465" x2="450" y2="465" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowData)"/>
+    <text x="418" y="455" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">pc+4</text>
+
+    <path d="M 372 430 L 372 390 L 55 390 L 55 455 L 75 455" fill="none" stroke="#0284c7" stroke-width="2" marker-end="url(#arrowData)"/>
+    <text x="180" y="385" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="11">pc_plus_4 feedback to PC Mux 00</text>
+
+    <!-- BTB Target to PC MUX 01 -->
+    <path d="M 240 375 L 240 415 L 65 415 L 65 500 L 75 500" fill="none" stroke="#d97706" stroke-width="2" marker-end="url(#arrowData)"/>
+    <text x="130" y="410" fill="#d97706" font-family="Calibri, Arial, sans-serif" font-size="11">btb_target [31:0]</text>
+
+    <!-- I-Cache to IF/ID Register -->
+    <line x1="410" y1="710" x2="450" y2="710" stroke="#0284c7" stroke-width="3.5" marker-end="url(#arrowData)"/>
+    <text x="415" y="700" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">instr [31:0]</text>
+    
+
+    <!-- Main Control Unit -->
+    <g filter="url(#cardShadow)">
+      <rect x="540" y="240" width="400" height="155" rx="8" fill="#ffffff" stroke="#16a34a" stroke-width="2.5"/>
+      <rect x="540" y="240" width="400" height="30" rx="8" fill="#dcfce7"/>
+      <text x="555" y="261" fill="#15803d" font-family="Calibri, Arial, sans-serif" font-size="15" font-weight="bold">MAIN CONTROL UNIT &amp; DECODER</text>
+      <text x="555" y="292" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="12">Decodes: opcode[6:0], funct3[2:0], funct7[6:0]</text>
+      <text x="555" y="312" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">EX Controls: ALUSrcA, ALUSrcB, ALUOp[3:0], Branch, Jump</text>
+      <text x="555" y="332" fill="#d97706" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">Math Select: is_mul, is_div, is_fpu, is_zbb (M/F/Zbb enable)</text>
+      <text x="555" y="352" fill="#9333ea" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">MEM Controls: MemRead, MemWrite, ByteMask[1:0]</text>
+      <text x="555" y="372" fill="#e11d48" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">WB Controls: RegWrite, MemToReg[1:0]</text>
+    </g>
+
+    <!-- Register File (32 x 32-bit) -->
+    <g filter="url(#cardShadow)">
+      <rect x="540" y="430" width="400" height="240" rx="8" fill="#ffffff" stroke="#16a34a" stroke-width="2.5"/>
+      <rect x="540" y="430" width="400" height="30" rx="8" fill="#dcfce7"/>
+      <text x="555" y="451" fill="#15803d" font-family="Calibri, Arial, sans-serif" font-size="15" font-weight="bold">REGISTER FILE: 32 × 32-bit (x0–x31)</text>
+      <text x="555" y="478" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="12">Dual Asynchronous Read Ports | Synchronous Write Port (x0=0)</text>
+      
+      <!-- Ports -->
+      <rect x="555" y="495" width="160" height="42" rx="4" fill="#f8fafc" stroke="#cbd5e1"/>
+      <text x="565" y="513" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">Read Port 1: rs1 [4:0]</text>
+      <text x="565" y="528" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">instr [19:15]</text>
+
+      <rect x="555" y="545" width="160" height="42" rx="4" fill="#f8fafc" stroke="#cbd5e1"/>
+      <text x="565" y="563" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">Read Port 2: rs2 [4:0]</text>
+      <text x="565" y="578" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">instr [24:20]</text>
+
+      <rect x="555" y="595" width="370" height="60" rx="4" fill="#fff1f2" stroke="#fecdd3"/>
+      <text x="565" y="615" fill="#e11d48" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">Synchronous Write Port (from WB stage):</text>
+      <text x="565" y="632" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="12">Write Addr: rd_wb [4:0]  |  Write Data: wb_data [31:0]</text>
+      <text x="565" y="648" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">Write Enable: reg_write_wb [1b]</text>
+
+      <!-- Outputs -->
+      <text x="930" y="522" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold" text-anchor="end">rs1_data [31:0] ➔</text>
+      <text x="930" y="572" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold" text-anchor="end">rs2_data [31:0] ➔</text>
+    </g>
+
+    <!-- Immediate Generator -->
+    <g filter="url(#cardShadow)">
+      <rect x="540" y="700" width="400" height="75" rx="8" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
+      <text x="555" y="725" fill="#15803d" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold">IMMEDIATE GENERATOR (ImmGen)</text>
+      <text x="555" y="745" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="12">Sign-Extends I, S, B, U, J Format Immediates</text>
+      <text x="555" y="763" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">Output: imm [31:0] ➔ to ID/EX Register</text>
+    </g>
+
+    <!-- Hazard Detection Unit -->
+    <g filter="url(#cardShadow)">
+      <rect x="540" y="805" width="400" height="235" rx="8" fill="#ffffff" stroke="#dc2626" stroke-width="2.5"/>
+      <rect x="540" y="805" width="400" height="30" rx="8" fill="#fee2e2"/>
+      <text x="555" y="826" fill="#b91c1c" font-family="Calibri, Arial, sans-serif" font-size="15" font-weight="bold">HAZARD DETECTION &amp; INTERLOCK UNIT</text>
+      
+      <text x="555" y="855" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">1. Load-Use Stall Condition:</text>
+      <text x="570" y="873" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">id_ex_mem_read &amp;&amp; (id_ex_rd == id_rs1 || id_ex_rd == id_rs2)</text>
+
+      <text x="555" y="895" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">2. Multi-Cycle Accelerator Busy Stalls:</text>
+      <text x="570" y="913" fill="#d97706" font-family="Calibri, Arial, sans-serif" font-size="11">div_busy (F5, 32 cycles)  |  fpu_busy (F4, 4–15 cycles)</text>
+
+      <text x="555" y="935" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">3. Cache Refill Stalls:</text>
+      <text x="570" y="953" fill="#9333ea" font-family="Calibri, Arial, sans-serif" font-size="11">icache_stall (F3, 10c miss)  |  dcache_stall (F6, 10c miss)</text>
+
+      <text x="555" y="975" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">4. Control Hazard (Branch Taken):</text>
+      <text x="570" y="993" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="11">branch_taken asserted in EX ➔ 1-cycle flush</text>
+
+      <rect x="550" y="1005" width="380" height="26" rx="4" fill="#fee2e2"/>
+      <text x="560" y="1023" fill="#b91c1c" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">Outputs: pc_stall, if_id_stall, id_ex_flush, if_id_flush</text>
+    </g>
+
+    <!-- Wires in ID Stage -->
+    <!-- IF/ID to Control Unit, RegFile, ImmGen -->
+    <path d="M 495 710 L 515 710 L 515 320 L 540 320" fill="none" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrowData)"/>
+    <line x1="515" y1="515" x2="555" y2="515" stroke="#0284c7" stroke-width="2" marker-end="url(#arrowData)"/>
+    <line x1="515" y1="565" x2="555" y2="565" stroke="#0284c7" stroke-width="2" marker-end="url(#arrowData)"/>
+    <line x1="515" y1="735" x2="540" y2="735" stroke="#0284c7" stroke-width="2" marker-end="url(#arrowData)"/>
+
+    <!-- ID to ID/EX Register -->
+    <line x1="940" y1="320" x2="980" y2="320" stroke="#dc2626" stroke-width="2.5" marker-end="url(#arrowCtrl)"/>
+    <text x="945" y="310" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">Control</text>
+
+    <line x1="940" y1="515" x2="980" y2="515" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowData)"/>
+    <text x="945" y="505" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">rs1_data</text>
+
+    <line x1="940" y1="565" x2="980" y2="565" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowData)"/>
+    <text x="945" y="555" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">rs2_data</text>
+
+    <line x1="940" y1="735" x2="980" y2="735" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowData)"/>
+    <text x="945" y="725" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">imm</text>
+
+    <!-- Hazard Outputs Feedback to IF/ID and PC -->
+    <path d="M 540 1018 L 472 1018 L 472 230" fill="none" stroke="#dc2626" stroke-width="2" marker-end="url(#arrowCtrl)"/>
+    <path d="M 472 1018 L 237 1018 L 237 580" fill="none" stroke="#dc2626" stroke-width="2" marker-end="url(#arrowCtrl)"/>
+    <text x="250" y="1010" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">pc_stall / if_id_stall / flush Interlocks</text>
+    
+
+    <!-- Forwarding Unit -->
+    <g filter="url(#cardShadow)">
+      <rect x="1065" y="240" width="620" height="95" rx="8" fill="#ffffff" stroke="#9333ea" stroke-width="2.5"/>
+      <rect x="1065" y="240" width="620" height="28" rx="8" fill="#f3e8ff"/>
+      <text x="1080" y="260" fill="#7e22ce" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold">FORWARDING UNIT (Dual RAW Data Bypass Detection)</text>
+      <text x="1080" y="285" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="12">Inputs: id_ex_rs1[4:0], id_ex_rs2[4:0], ex_mem_rd[4:0], ex_mem_regwrite, mem_wb_rd[4:0], mem_wb_regwrite</text>
+      <text x="1080" y="305" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">Distance-1 RAW Hazard (EX/MEM): forward=01  |  Distance-2 RAW Hazard (MEM/WB): forward=10</text>
+      <text x="1080" y="324" fill="#9333ea" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">Outputs: forward_a [1:0], forward_b [1:0] (Controls Forward Muxes A &amp; B)</text>
+    </g>
+
+    <!-- Forwarding Multiplexers A & B (Wider and Clearer) -->
+    <!-- Mux A (for rs1) -->
+    <polygon points="1060,420 1115,445 1115,535 1060,560" fill="#f1f5f9" stroke="#9333ea" stroke-width="2.5" filter="url(#cardShadow)"/>
+    <text x="1087" y="490" fill="#7e22ce" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" transform="rotate(-90 1087 490)">FWD MUX A (3:1)</text>
+    <text x="1065" y="450" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold">00:rs1</text>
+    <text x="1065" y="490" fill="#9333ea" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold">01:ex_mem</text>
+    <text x="1065" y="530" fill="#7e22ce" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold">10:mem_wb</text>
+
+    <!-- Mux B (for rs2) -->
+    <polygon points="1060,575 1115,600 1115,690 1060,715" fill="#f1f5f9" stroke="#9333ea" stroke-width="2.5" filter="url(#cardShadow)"/>
+    <text x="1087" y="645" fill="#7e22ce" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" transform="rotate(-90 1087 645)">FWD MUX B (3:1)</text>
+    <text x="1065" y="605" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold">00:rs2</text>
+    <text x="1065" y="645" fill="#9333ea" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold">01:ex_mem</text>
+    <text x="1065" y="685" fill="#7e22ce" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold">10:mem_wb</text>
+
+    <!-- ALUSrcA Mux (2:1) -->
+    <polygon points="1135,445 1165,460 1165,520 1135,535" fill="#f1f5f9" stroke="#0284c7" stroke-width="2"/>
+    <text x="1148" y="490" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" transform="rotate(-90 1148 490)">SrcA</text>
+
+    <!-- ALUSrcB Mux (2:1) -->
+    <polygon points="1135,600 1165,615 1165,675 1135,690" fill="#f1f5f9" stroke="#0284c7" stroke-width="2"/>
+    <text x="1148" y="645" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" transform="rotate(-90 1148 645)">SrcB</text>
+
+    <!-- Connections from ID/EX into FWD Muxes -->
+    <line x1="1025" y1="515" x2="1060" y2="515" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowData)"/>
+    <line x1="1025" y1="565" x2="1050" y2="565" stroke="#0284c7" stroke-width="3"/>
+    <line x1="1050" y1="565" x2="1050" y2="600" stroke="#0284c7" stroke-width="3"/>
+    <line x1="1050" y1="600" x2="1060" y2="600" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowData)"/>
+
+    <!-- FWD Muxes to ALUSrc Muxes -->
+    <line x1="1115" y1="490" x2="1135" y2="490" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowData)"/>
+    <line x1="1115" y1="645" x2="1135" y2="645" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowData)"/>
+
+    <!-- PARALLEL EXECUTION ACCELERATORS CLUSTER -->
+    <!-- 1. Base ALU -->
+    <g filter="url(#cardShadow)">
+      <rect x="1195" y="360" width="280" height="70" rx="8" fill="#ffffff" stroke="#d97706" stroke-width="2"/>
+      <rect x="1195" y="360" width="280" height="22" rx="8" fill="#fef3c7"/>
+      <text x="1210" y="376" fill="#b45309" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold">Base Integer ALU (RV32I)</text>
+      <text x="1210" y="398" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="11">ADD, SUB, AND, OR, XOR, SLL, SRL, SRA, SLT</text>
+      <text x="1210" y="418" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">out: base_alu_out [31:0] (1 Cycle Latency)</text>
+    </g>
+
+    <!-- 2. Feature 2: Hardware Multiplier -->
+    <g filter="url(#cardShadow)">
+      <rect x="1195" y="445" width="280" height="75" rx="8" fill="#ffffff" stroke="#d97706" stroke-width="2.5"/>
+      <rect x="1195" y="445" width="280" height="22" rx="8" fill="#fef3c7"/>
+      <text x="1210" y="461" fill="#b45309" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold">★ Feature 2: Hardware Multiplier</text>
+      <text x="1210" y="482" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="11">DSP48E1 Slice &amp; Radix-4 Booth (Runtime sw[3] toggle)</text>
+      <text x="1210" y="500" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">MUL, MULH, MULHU, MULHSU</text>
+      <text x="1210" y="515" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">out: mul_out [31:0] (1 Cycle Latency)</text>
+    </g>
+
+    <!-- 3. Feature 5: Hardware Divider -->
+    <g filter="url(#cardShadow)">
+      <rect x="1195" y="535" width="280" height="85" rx="8" fill="#ffffff" stroke="#d97706" stroke-width="2.5"/>
+      <rect x="1195" y="535" width="280" height="22" rx="8" fill="#fef3c7"/>
+      <text x="1210" y="551" fill="#b45309" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold">★ Feature 5: Radix-2 Hardware Divider</text>
+      <text x="1210" y="572" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="11">Non-Restoring Sequential (32 Cycles)</text>
+      <text x="1210" y="590" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">DIV, DIVU, REM, REMU (divide-by-zero check)</text>
+      <text x="1210" y="608" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">out: div_out [31:0]  |  div_busy [1b] (Hold 32c)</text>
+    </g>
+
+    <!-- 4. Feature 4: IEEE 754 FPU -->
+    <g filter="url(#cardShadow)">
+      <rect x="1195" y="635" width="280" height="85" rx="8" fill="#ffffff" stroke="#d97706" stroke-width="2.5"/>
+      <rect x="1195" y="635" width="280" height="22" rx="8" fill="#fef3c7"/>
+      <text x="1210" y="651" fill="#b45309" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold">★ Feature 4: IEEE 754 Single-Precision FPU</text>
+      <text x="1210" y="672" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="11">FADD/FSUB (5c), FMUL (4c), FDIV (15c via Newton)</text>
+      <text x="1210" y="690" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">Dedicated f0–f31 FP Register File</text>
+      <text x="1210" y="708" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">out: fpu_out [31:0]  |  fpu_busy [1b] to Hazard Unit</text>
+    </g>
+
+    <!-- 5. Feature 9: Zbb Bit-Manipulation Unit -->
+    <g filter="url(#cardShadow)">
+      <rect x="1195" y="735" width="280" height="75" rx="8" fill="#ffffff" stroke="#d97706" stroke-width="2.5"/>
+      <rect x="1195" y="735" width="280" height="22" rx="8" fill="#fef3c7"/>
+      <text x="1210" y="751" fill="#b45309" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold">★ Feature 9: Zbb Bit-Manipulation ALU</text>
+      <text x="1210" y="772" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="11">CLZ, CTZ, CPOP, MIN/MAX, ANDN, ORN, ROL/ROR</text>
+      <text x="1210" y="792" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">out: zbb_out [31:0] (1 Cycle Latency)</text>
+    </g>
+
+    <!-- Branch / Jump Evaluation Unit -->
+    <g filter="url(#cardShadow)">
+      <rect x="1195" y="825" width="280" height="100" rx="8" fill="#ffffff" stroke="#dc2626" stroke-width="2"/>
+      <rect x="1195" y="825" width="280" height="22" rx="8" fill="#fee2e2"/>
+      <text x="1210" y="841" fill="#b91c1c" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold">BRANCH &amp; JUMP EVALUATION UNIT</text>
+      <text x="1210" y="863" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="11">Branch Target: pc_id_ex + imm</text>
+      <text x="1210" y="881" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="11">JALR Target: (fwd_rs1 + imm) &amp; ~1</text>
+      <text x="1210" y="899" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">Comparator: BEQ, BNE, BLT, BGE, BLTU, BGEU</text>
+      <text x="1210" y="917" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">out: branch_taken, actual_target [31:0]</text>
+    </g>
+
+    <!-- EX Result Multiplexer (6-to-1) -->
+    <polygon points="1530,370 1585,400 1585,790 1530,820" fill="#f1f5f9" stroke="#0284c7" stroke-width="2.5" filter="url(#cardShadow)"/>
+    <text x="1557" y="595" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold" text-anchor="middle" transform="rotate(-90 1557 595)">EX RESULT MUX (6:1)</text>
+
+    <!-- Inputs to EX Result Mux -->
+    <line x1="1475" y1="395" x2="1530" y2="395" stroke="#0284c7" stroke-width="2.5"/>
+    <line x1="1475" y1="480" x2="1530" y2="480" stroke="#0284c7" stroke-width="2.5"/>
+    <line x1="1475" y1="575" x2="1530" y2="575" stroke="#0284c7" stroke-width="2.5"/>
+    <line x1="1475" y1="675" x2="1530" y2="675" stroke="#0284c7" stroke-width="2.5"/>
+    <line x1="1475" y1="770" x2="1530" y2="770" stroke="#0284c7" stroke-width="2.5"/>
+
+    <!-- Busy Signals Feedback to Hazard Unit -->
+    <path d="M 1475 595 L 1505 595 L 1505 970 L 940 970" fill="none" stroke="#dc2626" stroke-width="2" marker-end="url(#arrowCtrl)"/>
+    <text x="1210" y="963" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">div_busy (Hold 32 cycles) to Hazard Unit</text>
+
+    <path d="M 1475 695 L 1495 695 L 1495 985 L 940 985" fill="none" stroke="#dc2626" stroke-width="2" marker-end="url(#arrowCtrl)"/>
+    <text x="1210" y="995" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">fpu_busy to Hazard Unit</text>
+
+    <!-- EX Mux Output ex_result to EX/MEM Register -->
+    <line x1="1585" y1="595" x2="1720" y2="595" stroke="#0284c7" stroke-width="3.5" marker-end="url(#arrowData)"/>
+    <text x="1605" y="585" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold">ex_result [31:0]</text>
+
+    <!-- Store Data (mem_wdata) from Forwarded rs2 to EX/MEM Register -->
+    <path d="M 1115 645 L 1125 645 L 1125 760 L 1720 760" fill="none" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrowData)"/>
+    <text x="1600" y="752" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">mem_wdata [31:0]</text>
+
+    <!-- Branch Taken Feedback to IF PC Mux & BTB -->
+    <path d="M 1475 875 L 1515 875 L 1515 1060 L 65 1060 L 65 570 L 75 570" fill="none" stroke="#dc2626" stroke-width="2.5" marker-end="url(#arrowCtrl)"/>
+    <text x="1000" y="1052" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold">branch_taken &amp; actual_target [31:0] (Pipeline Redirect to IF &amp; BTB Update)</text>
+    
+
+    <!-- Feature 6: L1 Data Cache -->
+    <g filter="url(#cardShadow)">
+      <rect x="1805" y="240" width="290" height="240" rx="8" fill="#ffffff" stroke="#d97706" stroke-width="2.5"/>
+      <rect x="1805" y="240" width="290" height="30" rx="8" fill="#fef3c7"/>
+      <text x="1820" y="261" fill="#b45309" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold">★ Feature 6: L1 D-Cache (2 KB)</text>
+      <text x="1820" y="290" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="12">Direct-Mapped (128 Lines × 16 Bytes)</text>
+      <text x="1820" y="310" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">Write-Through with Write Buffer</text>
+      <text x="1820" y="330" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">Store Byte-Masking (SB, SH, SW: wstrb[3:0])</text>
+      
+      <rect x="1820" y="345" width="260" height="75" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+      <text x="1830" y="365" fill="#0f172a" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">Burst Refill FSM (10 Cycles on Miss):</text>
+      <text x="1830" y="383" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">128-bit Burst Read from External Memory</text>
+      <text x="1830" y="401" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">Asserts: dcache_stall=1 to Hazard Unit</text>
+
+      <text x="1820" y="445" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">out: raw_mem_data [31:0]</text>
+      <text x="1820" y="465" fill="#dc2626" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold">out: dcache_stall [1b] to Hazard Unit</text>
+    </g>
+
+    <!-- Load Formatter / Sign Extender -->
+    <g filter="url(#cardShadow)">
+      <rect x="1805" y="515" width="290" height="90" rx="8" fill="#ffffff" stroke="#9333ea" stroke-width="2"/>
+      <rect x="1805" y="515" width="290" height="24" rx="8" fill="#f3e8ff"/>
+      <text x="1820" y="532" fill="#7e22ce" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold">LOAD DATA FORMATTER &amp; EXTENDER</text>
+      <text x="1820" y="558" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="11">Inputs: raw_mem_data[31:0], funct3, addr[1:0]</text>
+      <text x="1820" y="576" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">Formats: LB, LBU, LH, LHU, LW (Alignment &amp; Sign-Ext)</text>
+      <text x="1820" y="594" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">out: mem_data [31:0] to MEM/WB Register</text>
+    </g>
+
+    <!-- MEM Wires -->
+    <!-- Address & Data to D-Cache -->
+    <line x1="1765" y1="360" x2="1805" y2="360" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowData)"/>
+    <text x="1770" y="350" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold">addr</text>
+
+    <line x1="1765" y1="400" x2="1805" y2="400" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrowData)"/>
+    <text x="1770" y="392" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold">wdata</text>
+
+    <!-- Raw Data to Load Formatter -->
+    <line x1="1950" y1="480" x2="1950" y2="515" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrowData)"/>
+
+    <!-- Formatted Mem Data to MEM/WB -->
+    <line x1="2095" y1="560" x2="2130" y2="560" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowData)"/>
+    <text x="2100" y="550" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">mem_data</text>
+
+    <!-- Ex_result Bypass through MEM stage -->
+    <path d="M 1765 595 L 1785 595 L 1785 640 L 2130 640" fill="none" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowData)"/>
+    <text x="1900" y="632" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">Bypass ex_result [31:0] to MEM/WB</text>
+    
+
+    <!-- Feature 8: Passive CSR Counters -->
+    <g filter="url(#cardShadow)">
+      <rect x="2210" y="240" width="230" height="205" rx="8" fill="#ffffff" stroke="#d97706" stroke-width="2.5"/>
+      <rect x="2210" y="240" width="230" height="28" rx="8" fill="#fef3c7"/>
+      <text x="2225" y="259" fill="#b45309" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold">★ Feature 8: CSR Counters</text>
+      <text x="2225" y="286" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">64-bit Hardware Counters:</text>
+      <text x="2225" y="304" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">• cycle [63:0] (0xC00, 0xC80)</text>
+      <text x="2225" y="322" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">• instret [63:0] (0xC02, 0xC82)</text>
+      <text x="2225" y="340" fill="#64748b" font-family="Calibri, Arial, sans-serif" font-size="11">• stall_count, miss_count</text>
+      <text x="2225" y="360" fill="#334155" font-family="Calibri, Arial, sans-serif" font-size="11">Profile IPC / CPI via UART</text>
+      <text x="2225" y="425" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold">out: csr_rdata [31:0]</text>
+    </g>
+
+    <!-- Writeback Multiplexer (4-to-1) (Wider and Clearer) -->
+    <polygon points="2225,505 2280,535 2280,685 2225,715" fill="#f1f5f9" stroke="#e11d48" stroke-width="2.5" filter="url(#cardShadow)"/>
+    <text x="2252" y="610" fill="#e11d48" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold" text-anchor="middle" transform="rotate(-90 2252 610)">WB MUX (4:1)</text>
+    <text x="2230" y="540" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold">00:ex_res</text>
+    <text x="2230" y="585" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold">01:mem_d</text>
+    <text x="2230" y="635" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold">10:pc+4</text>
+    <text x="2230" y="685" fill="#d97706" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold">11:csr_d</text>
+
+    <!-- MEM/WB to WB Mux Inputs -->
+    <!-- 00: ex_result bypass from MEM/WB -->
+    <line x1="2175" y1="640" x2="2200" y2="640" stroke="#0284c7" stroke-width="2.5"/>
+    <line x1="2200" y1="640" x2="2200" y2="540" stroke="#0284c7" stroke-width="2.5"/>
+    <line x1="2200" y1="540" x2="2230" y2="540" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrowData)"/>
+
+    <!-- 01: mem_data from MEM/WB -->
+    <line x1="2175" y1="560" x2="2210" y2="560" stroke="#0284c7" stroke-width="2.5"/>
+    <line x1="2210" y1="560" x2="2210" y2="585" stroke="#0284c7" stroke-width="2.5"/>
+    <line x1="2210" y1="585" x2="2230" y2="585" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrowData)"/>
+
+    <!-- 11: csr_rdata from CSR module -->
+    <path d="M 2325 445 L 2325 480 L 2215 480 L 2215 685 L 2230 685" fill="none" stroke="#d97706" stroke-width="2" marker-end="url(#arrowData)"/>
+
+    <!-- WB Mux Output wb_data -->
+    <line x1="2280" y1="610" x2="2350" y2="610" stroke="#0284c7" stroke-width="4"/>
+    <text x="2295" y="600" fill="#0284c7" font-family="Calibri, Arial, sans-serif" font-size="13" font-weight="bold">wb_data [31:0]</text>
+    
+
+    <!-- Feedback 1: Retirement Writeback Bus to RegFile in ID -->
+    <path d="M 2350 610 L 2375 610 L 2375 1150 L 600 1150 L 600 670" fill="none" stroke="#0284c7" stroke-width="3.5" marker-end="url(#arrowData)"/>
+    <rect x="1140" y="1135" width="570" height="28" rx="4" fill="#e0f2fe" stroke="#38bdf8"/>
+    <text x="1425" y="1154" fill="#0369a1" font-family="Calibri, Arial, sans-serif" font-size="12.5" font-weight="bold" text-anchor="middle">
+      1. RETIREMENT WRITEBACK BUS: wb_data [31:0], rd_wb [4:0], reg_write_wb [1b] (Writes to RegFile)
+    </text>
+
+    <!-- Feedback 2: Distance-1 Forwarding Bus (EX/MEM to Forward Muxes) -->
+    <path d="M 1742 595 L 1742 1200 L 1095 1200 L 1095 560" fill="none" stroke="#9333ea" stroke-width="2.5" stroke-dasharray="6 3" marker-end="url(#arrowFwd)"/>
+    <rect x="1190" y="1187" width="480" height="26" rx="4" fill="#f3e8ff" stroke="#c084fc"/>
+    <text x="1430" y="1205" fill="#7e22ce" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle">
+      2. DISTANCE-1 FORWARDING BUS: ex_mem_result [31:0] (Bypasses to EX Forward Muxes)
+    </text>
+
+    <!-- Feedback 3: Distance-2 Forwarding Bus (MEM/WB to Forward Muxes) -->
+    <path d="M 2152 640 L 2152 1245 L 1075 1245 L 1075 715" fill="none" stroke="#9333ea" stroke-width="2.5" stroke-dasharray="6 3" marker-end="url(#arrowFwd)"/>
+    <rect x="1240" y="1232" width="430" height="26" rx="4" fill="#f3e8ff" stroke="#c084fc"/>
+    <text x="1455" y="1250" fill="#7e22ce" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle">
+      3. DISTANCE-2 FORWARDING BUS: wb_data [31:0] (Bypasses to EX Forward Muxes)
+    </text>
+
+    <!-- Bottom Architectural Attribution Footer -->
+    <rect x="45" y="1315" width="2410" height="50" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+    <text x="1250" y="1346" fill="#475569" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle">
+      RV32IMF 5-Stage Pipelined Processor Core • Group 13 • 100 MHz Fully Synchronous Synthesizable RTL Implementation on Artix-7 FPGA
+    </text>
+    
+</svg>
+      </div>
+    </div>
+
+    <!-- Hidden Canvas for Rasterizing PNG -->
+    <canvas id="exportCanvas" style="display: none;"></canvas>
+
+    <!-- Bottom Features Summary -->
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs bg-slate-900 border border-slate-800 p-3 rounded-xl">
+      <div class="p-2 border-l-2 border-blue-500">
+        <strong class="text-blue-400 block">IF Stage</strong>
+        <span class="text-slate-300">BTB (F7), 2 KB I$ (F3), Burst FSM</span>
+      </div>
+      <div class="p-2 border-l-2 border-emerald-500">
+        <strong class="text-emerald-400 block">ID Stage</strong>
+        <span class="text-slate-300">RegFile (32x32), Control, Hazard Unit</span>
+      </div>
+      <div class="p-2 border-l-2 border-amber-500">
+        <strong class="text-amber-400 block">EX Stage</strong>
+        <span class="text-slate-300">Booth MUL (F2), DIV (F5), FPU (F4), Zbb (F9)</span>
+      </div>
+      <div class="p-2 border-l-2 border-purple-500">
+        <strong class="text-purple-400 block">MEM Stage</strong>
+        <span class="text-slate-300">2 KB D$ (F6), Byte Masking, Write Buffer</span>
+      </div>
+      <div class="p-2 border-l-2 border-rose-500">
+        <strong class="text-rose-400 block">WB Stage</strong>
+        <span class="text-slate-300">CSRs (cycle, instret F8), WB Mux</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // 1. Download SVG Handler
+    document.getElementById('dlSvgBtn').addEventListener('click', () => {
+      const svgData = document.getElementById('svgContainer').innerHTML;
+      const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'RV32IMF_Block_Diagram_Group13.svg';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // 2. Download High-Res PNG Handler (Render SVG on Canvas)
+    document.getElementById('dlPngBtn').addEventListener('click', () => {
+      const svgEl = document.querySelector('#svgContainer svg');
+      const svgData = new XMLSerializer().serializeToString(svgEl);
+      const canvas = document.getElementById('exportCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      const width = 3000;
+      const height = (width / 2500) * 1480;
+      canvas.width = width;
+      canvas.height = height;
+
+      const img = new Image();
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      img.onload = () => {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        URL.revokeObjectURL(url);
+
+        const pngUrl = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = pngUrl;
+        a.download = 'RV32IMF_Block_Diagram_Group13.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      };
+      img.src = url;
+    });
+  </script>
+</body>
+</html>

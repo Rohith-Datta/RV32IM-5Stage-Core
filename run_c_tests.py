@@ -1,64 +1,89 @@
 #!/usr/bin/env python3
 """
-Test Runner for C Programs on the 5-Stage RV32I Processor Core.
+Test Runner for C Programs on the Pipelined RV32 Core across Features (1, 2, 3, 4, 5, 6).
 
 Usage:
-    python run_c_tests.py              # Runs all 5 C tests
-    python run_c_tests.py addition     # Runs addition test
-    python run_c_tests.py fibonacci    # Runs fibonacci test
-    python run_c_tests.py sort         # Runs bubble sort test
-    python run_c_tests.py negative     # Runs negative number test
-    python run_c_tests.py xor          # Runs bitwise XOR test
+    python run_c_tests.py                      # Runs all C tests on Feature 5 (default)
+    python run_c_tests.py sort                 # Runs bubble sort on Feature 5
+    python run_c_tests.py --feature 5 addition # Runs addition on Feature 5 (L1 D-Cache)
+    python run_c_tests.py --feature 5 all      # Runs all tests on Feature 5
+    python run_c_tests.py --feature 1 all      # Runs all tests on Feature 1
+    python run_c_tests.py multiplication       # Runs hardware multiplication on Feature 5
+    python run_c_tests.py division             # Runs hardware division on Feature 5
 """
 
 import os
 import sys
 import subprocess
 import re
+import argparse
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-SIM_DIR = os.path.join(ROOT_DIR, "feature_1", "simulation")
 BUILD_HEX = os.path.join(ROOT_DIR, "c_tests", "build_hex.py")
 
 TESTS = {
-    "addition":  {"expected": 102, "desc": "100 + 2 = 102"},
-    "fibonacci": {"expected": 8,   "desc": "fib(5) = 8"},
-    "sort":      {"expected": 3,   "desc": "sort({6,3,9}) -> arr[0] = 3"},
-    "negative":  {"expected": -1,  "desc": "4 - 5 = -1"},
-    "xor":       {"expected": 2,   "desc": "4 ^ 6 = 2"}
+    "addition":       {"expected": 102, "desc": "100 + 2 = 102"},
+    "fibonacci":      {"expected": 8,   "desc": "fib(5) = 8"},
+    "sort":           {"expected": 3,   "desc": "sort({6,3,9}) -> arr[0] = 3"},
+    "multiplication": {"expected": 42,  "desc": "6 * 7 = 42"},
+    "division":       {"expected": 16,  "desc": "100/7 + 100%7 = 14 + 2 = 16"},
+    "negative":       {"expected": -1,  "desc": "4 - 5 = -1"},
+    "xor":            {"expected": 2,   "desc": "4 ^ 6 = 2"},
+    "dcache":         {"expected": 40,  "desc": "L1 D-Cache burst refill & locality test (10+20+10=40)"},
+    "dcache_test":    {"expected": 40,  "desc": "L1 D-Cache burst refill & locality test (10+20+10=40)"}
 }
 
-def run_test(test_name):
+def get_sim_config(feature_num):
+    feat_str = str(feature_num)
+    sim_dir = os.path.join(ROOT_DIR, f"feature_{feat_str}", "simulation")
+    if feat_str in ("5", "6"):
+        top_mod = "tb_pipeline_base"
+        snapshot = "snap_tb_base"
+    else:
+        top_mod = "tb_pipeline_base"
+        snapshot = "sim_pipeline_snap"
+    return sim_dir, top_mod, snapshot
+
+def run_test(test_name, feature_num=5):
     if test_name not in TESTS:
         print(f"[-] Unknown test: {test_name}. Available: {list(TESTS.keys())}")
         return False
     
     info = TESTS[test_name]
+    sim_dir, top_mod, snapshot = get_sim_config(feature_num)
+    
     print(f"\n========================================================")
-    print(f"[*] Running Test: {test_name.upper()} ({info['desc']})")
+    print(f"[*] Running Test: {test_name.upper()} ({info['desc']}) on Feature {feature_num}")
+    print(f"    Simulation Dir: {sim_dir}")
     print(f"========================================================")
     
     # 1. Build hex
     build_cmd = [sys.executable, BUILD_HEX, test_name]
-    res = subprocess.run(build_cmd, cwd=SIM_DIR, capture_output=True, text=True)
+    res = subprocess.run(build_cmd, cwd=ROOT_DIR, capture_output=True, text=True)
     if res.returncode != 0:
         print(f"[-] Build failed:\n{res.stderr}")
         return False
     
-    # 2. Run simulation via xsim
-    sim_cmd = "xsim sim_pipeline_snap -runall"
-    proc = subprocess.run(sim_cmd, cwd=SIM_DIR, capture_output=True, text=True, shell=True)
+    # 2. Elaborate snapshot if needed
+    xelab_cmd = f"xelab -top {top_mod} -snapshot {snapshot} -debug typical"
+    elab_res = subprocess.run(xelab_cmd, cwd=sim_dir, capture_output=True, text=True, shell=True)
+    if elab_res.returncode != 0:
+        print(f"[-] Elaboration failed:\n{elab_res.stderr}\n{elab_res.stdout}")
+        return False
+        
+    # 3. Run simulation via xsim
+    sim_cmd = f"xsim {snapshot} -runall"
+    proc = subprocess.run(sim_cmd, cwd=sim_dir, capture_output=True, text=True, shell=True)
     out = proc.stdout
     
-    # Print the relevant simulation log
+    # Print relevant simulation log lines
     lines = out.splitlines()
-    in_log = False
     for line in lines:
-        if "next_pc = " in line or "time: " in line or "PROGRAM EXECUTION" in line or "FINAL" in line or "IPC" in line:
-            print(line)
+        if any(k in line for k in ["time: ", "PROGRAM EXECUTION", "FINAL", "IPC", "Total Elapsed", "Retired", "L1 D-Cache"]):
+            print("  " + line)
     
     # Parse final return value
-    m = re.search(r"FINAL RETURN VALUE a0 \(x10\) =\s*(-?\d+)", out)
+    m = re.search(r"FINAL RETURN VALUE a0 \(x10\)\s*=\s*(-?\d+)", out)
     if m:
         ret_val = int(m.group(1))
         if ret_val == info["expected"]:
@@ -72,28 +97,36 @@ def run_test(test_name):
         return False
 
 def main():
-    target = sys.argv[1].lower() if len(sys.argv) > 1 else "all"
-    
+    parser = argparse.ArgumentParser(description="Pipelined RV32 Core C Test Runner")
+    parser.add_argument("target", nargs="?", default="all",
+                        help="Target test (addition, sort, fibonacci, multiplication, division, negative, xor, all)")
+    parser.add_argument("--feature", "-f", type=int, default=5,
+                        help="Processor feature to run on: 1, 2, 3, 4, 5, 6 (default: 5)")
+    args = parser.parse_args()
+
+    target = args.target.lower()
+    feat = args.feature
+
     if target == "all":
         results = {}
         for name in TESTS:
-            results[name] = run_test(name)
+            results[name] = run_test(name, feature_num=feat)
         
-        print("\n" + "="*50)
-        print("                TEST RESULTS SUMMARY")
-        print("="*50)
+        print("\n" + "="*56)
+        print(f"       FEATURE {feat} C PROGRAM TEST RESULTS SUMMARY")
+        print("="*56)
         all_passed = True
         for name, passed in results.items():
             status = "PASS" if passed else "FAIL"
-            print(f"  * {name:<12} : [{status}] (Expected: {TESTS[name]['expected']})")
+            print(f"  * {name:<14} : [{status}] (Expected: {TESTS[name]['expected']})")
             if not passed:
                 all_passed = False
-        print("="*50)
+        print("="*56)
         if all_passed:
-            print("[+] ALL C PROGRAM TESTS PASSED ON 5-STAGE CORE!")
+            print(f"[+] ALL {len(TESTS)} C TESTS PASSED ON FEATURE {feat} PIPELINE!")
         sys.exit(0 if all_passed else 1)
     else:
-        passed = run_test(target)
+        passed = run_test(target, feature_num=feat)
         sys.exit(0 if passed else 1)
 
 if __name__ == "__main__":
