@@ -20,7 +20,3 @@
 ../modules/uart/uart_tx.v
 ../modules/uart/uart_unit.v
 ../modules/hazard_unit.v
-../testbench/tb_icache.v
-../testbench/tb_feature6_pipeline.v
-../testbench/tb_pipeline_base.v
-../testbench/tb_uart.v
