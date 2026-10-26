@@ -18,8 +18,3 @@
 ../modules/uart/uart_tx.v
 ../modules/uart/uart_unit.v
 ../modules/hazard_unit.v
-../testbench/tb_pipeline_base.v
-../testbench/tb_feature3_pipeline.v
-../testbench/tb_divider.v
-../testbench/tb_multiplier.v
-../testbench/tb_uart.v
