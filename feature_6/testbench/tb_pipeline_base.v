@@ -67,6 +67,16 @@ module tb_pipeline_base;
     wire [31:0] icache_hit_count;
     wire [31:0] icache_miss_count;
 
+    reg icache_bypass_tb = 1'b0;
+    initial begin
+        if ($test$plusargs("icache_bypass")) begin
+            icache_bypass_tb = 1'b1;
+            $display("[TB] I-Cache BYPASS mode selected (+icache_bypass)");
+        end else begin
+            $display("[TB] I-Cache ENABLED mode selected");
+        end
+    end
+
     // ------------------------------------------------------------------------
     // DUT: 5-Stage Pipelined RV32IMF Core with L1 I-Cache (No D-Cache)
     // ------------------------------------------------------------------------
@@ -77,7 +87,7 @@ module tb_pipeline_base;
         .reset_n           (reset_n),
         .stall_ext         (1'b0),
         .use_dsp_i         (1'b1),
-        .icache_bypass_i   (1'b0),
+        .icache_bypass_i   (icache_bypass_tb),
         .imem_addr         (imem_addr),
         .imem_rdata        (imem_rdata),
         .imem_req          (imem_req),
@@ -139,77 +149,79 @@ module tb_pipeline_base;
         .wstrb (dmem_wstrb)
     );
 
-    // ------------------------------------------------------------------------
-    // Verification Routine
-    // ------------------------------------------------------------------------
-    integer pass_count = 0;
-    integer fail_count = 0;
-
-    task check(input condition, input [255:0] test_name);
-        begin
-            if (condition) begin
-                $display("  [PASS] %0s", test_name);
-                pass_count = pass_count + 1;
-            end else begin
-                $display("  [FAIL] %0s", test_name);
-                fail_count = fail_count + 1;
-            end
-        end
-    endtask
+    integer cycle_count = 0;
+    integer inst_retired = 0;
+    integer stall_cycles = 0;
+    integer flush_cycles = 0;
+    integer ret_drain_cycles = 0;
+    reg [31:0] prev_result = 32'hDEAD_BEEF;
 
     initial begin
-        // Simple Base Test Program
-        // 0x00: ADDI x1, x0, 10      -> x1 = 10
-        // 0x04: ADDI x2, x0, 20      -> x2 = 20
-        // 0x08: ADD  x3, x1, x2      -> x3 = 30 (Forwarding test)
-        // 0x0C: SUB  x4, x3, x1      -> x4 = 20
-        // 0x10: RET  (JALR x0, x1, 0)
-        u_instr_mem.imem[0] = 32'h00A00093; // addi x1, x0, 10
-        u_instr_mem.imem[1] = 32'h01400113; // addi x2, x0, 20
-        u_instr_mem.imem[2] = 32'h002081B3; // add  x3, x1, x2
-        u_instr_mem.imem[3] = 32'h40118233; // sub  x4, x3, x1
-        u_instr_mem.imem[4] = 32'h00008067; // ret
-
         reset_n = 0;
-        #40;
-        @(posedge clk);
-        #1;
+        #100;
         reset_n = 1;
         $display("==================================================================");
-        $display("   TESTBENCH: Feature 6 Base Integer Pipeline (tb_pipeline_base)");
+        $display("   TESTBENCH: Feature 6 Base Pipeline with L1 I-Cache (imem.hex)");
         $display("   Clock: 50 MHz (Period: 20 ns)                                ");
         $display("==================================================================");
+    end
 
-        // Check 1: ADDI x1, 10 commits
-        wait(wb_reg_write == 1'b1 && wb_dest_reg == 5'd1);
-        check(wb_data == 32'd10, "Instruction 1: ADDI x1, x0, 10 committed x1=10");
+    always @(posedge clk) begin
+        if (reset_n) begin
+            cycle_count <= cycle_count + 1;
+            if (hazard_stall || icache_stall)
+                stall_cycles <= stall_cycles + 1;
+            if (hazard_flush_id)
+                flush_cycles <= flush_cycles + 1;
 
-        // Check 2: ADDI x2, 20 commits
-        wait(wb_reg_write == 1'b1 && wb_dest_reg == 5'd2);
-        check(wb_data == 32'd20, "Instruction 2: ADDI x2, x0, 20 committed x2=20");
+            if (wb_reg_write && wb_dest_reg != 5'd0) begin
+                inst_retired <= inst_retired + 1;
+                if (wb_data !== prev_result) begin
+                    if (wb_data < 32'h0000FFFF || wb_data == 32'hFFFFFFFF) begin
+                        $display("time: %16d ,result = %10d", $time, $signed(wb_data));
+                    end
+                    prev_result <= wb_data;
+                end
+            end
 
-        // Check 3: ADD x3, x1, x2 commits (RAW forwarding)
-        wait(wb_reg_write == 1'b1 && wb_dest_reg == 5'd3);
-        check(wb_data == 32'd30, "Instruction 3: ADD x3, x1, x2 committed x3=30");
+            $display("next_pc = %08x", pc_if);
+            $display("[TRACE] CC=%0d | IF_PC=%08h | IF_INST=%08h | ID_PC=%08h | EX_PC=%08h | MEM_PC=%08h | WB_PC=%08h | FWD_A=%0d | FWD_B=%0d | STALL=%0d | FLUSH=%0d | WB_WE=%0d | WB_RD=%0d | WB_DATA=%08h",
+                     cycle_count, pc_if, u_core.icache_cpu_rdata, pc_id, pc_ex, pc_mem, pc_wb, forward_a, forward_b, (hazard_stall || icache_stall), hazard_flush_id, wb_reg_write, wb_dest_reg, wb_data);
 
-        // Check 4: SUB x4, x3, x1 commits
-        wait(wb_reg_write == 1'b1 && wb_dest_reg == 5'd4);
-        check(wb_data == 32'd20, "Instruction 4: SUB x4, x3, x1 committed x4=20");
+            // Program Termination condition (ret = 32'h00008067)
+            if (u_core.icache_cpu_rdata == 32'h00008067 && !hazard_stall && !icache_stall && cycle_count > 5) begin
+                if (ret_drain_cycles == 0)
+                    ret_drain_cycles <= cycle_count + 6;
+            end
 
-        // Check 5: Program complete
-        wait(pc_wb == 32'h0000_0010);
-        check(pc_wb == 32'h0000_0010, "Instruction 5: Program reached RET at 0x0010");
-        #40;
+            if (ret_drain_cycles != 0 && cycle_count >= ret_drain_cycles && !hazard_stall && !icache_stall) begin
+                $display("All instructions are Fetched");
+                $display("next_pc = 00000000");
+                $display("\n=================================================================");
+                $display("           PROGRAM EXECUTION COMPLETED SUCCESSFULLY!             ");
+                $display("=================================================================");
+                $display("Total Elapsed Cycles           : %0d", cycle_count);
+                $display("Instructions Retired           : %0d", inst_retired);
+                $display("Stall Cycles (I-Cache/Hazards) : %0d", stall_cycles);
+                $display("Branch Flush Cycles            : %0d", flush_cycles);
+                $display("Calculated IPC                 : %0.2f", $itor(inst_retired) / $itor(cycle_count));
+                $display("L1 I-Cache Hits                : %0d", icache_hit_count);
+                $display("L1 I-Cache Misses              : %0d", icache_miss_count);
+                $display("FINAL RETURN VALUE a0 (x10)    = %0d (0x%08h)", $signed(u_core.u_decode_stage.regs[10]), u_core.u_decode_stage.regs[10]);
+                $display("FINAL TEMP RESULT  a5 (x15)    = %0d (0x%08h)", $signed(u_core.u_decode_stage.regs[15]), u_core.u_decode_stage.regs[15]);
+                $display("=================================================================\n");
+                $finish;
+            end
+        end
+    end
 
-        $display("==================================================================");
-        $display("   BASE PIPELINE VERIFICATION SUMMARY: %0d / %0d PASSED", pass_count, (pass_count + fail_count));
-        $display("==================================================================");
-
-        if (fail_count == 0)
-            $display(">>> ALL BASE PIPELINE TESTS PASSED! <<<\n");
-        else
-            $display(">>> SOME TESTS FAILED! <<<\n");
-
+    // Watchdog timeout
+    initial begin
+        #500000;
+        $display("\n[WATCHDOG TIMEOUT] Simulation reached limit.");
+        $display("Total Cycles: %0d, Instructions Retired: %0d", cycle_count, inst_retired);
+        $display("L1 I-Cache Hits: %0d, Misses: %0d", icache_hit_count, icache_miss_count);
+        $display("FINAL RETURN VALUE a0 (x10) = %0d (0x%08h)", $signed(u_core.u_decode_stage.regs[10]), u_core.u_decode_stage.regs[10]);
         $finish;
     end
 

@@ -20,8 +20,3 @@
 ../modules/uart/uart_tx.v
 ../modules/uart/uart_unit.v
 ../modules/hazard_unit.v
-../testbench/tb_dcache.v
-../testbench/tb_feature5_pipeline.v
-../testbench/tb_pipeline_base.v
-../testbench/tb_uart.v
-../testbench/tb_fpga_top.v

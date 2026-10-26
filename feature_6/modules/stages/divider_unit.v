@@ -122,11 +122,11 @@ module divider_unit (
     wire [2:0]  active_funct3 = (state == S_IDLE) ? funct3 : saved_funct3;
     wire [31:0] calc_result   = active_funct3[1] ? adj_rem : adj_quot;
 
-    assign div_result = is_corner_case ? corner_result : calc_result;
+    assign div_result = (state == S_CALC) ? calc_result : (is_corner_case ? corner_result : calc_result);
 
     // div_busy: High while division is calculating; drops on Cycle 32 when count == 0
     wire is_last_calc = (state == S_CALC) && (count == 5'd0);
-    assign div_busy = is_div && !is_corner_case && !is_last_calc;
-    assign div_done = is_div && (is_corner_case || is_last_calc);
+    assign div_busy = (state == S_CALC) ? !is_last_calc : (is_div && !is_corner_case);
+    assign div_done = (state == S_CALC) ? is_last_calc  : (is_div && is_corner_case);
 
 endmodule
