@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RV32IMF 5-Stage Core - Complete Top-Level Hardware Block Diagram</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    .bus-wire { stroke-linecap: round; stroke-linejoin: round; }
+    .clock-wire { stroke: #06b6d4; stroke-width: 1.5; stroke-dasharray: 4 2; }
+    .reset-wire { stroke: #f97316; stroke-width: 1.5; stroke-dasharray: 4 2; }
+    .data-bus { stroke: #38bdf8; stroke-width: 2.2; }
+    .ctrl-wire { stroke: #f43f5e; stroke-width: 1.8; }
+    .fwd-wire { stroke: #a855f7; stroke-width: 2; }
+    .badge { font-size: 8px; font-weight: bold; fill: #ffffff; }
+    .tooltip { transition: opacity 0.2s; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 p-4 sm:p-6 min-h-screen">
+  <div class="max-w-[1700px] mx-auto space-y-6">
+
+    <!-- Header Section -->
+    <header class="border-b border-slate-800 pb-5 flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded text-xs font-semibold uppercase tracking-wider">CS2202L System Design Lab</span>
+          <span class="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded text-xs font-semibold">Group 13 - Complete Core Microarchitecture</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-black text-white mt-2 tracking-tight">RV32IMF 5-Stage Core Top-Level Hardware Block Diagram</h1>
+        <p class="text-slate-400 text-sm mt-1">Full-System Schematic with Complete Signal Names, Bus Widths, Clock &amp; Reset Distribution, Caches, Math Accelerators &amp; Hazard Networks</p>
+      </div>
+      <div class="bg-slate-900 border border-slate-700/80 p-3 rounded-lg text-right text-xs space-y-1">
+        <div class="text-slate-400">Target FPGA Device</div>
+        <div class="font-bold text-amber-400 text-sm">Xilinx Artix-7 XC7A100T-1CSG324C</div>
+        <div class="text-slate-500 text-[11px]">Features 1 through 9 Fully Integrated</div>
+      </div>
+    </header>
+
+    <!-- Signal Legend Bar -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 bg-slate-900/90 p-3.5 rounded-xl border border-slate-800 text-xs">
+      <div class="flex items-center gap-2">
+        <span class="w-3.5 h-1 bg-cyan-400 rounded"></span>
+        <span class="text-cyan-300 font-medium">32-bit Data Bus</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3.5 h-1 bg-rose-500 rounded"></span>
+        <span class="text-rose-300 font-medium">Control Signals</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3.5 h-1 bg-purple-400 rounded"></span>
+        <span class="text-purple-300 font-medium">Forwarding Bypass</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3.5 h-1 border-t-2 border-dashed border-cyan-400"></span>
+        <span class="text-cyan-400 font-medium">Clock (clk 50MHz Core / 100MHz Osc)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3.5 h-1 border-t-2 border-dashed border-orange-500"></span>
+        <span class="text-orange-400 font-medium">Reset (reset_n active-low)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded bg-amber-400/20 border border-amber-400"></span>
+        <span class="text-amber-300 font-bold">Features 2–9 Highlighted</span>
+      </div>
+    </div>
+
+    <!-- MAIN SVG HARDWARE BLOCK DIAGRAM (FULL PAGE SPECIFICATION) -->
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 shadow-2xl overflow-x-auto">
+      <svg viewBox="0 0 1600 1020" class="w-full h-auto min-w-[1400px]" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- Stage Background Gradients -->
+          <linearGradient id="gradIF" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#1e3a8a" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#0f172a" stop-opacity="0.8"/>
+          </linearGradient>
+          <linearGradient id="gradID" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#064e3b" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#0f172a" stop-opacity="0.8"/>
+          </linearGradient>
+          <linearGradient id="gradEX" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#78350f" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#0f172a" stop-opacity="0.8"/>
+          </linearGradient>
+          <linearGradient id="gradMEM" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#581c87" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#0f172a" stop-opacity="0.8"/>
+          </linearGradient>
+          <linearGradient id="gradWB" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#881337" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#0f172a" stop-opacity="0.8"/>
+          </linearGradient>
+          <linearGradient id="gradReg" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#334155"/>
+            <stop offset="50%" stop-color="#1e293b"/>
+            <stop offset="100%" stop-color="#334155"/>
+          </linearGradient>
+
+          <!-- Marker Arrows -->
+          <marker id="arrowData" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+            <polygon points="0 0, 7 2.5, 0 5" fill="#38bdf8"/>
+          </marker>
+          <marker id="arrowCtrl" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+            <polygon points="0 0, 7 2.5, 0 5" fill="#f43f5e"/>
+          </marker>
+          <marker id="arrowFwd" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+            <polygon points="0 0, 7 2.5, 0 5" fill="#a855f7"/>
+          </marker>
+          <marker id="arrowClock" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+            <polygon points="0 0, 6 2, 0 4" fill="#06b6d4"/>
+          </marker>
+          <marker id="arrowReset" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+            <polygon points="0 0, 6 2, 0 4" fill="#f97316"/>
+          </marker>
+        </defs>
+
+        <!-- STAGE 1: FETCH (IF) REGION -->
+        <rect x="20" y="55" width="260" height="885" rx="10" fill="url(#gradIF)" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="5 5"/>
+        <text x="150" y="80" fill="#93c5fd" font-size="13" font-weight="900" text-anchor="middle" letter-spacing="1">STAGE 1: FETCH (IF)</text>
+
+        <!-- STAGE 2: DECODE (ID) REGION -->
+        <rect x="320" y="55" width="310" height="885" rx="10" fill="url(#gradID)" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5 5"/>
+        <text x="475" y="80" fill="#6ee7b7" font-size="13" font-weight="900" text-anchor="middle" letter-spacing="1">STAGE 2: DECODE (ID)</text>
+
+        <!-- STAGE 3: EXECUTE (EX) REGION -->
+        <rect x="670" y="55" width="435" height="885" rx="10" fill="url(#gradEX)" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="5 5"/>
+        <text x="887" y="80" fill="#fcd34d" font-size="13" font-weight="900" text-anchor="middle" letter-spacing="1">STAGE 3: EXECUTE (EX)</text>
+
+        <!-- STAGE 4: MEMORY (MEM) REGION -->
+        <rect x="1145" y="55" width="235" height="885" rx="10" fill="url(#gradMEM)" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="5 5"/>
+        <text x="1262" y="80" fill="#d8b4fe" font-size="13" font-weight="900" text-anchor="middle" letter-spacing="1">STAGE 4: MEMORY (MEM)</text>
+
+        <!-- STAGE 5: WRITEBACK (WB) REGION -->
+        <rect x="1420" y="55" width="160" height="885" rx="10" fill="url(#gradWB)" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="5 5"/>
+        <text x="1500" y="80" fill="#fda4af" font-size="13" font-weight="900" text-anchor="middle" letter-spacing="1">STAGE 5: WB</text>
+
+        <!-- ================= PIPELINE REGISTERS ================= -->
+        <!-- IF/ID Register -->
+        <rect x="286" y="70" width="28" height="865" rx="5" fill="url(#gradReg)" stroke="#64748b" stroke-width="2"/>
+        <text x="300" y="500" fill="#cbd5e1" font-size="11" font-weight="bold" text-anchor="middle" transform="rotate(-90 300 500)" letter-spacing="2">IF / ID PIPELINE REGISTER</text>
+        <text x="300" y="210" fill="#f43f5e" font-size="8.5" font-weight="bold" text-anchor="middle">~stall</text>
+        <text x="300" y="222" fill="#f43f5e" font-size="8.5" font-weight="bold" text-anchor="middle">flush</text>
+
+        <!-- ID/EX Register -->
+        <rect x="636" y="70" width="28" height="865" rx="5" fill="url(#gradReg)" stroke="#64748b" stroke-width="2"/>
+        <text x="650" y="500" fill="#cbd5e1" font-size="11" font-weight="bold" text-anchor="middle" transform="rotate(-90 650 500)" letter-spacing="2">ID / EX PIPELINE REGISTER</text>
+        <text x="650" y="210" fill="#f43f5e" font-size="8.5" font-weight="bold" text-anchor="middle">flush</text>
+
+        <!-- EX/MEM Register -->
+        <rect x="1111" y="70" width="28" height="865" rx="5" fill="url(#gradReg)" stroke="#64748b" stroke-width="2"/>
+        <text x="1125" y="500" fill="#cbd5e1" font-size="11" font-weight="bold" text-anchor="middle" transform="rotate(-90 1125 500)" letter-spacing="2">EX / MEM PIPELINE REGISTER</text>
+        <text x="1125" y="210" fill="#f43f5e" font-size="8.5" font-weight="bold" text-anchor="middle">~stall</text>
+
+        <!-- MEM/WB Register -->
+        <rect x="1386" y="70" width="28" height="865" rx="5" fill="url(#gradReg)" stroke="#64748b" stroke-width="2"/>
+        <text x="1400" y="500" fill="#cbd5e1" font-size="11" font-weight="bold" text-anchor="middle" transform="rotate(-90 1400 500)" letter-spacing="2">MEM / WB PIPELINE REGISTER</text>
+
+        <!-- ================= TOP CLOCK & RESET DISTRIBUTION ================= -->
+        <rect x="25" y="10" width="1550" height="36" rx="6" fill="#090d16" stroke="#1e293b" stroke-width="1.5"/>
+        <text x="45" y="26" fill="#38bdf8" font-size="11" font-weight="bold">CLK (50 MHz Core):</text>
+        <line x1="140" y1="22" x2="1550" y2="22" class="clock-wire"/>
+        <text x="45" y="38" fill="#fb923c" font-size="11" font-weight="bold">RST_N (Sync):</text>
+        <line x1="140" y1="36" x2="1550" y2="36" class="reset-wire"/>
+
+        <!-- Clock & Reset Taps -->
+        <!-- To IF (PC, BTB, ICache) -->
+        <line x1="180" y1="22" x2="180" y2="120" class="clock-wire" marker-end="url(#arrowClock)"/>
+        <line x1="185" y1="36" x2="185" y2="120" class="reset-wire" marker-end="url(#arrowReset)"/>
+        <!-- To IF/ID -->
+        <line x1="300" y1="22" x2="300" y2="70" class="clock-wire" marker-end="url(#arrowClock)"/>
+        <!-- To ID (RegFile) -->
+        <line x1="480" y1="22" x2="480" y2="210" class="clock-wire" marker-end="url(#arrowClock)"/>
+        <line x1="485" y1="36" x2="485" y2="210" class="reset-wire" marker-end="url(#arrowReset)"/>
+        <!-- To ID/EX -->
+        <line x1="650" y1="22" x2="650" y2="70" class="clock-wire" marker-end="url(#arrowClock)"/>
+        <!-- To EX (DIV, FPU) -->
+        <line x1="880" y1="22" x2="880" y2="380" class="clock-wire" marker-end="url(#arrowClock)"/>
+        <line x1="885" y1="36" x2="885" y2="380" class="reset-wire" marker-end="url(#arrowReset)"/>
+        <!-- To EX/MEM -->
+        <line x1="1125" y1="22" x2="1125" y2="70" class="clock-wire" marker-end="url(#arrowClock)"/>
+        <!-- To MEM (DCache) -->
+        <line x1="1260" y1="22" x2="1260" y2="260" class="clock-wire" marker-end="url(#arrowClock)"/>
+        <line x1="1265" y1="36" x2="1265" y2="260" class="reset-wire" marker-end="url(#arrowReset)"/>
+        <!-- To MEM/WB -->
+        <line x1="1400" y1="22" x2="1400" y2="70" class="clock-wire" marker-end="url(#arrowClock)"/>
+        <!-- To WB (CSRs) -->
+        <line x1="1500" y1="22" x2="1500" y2="110" class="clock-wire" marker-end="url(#arrowClock)"/>
+        <line x1="1505" y1="36" x2="1505" y2="110" class="reset-wire" marker-end="url(#arrowReset)"/>
+
+        <!-- ================= STAGE 1: INSTRUCTION FETCH (IF) ================= -->
+        <!-- Feature 7: Static BTB -->
+        <g id="btb_module">
+          <rect x="40" y="100" width="220" height="90" rx="6" fill="#0f172a" stroke="#eab308" stroke-width="2.5"/>
+          <rect x="45" y="105" width="210" height="20" rx="3" fill="#eab308" fill-opacity="0.15"/>
+          <text x="150" y="120" fill="#fde047" font-size="11" font-weight="bold" text-anchor="middle">Feature 7: Static 32-Entry BTB</text>
+          <text x="150" y="137" fill="#cbd5e1" font-size="9" text-anchor="middle">Tag Array: [31:7] | Target Cache: [31:0]</text>
+          <text x="150" y="152" fill="#94a3b8" font-size="8.5" text-anchor="middle">Inputs: pc[31:0] | update_pc, actual_target, taken</text>
+          <text x="150" y="172" fill="#f43f5e" font-size="9" font-weight="bold" text-anchor="middle">out: btb_hit [1b], btb_target [31:0]</text>
+        </g>
+
+        <!-- PC MUX (4-to-1) -->
+        <path d="M 45 230 L 75 250 L 75 330 L 45 350 Z" fill="#1e293b" stroke="#38bdf8" stroke-width="1.8"/>
+        <text x="60" y="295" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">PC MUX</text>
+        <text x="60" y="307" fill="#94a3b8" font-size="7.5" text-anchor="middle">4:1</text>
+        <text x="48" y="250" fill="#38bdf8" font-size="7">00:pc+4</text>
+        <text x="48" y="275" fill="#fde047" font-size="7">01:btb</text>
+        <text x="48" y="305" fill="#f43f5e" font-size="7">10:br_t</text>
+        <text x="48" y="335" fill="#38bdf8" font-size="7">11:jalr</text>
+
+        <!-- PC Register -->
+        <rect x="95" y="260" width="65" height="60" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+        <text x="127" y="285" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">PC Reg</text>
+        <text x="127" y="300" fill="#38bdf8" font-size="8.5" font-weight="bold" text-anchor="middle">[31:0]</text>
+        <text x="127" y="313" fill="#f43f5e" font-size="7.5" text-anchor="middle">EN: ~pc_stall</text>
+
+        <!-- Adder (+4) -->
+        <rect x="180" y="225" width="75" height="42" rx="4" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="217" y="244" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">ADD (+4)</text>
+        <text x="217" y="257" fill="#38bdf8" font-size="8.5" text-anchor="middle">pc_plus_4 [31:0]</text>
+
+        <!-- Feature 3: L1 Instruction Cache -->
+        <g id="icache_module">
+          <rect x="40" y="380" width="220" height="115" rx="6" fill="#0f172a" stroke="#eab308" stroke-width="2.5"/>
+          <rect x="45" y="385" width="210" height="20" rx="3" fill="#eab308" fill-opacity="0.15"/>
+          <text x="150" y="400" fill="#fde047" font-size="11" font-weight="bold" text-anchor="middle">Feature 3: L1 I-Cache (2 KB)</text>
+          <text x="150" y="418" fill="#cbd5e1" font-size="9" text-anchor="middle">Direct-Mapped | 16-Byte Line (128 Lines)</text>
+          <text x="150" y="433" fill="#cbd5e1" font-size="9" text-anchor="middle">1-Cycle Hit SRAM | Tag Match Logic</text>
+          <text x="150" y="448" fill="#38bdf8" font-size="8.5" text-anchor="middle">Refill Bus: 128-bit Burst to Memory FSM</text>
+          <text x="150" y="468" fill="#f43f5e" font-size="9" font-weight="bold" text-anchor="middle">out: instr [31:0] | icache_stall [1b]</text>
+        </g>
+
+        <!-- IF Signal Wires -->
+        <!-- PC to Adder & ICache & BTB -->
+        <line x1="160" y1="290" x2="175" y2="290" class="data-bus"/>
+        <line x1="175" y1="290" x2="175" y2="250" class="data-bus"/>
+        <line x1="175" y1="250" x2="180" y2="250" class="data-bus" marker-end="url(#arrowData)"/>
+        <line x1="175" y1="290" x2="175" y2="380" class="data-bus" marker-end="url(#arrowData)"/>
+        <path d="M 127 260 L 127 205 L 80 205 L 80 190" fill="none" class="data-bus" marker-end="url(#arrowData)"/>
+        <text x="110" y="200" fill="#38bdf8" font-size="8">pc [31:0]</text>
+
+        <!-- Adder to IF/ID and PC Mux -->
+        <line x1="255" y1="245" x2="286" y2="245" class="data-bus" marker-end="url(#arrowData)"/>
+        <path d="M 235 225 L 235 210 L 35 210 L 35 250 L 45 250" fill="none" class="data-bus" marker-end="url(#arrowData)"/>
+        <text x="140" y="217" fill="#38bdf8" font-size="8">pc_plus_4 [31:0]</text>
+
+        <!-- BTB to PC Mux -->
+        <path d="M 150 190 L 150 205 L 40 205 L 40 275 L 45 275" fill="none" stroke="#eab308" stroke-width="1.8" marker-end="url(#arrowData)"/>
+        <text x="65" y="220" fill="#fde047" font-size="8">btb_target [31:0]</text>
+
+        <!-- ICache out: instr to IF/ID -->
+        <line x1="260" y1="440" x2="286" y2="440" class="data-bus" marker-end="url(#arrowData)"/>
+        <text x="262" y="432" fill="#38bdf8" font-size="8.5" font-weight="bold">instr [31:0]</text>
+
+        <!-- ================= STAGE 2: INSTRUCTION DECODE (ID) ================= -->
+        <!-- Control Unit -->
+        <g id="control_unit">
+          <rect x="340" y="100" width="270" height="95" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="2"/>
+          <text x="475" y="120" fill="#6ee7b7" font-size="12" font-weight="bold" text-anchor="middle">MAIN CONTROL UNIT</text>
+          <text x="475" y="136" fill="#cbd5e1" font-size="9" text-anchor="middle">Inputs: opcode[6:0], funct3[2:0], funct7[6:0]</text>
+          <text x="475" y="152" fill="#f43f5e" font-size="8.5" text-anchor="middle">EX: ALUSrcA, ALUSrcB, ALUOp[3:0], Branch, Jump</text>
+          <text x="475" y="167" fill="#f43f5e" font-size="8.5" text-anchor="middle">Math: is_mul, is_div, is_fpu, is_zbb, is_csr</text>
+          <text x="475" y="182" fill="#f43f5e" font-size="8.5" font-weight="bold" text-anchor="middle">MEM: MemRead, MemWrite | WB: RegWrite, MemToReg[1:0]</text>
+        </g>
+
+        <!-- Register File (x0-x31) -->
+        <g id="register_file">
+          <rect x="340" y="220" width="270" height="190" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="2.5"/>
+          <text x="475" y="242" fill="#6ee7b7" font-size="12" font-weight="bold" text-anchor="middle">Register File: 32 x 32-bit (x0–x31)</text>
+          <text x="475" y="258" fill="#94a3b8" font-size="8.5" text-anchor="middle">Dual Asynchronous Read Ports | Synchronous Write Port (x0=0)</text>
+
+          <!-- Ports Annotations -->
+          <text x="350" y="290" fill="#38bdf8" font-size="9">Read Port 1: rs1 [4:0]</text>
+          <text x="350" y="325" fill="#38bdf8" font-size="9">Read Port 2: rs2 [4:0]</text>
+          <text x="350" y="360" fill="#fda4af" font-size="9">Write Addr : rd_wb [4:0]</text>
+          <text x="350" y="380" fill="#fda4af" font-size="9">Write Data : wb_data [31:0]</text>
+          <text x="350" y="400" fill="#f43f5e" font-size="9">Write Enable: reg_write [1b]</text>
+
+          <text x="590" y="290" fill="#38bdf8" font-size="9" text-anchor="end">rs1_data [31:0]</text>
+          <text x="590" y="335" fill="#38bdf8" font-size="9" text-anchor="end">rs2_data [31:0]</text>
+        </g>
+
+        <!-- Immediate Generator -->
+        <rect x="340" y="435" width="270" height="55" rx="5" fill="#0f172a" stroke="#10b981" stroke-width="1.8"/>
+        <text x="475" y="455" fill="#6ee7b7" font-size="11" font-weight="bold" text-anchor="middle">Immediate Generator</text>
+        <text x="475" y="472" fill="#94a3b8" font-size="8.5" text-anchor="middle">instr[31:0] ➔ imm [31:0] (Sign-Ext I, S, B, U, J types)</text>
+
+        <!-- Hazard Detection Unit -->
+        <g id="hazard_unit">
+          <rect x="330" y="520" width="290" height="150" rx="8" fill="#1e1b4b" stroke="#f43f5e" stroke-width="2.5"/>
+          <rect x="335" y="525" width="280" height="20" rx="4" fill="#f43f5e" fill-opacity="0.2"/>
+          <text x="475" y="540" fill="#fda4af" font-size="11.5" font-weight="bold" text-anchor="middle">HAZARD DETECTION UNIT</text>
+          <text x="475" y="560" fill="#cbd5e1" font-size="8.5" text-anchor="middle">Load-Use: id_ex_mem_read &amp;&amp; (id_ex_rd == id_rs1 || id_rs2)</text>
+          <text x="475" y="575" fill="#cbd5e1" font-size="8.5" text-anchor="middle">Multi-Cycle Math: div_busy (F5, 32cyc) | fpu_busy (F4)</text>
+          <text x="475" y="590" fill="#cbd5e1" font-size="8.5" text-anchor="middle">Cache Miss Stalls: icache_stall (F3) | dcache_stall (F6)</text>
+          <text x="475" y="605" fill="#cbd5e1" font-size="8.5" text-anchor="middle">Control Hazard: branch_taken in EX ➔ 2-cycle flush</text>
+          <text x="475" y="625" fill="#f43f5e" font-size="9" font-weight="bold" text-anchor="middle">OUT: pc_stall [1b] | if_id_stall [1b]</text>
+          <text x="475" y="640" fill="#f43f5e" font-size="9" font-weight="bold" text-anchor="middle">OUT: id_ex_flush [1b] | if_id_flush [1b]</text>
+        </g>
+
+        <!-- Instruction Field Demux Wires in ID -->
+        <!-- instr to Control Unit (opcode/funct3/funct7) -->
+        <path d="M 314 440 L 325 440 L 325 150 L 340 150" fill="none" class="data-bus" marker-end="url(#arrowData)"/>
+        <text x="320" y="270" fill="#38bdf8" font-size="8" transform="rotate(-90 320 270)">instr [31:0] bus</text>
+
+        <!-- instr fields to RegFile -->
+        <path d="M 325 285 L 340 285" fill="none" stroke="#38bdf8" stroke-width="1.8" marker-end="url(#arrowData)"/>
+        <path d="M 325 320 L 340 320" fill="none" stroke="#38bdf8" stroke-width="1.8" marker-end="url(#arrowData)"/>
+
+        <!-- instr to ImmGen -->
+        <path d="M 325 465 L 340 465" fill="none" class="data-bus" marker-end="url(#arrowData)"/>
+
+        <!-- ID to ID/EX Wires -->
+        <line x1="610" y1="285" x2="636" y2="285" class="data-bus" marker-end="url(#arrowData)"/>
+        <text x="612" y="278" fill="#38bdf8" font-size="8">rs1_data [31:0]</text>
+        <line x1="610" y1="330" x2="636" y2="330" class="data-bus" marker-end="url(#arrowData)"/>
+        <text x="612" y="323" fill="#38bdf8" font-size="8">rs2_data [31:0]</text>
+        <line x1="610" y1="465" x2="636" y2="465" class="data-bus" marker-end="url(#arrowData)"/>
+        <text x="615" y="458" fill="#38bdf8" font-size="8">imm [31:0]</text>
+        <line x1="610" y1="150" x2="636" y2="150" class="ctrl-wire" marker-end="url(#arrowCtrl)"/>
+        <text x="612" y="142" fill="#f43f5e" font-size="8">Control Bus</text>
+
+        <!-- Hazard Unit Outputs Feedback to IF -->
+        <path d="M 330 635 L 120 635 L 120 320" fill="none" class="ctrl-wire" marker-end="url(#arrowCtrl)"/>
+        <text x="130" y="627" fill="#f43f5e" font-size="8.5" font-weight="bold">pc_stall / flush signals</text>
+
+        <!-- ================= STAGE 3: EXECUTE (EX) ================= -->
+        <!-- Forwarding Unit -->
+        <g id="forwarding_unit">
+          <rect x="680" y="90" width="415" height="75" rx="6" fill="#3b0764" stroke="#a855f7" stroke-width="2.5"/>
+          <rect x="685" y="95" width="405" height="18" rx="3" fill="#a855f7" fill-opacity="0.2"/>
+          <text x="887" y="109" fill="#e9d5ff" font-size="11" font-weight="bold" text-anchor="middle">FORWARDING UNIT (Data Hazard Bypass)</text>
+          <text x="887" y="126" fill="#cbd5e1" font-size="8.5" text-anchor="middle">Inputs: id_ex_rs1[4:0], id_ex_rs2[4:0], ex_mem_rd[4:0], regwrite, mem_wb_rd[4:0]</text>
+          <text x="887" y="140" fill="#cbd5e1" font-size="8.5" text-anchor="middle">Distance-1 (EX/MEM hazard ➔ 01) | Distance-2 (MEM/WB hazard ➔ 10)</text>
+          <text x="887" y="155" fill="#f43f5e" font-size="8.5" font-weight="bold" text-anchor="middle">OUT: forward_a [1:0] | forward_b [1:0]</text>
+        </g>
+
+        <!-- Forwarding Multiplexers -->
+        <!-- MUX A -->
+        <path d="M 685 240 L 710 255 L 710 315 L 685 330 Z" fill="#1e293b" stroke="#a855f7" stroke-width="1.8"/>
+        <text x="697" y="288" fill="#e9d5ff" font-size="9" font-weight="bold" text-anchor="middle">MuxA</text>
+        <text x="697" y="300" fill="#a855f7" font-size="7.5" text-anchor="middle">3:1</text>
+
+        <!-- MUX B -->
+        <path d="M 685 345 L 710 360 L 710 420 L 685 435 Z" fill="#1e293b" stroke="#a855f7" stroke-width="1.8"/>
+        <text x="697" y="393" fill="#e9d5ff" font-size="9" font-weight="bold" text-anchor="middle">MuxB</text>
+        <text x="697" y="405" fill="#a855f7" font-size="7.5" text-anchor="middle">3:1</text>
+
+        <!-- ALUSrcA Mux (rs1 vs pc) -->
+        <path d="M 725 245 L 745 255 L 745 295 L 725 305 Z" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="735" y="278" fill="#38bdf8" font-size="7.5" text-anchor="middle">SrcA</text>
+
+        <!-- ALUSrcB Mux (rs2 vs imm) -->
+        <path d="M 725 365 L 745 375 L 745 415 L 725 425 Z" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="735" y="398" fill="#38bdf8" font-size="7.5" text-anchor="middle">SrcB</text>
+
+        <!-- PARALLEL EXECUTION ACCELERATORS -->
+        <!-- 1. Base ALU (RV32I) -->
+        <rect x="765" y="180" width="180" height="55" rx="5" fill="#0f172a" stroke="#f59e0b" stroke-width="2"/>
+        <text x="855" y="200" fill="#fcd34d" font-size="11" font-weight="bold" text-anchor="middle">Base ALU (RV32I)</text>
+        <text x="855" y="214" fill="#94a3b8" font-size="8" text-anchor="middle">ADD, SUB, AND, OR, XOR, SLL, SRL, SRA, SLT</text>
+        <text x="855" y="227" fill="#38bdf8" font-size="8" text-anchor="middle">out: base_alu_out [31:0]</text>
+
+        <!-- 2. Feature 2: Hardware Multiplier -->
+        <g id="feature2_mul">
+          <rect x="765" y="245" width="180" height="60" rx="5" fill="#0f172a" stroke="#eab308" stroke-width="2.5"/>
+          <rect x="770" y="249" width="170" height="15" rx="2" fill="#eab308" fill-opacity="0.2"/>
+          <text x="855" y="261" fill="#fde047" font-size="10.5" font-weight="bold" text-anchor="middle">Feature 2: HW Multiplier</text>
+          <text x="855" y="278" fill="#cbd5e1" font-size="8" text-anchor="middle">Radix-4 Booth / DSP48E2 (1 Cycle)</text>
+          <text x="855" y="291" fill="#94a3b8" font-size="8" text-anchor="middle">MUL, MULH, MULHU, MULHSU</text>
+          <text x="855" y="302" fill="#38bdf8" font-size="7.5" font-weight="bold" text-anchor="middle">out: mul_out [31:0]</text>
+        </g>
+
+        <!-- 3. Feature 5: Hardware Divider -->
+        <g id="feature5_div">
+          <rect x="765" y="315" width="180" height="60" rx="5" fill="#0f172a" stroke="#eab308" stroke-width="2.5"/>
+          <rect x="770" y="319" width="170" height="15" rx="2" fill="#eab308" fill-opacity="0.2"/>
+          <text x="855" y="331" fill="#fde047" font-size="10.5" font-weight="bold" text-anchor="middle">Feature 5: HW Divider</text>
+          <text x="855" y="348" fill="#cbd5e1" font-size="8" text-anchor="middle">Radix-2 Non-Restoring (32 Cycles)</text>
+          <text x="855" y="360" fill="#94a3b8" font-size="8" text-anchor="middle">DIV, DIVU, REM, REMU</text>
+          <text x="855" y="371" fill="#f43f5e" font-size="7.5" font-weight="bold" text-anchor="middle">out: div_out [31:0] | div_busy [1b]</text>
+        </g>
+
+        <!-- 4. Feature 4: IEEE754 FPU -->
+        <g id="feature4_fpu">
+          <rect x="765" y="385" width="180" height="60" rx="5" fill="#0f172a" stroke="#eab308" stroke-width="2.5"/>
+          <rect x="770" y="389" width="170" height="15" rx="2" fill="#eab308" fill-opacity="0.2"/>
+          <text x="855" y="401" fill="#fde047" font-size="10.5" font-weight="bold" text-anchor="middle">Feature 4: IEEE754 FPU</text>
+          <text x="855" y="418" fill="#cbd5e1" font-size="8" text-anchor="middle">32-bit Single Precision (f0-f31)</text>
+          <text x="855" y="430" fill="#94a3b8" font-size="8" text-anchor="middle">FADD.S, FSUB.S, FMUL.S, FDIV.S</text>
+          <text x="855" y="441" fill="#f43f5e" font-size="7.5" font-weight="bold" text-anchor="middle">out: fpu_out [31:0] | fpu_busy [1b]</text>
+        </g>
+
+        <!-- 5. Feature 9: Bit-Manipulation Unit -->
+        <g id="feature9_zbb">
+          <rect x="765" y="455" width="180" height="60" rx="5" fill="#0f172a" stroke="#eab308" stroke-width="2.5"/>
+          <rect x="770" y="459" width="170" height="15" rx="2" fill="#eab308" fill-opacity="0.2"/>
+          <text x="855" y="471" fill="#fde047" font-size="10.5" font-weight="bold" text-anchor="middle">Feature 9: Zbb Bit-Manip</text>
+          <text x="855" y="488" fill="#cbd5e1" font-size="8" text-anchor="middle">CLZ, CTZ, CPOP, MIN/MAX</text>
+          <text x="855" y="500" fill="#94a3b8" font-size="8" text-anchor="middle">ANDN, ORN, XNOR, ROL, ROR</text>
+          <text x="855" y="511" fill="#38bdf8" font-size="7.5" font-weight="bold" text-anchor="middle">out: zbb_out [31:0]</text>
+        </g>
+
+        <!-- Branch & Jump Evaluation Unit -->
+        <rect x="765" y="525" width="180" height="65" rx="5" fill="#1e1b4b" stroke="#38bdf8" stroke-width="2"/>
+        <text x="855" y="545" fill="#93c5fd" font-size="10.5" font-weight="bold" text-anchor="middle">Branch &amp; Jump Unit</text>
+        <text x="855" y="560" fill="#cbd5e1" font-size="8" text-anchor="middle">Target: pc + imm | Comparator: EQ, NE, LT</text>
+        <text x="855" y="574" fill="#cbd5e1" font-size="8" text-anchor="middle">JALR Target: (rs1 + imm) &amp; ~1</text>
+        <text x="855" y="587" fill="#f43f5e" font-size="8" font-weight="bold" text-anchor="middle">out: branch_taken, actual_target[31:0]</text>
+
+        <!-- EX Result Multiplexer (6-to-1) -->
+        <path d="M 980 200 L 1010 220 L 1010 500 L 980 520 Z" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+        <text x="995" y="360" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle" transform="rotate(-90 995 360)">EX Result Mux (6:1)</text>
+
+        <!-- Connections into EX Result Mux -->
+        <line x1="945" y1="205" x2="980" y2="205" class="data-bus"/>
+        <line x1="945" y1="275" x2="980" y2="275" class="data-bus"/>
+        <line x1="945" y1="345" x2="980" y2="345" class="data-bus"/>
+        <line x1="945" y1="415" x2="980" y2="415" class="data-bus"/>
+        <line x1="945" y1="485" x2="980" y2="485" class="data-bus"/>
+
+        <!-- Multi-Cycle Busy Lines to Hazard Unit -->
+        <path d="M 945" y1="355" x2="960" y2="355" class="ctrl-wire"/>
+        <path d="M 765 355 L 750 355 L 750 645 L 620 645" fill="none" class="ctrl-wire" marker-end="url(#arrowCtrl)"/>
+        <text x="680" y="640" fill="#f43f5e" font-size="7.5">div_busy (32 cyc hold)</text>
+        <path d="M 765 425 L 740 425 L 740 655 L 620 655" fill="none" class="ctrl-wire" marker-end="url(#arrowCtrl)"/>
+        <text x="680" y="663" fill="#f43f5e" font-size="7.5">fpu_busy</text>
+
+        <!-- EX Output to EX/MEM Reg -->
+        <line x1="1010" y1="360" x2="1111" y2="360" class="data-bus" marker-end="url(#arrowData)"/>
+        <text x="1025" y="352" fill="#38bdf8" font-size="9" font-weight="bold">ex_result [31:0]</text>
+
+        <!-- Store Data mem_wdata pass to EX/MEM Reg -->
+        <path d="M 710 390 L 720 390 L 720 605 L 1111 605" fill="none" class="data-bus" marker-end="url(#arrowData)"/>
+        <text x="735" y="600" fill="#38bdf8" font-size="8">mem_wdata [31:0] (from Forwarded Rs2)</text>
+
+        <!-- Branch Taken Feedback to PC Mux, Hazard & BTB -->
+        <path d="M 945 560 L 965 560 L 965 720 L 40 720 L 40 305 L 45 305" fill="none" class="ctrl-wire" marker-end="url(#arrowCtrl)"/>
+        <text x="490" y="713" fill="#f43f5e" font-size="9" font-weight="bold">branch_taken &amp; actual_target [31:0] (Control Hazard Redirect to IF &amp; BTB)</text>
+
+        <!-- ================= STAGE 4: MEMORY ACCESS (MEM) ================= -->
+        <!-- Feature 6: L1 Data Cache -->
+        <g id="feature6_dcache">
+          <rect x="1165" y="240" width="195" height="150" rx="6" fill="#0f172a" stroke="#eab308" stroke-width="2.5"/>
+          <rect x="1170" y="245" width="185" height="20" rx="3" fill="#eab308" fill-opacity="0.2"/>
+          <text x="1262" y="260" fill="#fde047" font-size="11" font-weight="bold" text-anchor="middle">Feature 6: L1 D-Cache (2 KB)</text>
+          <text x="1262" y="280" fill="#cbd5e1" font-size="9" text-anchor="middle">Direct-Mapped (128 Lines x 16B)</text>
+          <text x="1262" y="296" fill="#94a3b8" font-size="8.5" text-anchor="middle">Write-Through with Write Buffer</text>
+          <text x="1262" y="312" fill="#94a3b8" font-size="8.5" text-anchor="middle">Byte Enable (SB, SH, SW)</text>
+          <text x="1262" y="328" fill="#38bdf8" font-size="8.5" text-anchor="middle">Refill Bus: 128-bit Burst to Main Mem</text>
+          <text x="1262" y="352" fill="#f43f5e" font-size="9" font-weight="bold" text-anchor="middle">out: raw_rdata [31:0]</text>
+          <text x="1262" y="370" fill="#f43f5e" font-size="9" font-weight="bold" text-anchor="middle">out: dcache_stall [1b]</text>
+        </g>
+
+        <!-- Store Byte-Enable Generator -->
+        <rect x="1165" y="150" width="195" height="55" rx="5" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="1262" y="172" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">Store Byte Strobe Gen</text>
+        <text x="1262" y="188" fill="#94a3b8" font-size="8.5" text-anchor="middle">funct3 (SB/SH/SW) + addr[1:0] ➔ wstrb[3:0]</text>
+
+        <!-- Load Formatter / Sign Extender -->
+        <rect x="1165" y="425" width="195" height="55" rx="5" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="1262" y="445" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">Load Sign / Zero Extender</text>
+        <text x="1262" y="462" fill="#94a3b8" font-size="8.5" text-anchor="middle">LB, LBU, LH, LHU, LW Alignment Format</text>
+
+        <!-- MEM Stage Wires -->
+        <!-- ex_result to D-Cache Address & Bypass -->
+        <line x1="1139" y1="315" x2="1165" y2="315" class="data-bus" marker-end="url(#arrowData)"/>
+        <text x="1142" y="307" fill="#38bdf8" font-size="8">addr</text>
+        <line x1="1139" y1="360" x2="1165" y2="360" class="data-bus" marker-end="url(#arrowData)"/>
+        <text x="1142" y="352" fill="#38bdf8" font-size="8">wdata</text>
+
+        <!-- Raw Data to Load Formatter -->
+        <line x1="1262" y1="390" x2="1262" y2="425" class="data-bus" marker-end="url(#arrowData)"/>
+
+        <!-- Formatted Data to MEM/WB Reg -->
+        <line x1="1360" y1="452" x2="1386" y2="452" class="data-bus" marker-end="url(#arrowData)"/>
+        <text x="1363" y="445" fill="#38bdf8" font-size="8">mem_data [31:0]</text>
+
+        <!-- Bypass ex_result to MEM/WB Reg -->
+        <path d="M 1150 315 L 1150 115 L 1375 115 L 1375 360 L 1386 360" fill="none" class="data-bus" marker-end="url(#arrowData)"/>
+        <text x="1262" y="110" fill="#38bdf8" font-size="8.5" text-anchor="middle">Bypass ex_result [31:0] to MEM/WB</text>
+
+        <!-- ================= STAGE 5: WRITEBACK (WB) ================= -->
+        <!-- Feature 8: Performance Counters (Passive CSRs) -->
+        <g id="feature8_csr">
+          <rect x="1430" y="140" width="145" height="135" rx="6" fill="#0f172a" stroke="#eab308" stroke-width="2.5"/>
+          <rect x="1435" y="145" width="135" height="20" rx="3" fill="#eab308" fill-opacity="0.2"/>
+          <text x="1502" y="159" fill="#fde047" font-size="10.5" font-weight="bold" text-anchor="middle">Feature 8: CSRs</text>
+          <text x="1502" y="177" fill="#cbd5e1" font-size="8" text-anchor="middle">Passive Profiling Registers</text>
+          <text x="1502" y="191" fill="#94a3b8" font-size="8" text-anchor="middle">cycle [63:0], instret [63:0]</text>
+          <text x="1502" y="204" fill="#94a3b8" font-size="8" text-anchor="middle">stall_cnt, miss_cnt</text>
+          <text x="1502" y="218" fill="#94a3b8" font-size="8" text-anchor="middle">0xC00, 0xC02, 0xC80-0xC82</text>
+          <text x="1502" y="238" fill="#38bdf8" font-size="8.5" font-weight="bold" text-anchor="middle">out: csr_rdata [31:0]</text>
+        </g>
+
+        <!-- Writeback Multiplexer (4-to-1) -->
+        <path d="M 1445 320 L 1480 335 L 1480 465 L 1445 480 Z" fill="#1e293b" stroke="#f43f5e" stroke-width="2"/>
+        <text x="1462" y="405" fill="#fecdd3" font-size="10" font-weight="bold" text-anchor="middle" transform="rotate(-90 1462 405)">WB Mux (4:1)</text>
+
+        <!-- Inputs to WB Mux -->
+        <text x="1448" y="340" fill="#38bdf8" font-size="7">00:ex_res</text>
+        <text x="1448" y="375" fill="#38bdf8" font-size="7">01:mem_d</text>
+        <text x="1448" y="415" fill="#38bdf8" font-size="7">10:pc+4</text>
+        <text x="1448" y="455" fill="#fde047" font-size="7">11:csr_rd</text>
+
+        <!-- WB Mux Output wb_data -->
+        <line x1="1480" y1="400" x2="1520" y2="400" class="data-bus"/>
+        <text x="1490" y="392" fill="#38bdf8" font-size="8.5" font-weight="bold">wb_data [31:0]</text>
+
+        <!-- ================= SYSTEM FEEDBACK BUSES (BOTTOM) ================= -->
+        <!-- 1. Writeback to RegFile (Distance-3 Loop) -->
+        <path d="M 1520 400 L 1545 400 L 1545 780 L 370 780 L 370 410" fill="none" class="data-bus" marker-end="url(#arrowData)"/>
+        <text x="957" y="772" fill="#38bdf8" font-size="10" font-weight="bold" text-anchor="middle">
+          Retirement Writeback Bus: wb_data [31:0], rd_wb [4:0], reg_write [1b] (Writes to RegFile in ID)
+        </text>
+
+        <!-- 2. Distance-1 Forwarding Bus (EX/MEM to EX Muxes) -->
+        <path d="M 1125 360 L 1125 830 L 705 830 L 705 330" fill="none" class="fwd-wire" stroke-dasharray="6 3" marker-end="url(#arrowFwd)"/>
+        <text x="915" y="822" fill="#d8b4fe" font-size="9.5" font-weight="bold" text-anchor="middle">
+          Distance-1 EX/MEM Forward Bus: ex_mem_result [31:0] (Bypasses to EX Stage Forward Mux A/B)
+        </text>
+
+        <!-- 3. Distance-2 Forwarding Bus (MEM/WB to EX Muxes) -->
+        <path d="M 1400 380 L 1400 870 L 690 870 L 690 435" fill="none" class="fwd-wire" stroke-dasharray="6 3" marker-end="url(#arrowFwd)"/>
+        <text x="1045" y="862" fill="#e9d5ff" font-size="9.5" font-weight="bold" text-anchor="middle">
+          Distance-2 MEM/WB Forward Bus: wb_data [31:0] (Bypasses to EX Stage Forward Mux A/B)
+        </text>
+
+        <!-- Bottom Footer Info -->
+        <text x="800" y="990" fill="#64748b" font-size="11" text-anchor="middle">
+          Extended RV32IMF 5-Stage Core Hardware Architecture Schematic • Group 13 • Synchronous 50 MHz Artix-7 Implementation (Derived from 100 MHz Oscillator)
+        </text>
+      </svg>
+    </div>
+
+    <!-- Feature Map Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+      <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-amber-400 text-sm">Features 1, 2 &amp; 3</span>
+          <span class="px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded text-[10px]">Pipelining &amp; Math</span>
+        </div>
+        <p class="text-slate-300"><strong>Feature 1:</strong> 5-Stage Base Core with Hazard Detection &amp; Dual Forwarding.</p>
+        <p class="text-slate-300"><strong>Feature 2:</strong> Radix-4 Booth Multiplier mapped to high-speed DSP48E2 slices.</p>
+        <p class="text-slate-300"><strong>Feature 3:</strong> 2 KB Direct-Mapped L1 Instruction Cache with 16B burst refill.</p>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-amber-400 text-sm">Features 4, 5 &amp; 6</span>
+          <span class="px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded text-[10px]">FPU, Divider &amp; D-Cache</span>
+        </div>
+        <p class="text-slate-300"><strong>Feature 4:</strong> IEEE 754 Single-Precision FPU (FADD.S, FSUB.S, FMUL.S, FDIV.S).</p>
+        <p class="text-slate-300"><strong>Feature 5:</strong> Multi-Cycle Radix-2 Non-Restoring Divider with 32-cycle busy stall.</p>
+        <p class="text-slate-300"><strong>Feature 6:</strong> 2 KB Direct-Mapped L1 Data Cache with byte write strobe logic.</p>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-amber-400 text-sm">Features 7, 8 &amp; 9</span>
+          <span class="px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded text-[10px]">Branch, CSR &amp; Zbb</span>
+        </div>
+        <p class="text-slate-300"><strong>Feature 7:</strong> Static 32-Entry Branch Target Buffer (BTB) for 1-cycle prediction.</p>
+        <p class="text-slate-300"><strong>Feature 8:</strong> Passive Performance Counters (cycle, instret, stall, cache misses).</p>
+        <p class="text-slate-300"><strong>Feature 9:</strong> Zbb Bit-Manipulation Extension (CLZ, CTZ, CPOP, MIN/MAX, SEXT).</p>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
