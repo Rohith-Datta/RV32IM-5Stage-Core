@@ -2,20 +2,14 @@ import os
 import subprocess
 import sys
 import shutil
+import argparse
 
 C_TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(C_TESTS_DIR)
-F1_MEM_DIR = os.path.join(ROOT_DIR, "feature_1", "mem")
-F2_MEM_DIR = os.path.join(ROOT_DIR, "feature_2", "mem")
-F3_MEM_DIR = os.path.join(ROOT_DIR, "feature_3", "mem")
-F4_MEM_DIR = os.path.join(ROOT_DIR, "feature_4", "mem")
-F5_MEM_DIR = os.path.join(ROOT_DIR, "feature_5", "mem")
-F6_MEM_DIR = os.path.join(ROOT_DIR, "feature_6", "mem")
 
 CC      = "riscv-none-elf-gcc"
 OBJCOPY = "riscv-none-elf-objcopy"
 OBJDUMP = "riscv-none-elf-objdump"
-CFLAGS  = ["-march=rv32im", "-mabi=ilp32", "-O0"]
 
 PROGRAMS = {
     "addition":            "addition.c",
@@ -49,6 +43,32 @@ PROGRAMS = {
     "fpu_test.c":          "fpu.c"
 }
 
+DEFAULT_FEATURE_MAP = {
+    "addition":            1,
+    "code_addition":       1,
+    "addition.c":          1,
+    "multiplication":      2,
+    "code_multiplication": 2,
+    "multiplication.c":    2,
+    "division":            3,
+    "code_division":       3,
+    "division.c":          3,
+    "fpu":                 4,
+    "fpu_test":            4,
+    "fpu.c":               4,
+    "fpu_test.c":          4,
+    "dcache":              5,
+    "dcache_test":         5,
+    "dcache.c":            5,
+    "dcache_test.c":       5,
+    "fibonacci":           6,
+    "code_fibonacci":      6,
+    "fibonacci.c":         6,
+    "sort":                1,
+    "negative":            1,
+    "xor":                 1
+}
+
 def hex_change(val):
     h = hex(val)[2:]
     return "0" * (8 - len(h)) + h
@@ -72,63 +92,125 @@ def bin2hex(in_file, out_file, size=4096):
             out_f.write(f"00000000 // 32'h{hex_change(j)}\n")
             j += 4
 
-def build(prog_name):
-    if prog_name not in PROGRAMS:
-        print(f"Unknown program: {prog_name}. Available: {list(PROGRAMS.keys())}")
+def deploy_to_feature(feat_idx, imem_hex, dmem_hex, dis_file, elf_file, src_file, prog_name):
+    feat_dir = os.path.join(ROOT_DIR, f"feature_{feat_idx}")
+    if not os.path.exists(feat_dir):
+        print(f"[!] Directory {feat_dir} not found, skipping.")
+        return
+
+    mem_dir = os.path.join(feat_dir, "mem")
+    os.makedirs(mem_dir, exist_ok=True)
+    shutil.copy2(imem_hex, os.path.join(mem_dir, "imem.hex"))
+    shutil.copy2(dmem_hex, os.path.join(mem_dir, "dmem.hex"))
+    shutil.copy2(dis_file, os.path.join(mem_dir, "code.dis"))
+    shutil.copy2(elf_file, os.path.join(mem_dir, "code.elf"))
+    if src_file and os.path.exists(src_file):
+        dest_src = os.path.join(mem_dir, os.path.basename(src_file))
+        shutil.copy2(src_file, dest_src)
+
+    for sub in ["simulation", "vivado_project"]:
+        target_sub = os.path.join(feat_dir, sub)
+        if os.path.exists(target_sub):
+            shutil.copy2(imem_hex, os.path.join(target_sub, "imem.hex"))
+            shutil.copy2(dmem_hex, os.path.join(target_sub, "dmem.hex"))
+
+    # Also update synth_1 directory if it exists
+    for root, dirs, files in os.walk(os.path.join(feat_dir, "vivado_project")):
+        if os.path.basename(root) == "synth_1":
+            shutil.copy2(imem_hex, os.path.join(root, "imem.hex"))
+            shutil.copy2(dmem_hex, os.path.join(root, "dmem.hex"))
+
+    print(f"[+] Loaded imem.hex & dmem.hex -> Feature {feat_idx} (mem, simulation, vivado_project)")
+
+def build(prog_name, target_feature=None, rebuild_bitstream=False):
+    # Resolve source file
+    if os.path.exists(prog_name):
+        src_file = os.path.abspath(prog_name)
+        base_name = os.path.splitext(os.path.basename(src_file))[0]
+    elif prog_name in PROGRAMS:
+        src_file = os.path.join(C_TESTS_DIR, PROGRAMS[prog_name])
+        base_name = prog_name
+    else:
+        print(f"[-] Unknown program: {prog_name}. Available: {list(PROGRAMS.keys())}")
         sys.exit(1)
-        
-    src_file = os.path.join(C_TESTS_DIR, PROGRAMS[prog_name])
+
     elf_file = os.path.join(C_TESTS_DIR, "code.elf")
     imem_bin = os.path.join(C_TESTS_DIR, "imem.bin")
     dmem_bin = os.path.join(C_TESTS_DIR, "dmem.bin")
     dis_file = os.path.join(C_TESTS_DIR, "code.dis")
-    
     imem_hex = os.path.join(C_TESTS_DIR, "imem.hex")
     dmem_hex = os.path.join(C_TESTS_DIR, "dmem.hex")
-    
     obj_file = os.path.join(C_TESTS_DIR, "code.o")
     linker_ld = os.path.join(C_TESTS_DIR, "linker.ld")
-    march = "rv32im" if ("multiplication" in prog_name or "division" in prog_name) else "rv32i"
+
+    # Select ISA flags based on target
+    if "fpu" in base_name:
+        march = "rv32imf"
+    elif any(k in base_name for k in ["multiplication", "division", "fibonacci", "dcache"]):
+        march = "rv32im"
+    else:
+        march = "rv32i"
+
     cflags = ["-march=" + march, "-mabi=ilp32", "-O0"]
-    print(f"[*] Compiling {PROGRAMS[prog_name]} ({march}) -> code.o...")
+    print(f"[*] Compiling {os.path.basename(src_file)} ({march}) -> code.o...")
     subprocess.check_call([CC, "-c", src_file, "-o", obj_file, "-I", C_TESTS_DIR, "-ffunction-sections"] + cflags)
-    
+
     print(f"[*] Linking code.o -> code.elf (Entry=main at 0x00000000 via linker.ld)...")
     subprocess.check_call(["riscv-none-elf-ld", "-T", linker_ld, obj_file, "-o", elf_file])
-    
+
     print(f"[*] Extracting full memory image -> imem.bin & dmem.bin...")
     subprocess.check_call([OBJCOPY, "-O", "binary", elf_file, imem_bin])
-    # In Harvard architecture with separate BRAMs, DMEM must contain .rodata & .data
-    # at their linked addresses so loads (lbu, lw) find strings and constants.
     shutil.copyfile(imem_bin, dmem_bin)
-        
+
     print(f"[*] Generating disassembly -> code.dis...")
     with open(dis_file, "w") as df:
         subprocess.check_call([OBJDUMP, "-d", elf_file], stdout=df)
-        
+
     print(f"[*] Converting binary -> hex...")
     bin2hex(imem_bin, imem_hex)
     bin2hex(dmem_bin, dmem_hex)
-    
-    # Copy to feature_1/mem .. feature_6/mem, plus simulation and vivado_project
-    for feat_idx in range(1, 7):
-        feat_dir = os.path.join(ROOT_DIR, f"feature_{feat_idx}")
-        mem_dir = os.path.join(feat_dir, "mem")
-        os.makedirs(mem_dir, exist_ok=True)
-        shutil.copy2(imem_hex, os.path.join(mem_dir, "imem.hex"))
-        shutil.copy2(dmem_hex, os.path.join(mem_dir, "dmem.hex"))
-        shutil.copy2(dis_file, os.path.join(mem_dir, "code.dis"))
-        shutil.copy2(elf_file, os.path.join(mem_dir, "code.elf"))
-        shutil.copy2(src_file, os.path.join(mem_dir, PROGRAMS[prog_name]))
 
-        for sub in ["simulation", "vivado_project"]:
-            target_sub = os.path.join(feat_dir, sub)
-            if os.path.exists(target_sub):
-                shutil.copy2(imem_hex, os.path.join(target_sub, "imem.hex"))
-                shutil.copy2(dmem_hex, os.path.join(target_sub, "dmem.hex"))
-    
-    print(f"[+] Successfully built and deployed {prog_name} to feature_1..6 (mem, simulation, vivado_project)")
+    # Determine target features
+    if target_feature is None:
+        # Default to the feature specifically designed for this program
+        def_feat = DEFAULT_FEATURE_MAP.get(base_name, "all")
+        if def_feat == "all":
+            features_to_deploy = list(range(1, 9))
+        else:
+            features_to_deploy = [def_feat]
+    elif str(target_feature).lower() == "all":
+        features_to_deploy = list(range(1, 9))
+    else:
+        try:
+            features_to_deploy = [int(target_feature)]
+        except ValueError:
+            print(f"[-] Invalid feature number: {target_feature}")
+            sys.exit(1)
+
+    # Deploy to selected feature(s)
+    for feat in features_to_deploy:
+        deploy_to_feature(feat, imem_hex, dmem_hex, dis_file, elf_file, src_file, base_name)
+
+    # Optional Vivado bitstream rebuild
+    if rebuild_bitstream:
+        for feat in features_to_deploy:
+            feat_dir = os.path.join(ROOT_DIR, f"feature_{feat}")
+            b_tcl = os.path.join(feat_dir, "build_bitstream.tcl")
+            if os.path.exists(b_tcl):
+                print(f"[*] Rebuilding bitstream for Feature {feat} via Vivado...")
+                subprocess.check_call(f"vivado.bat -mode batch -source {b_tcl} -notrace", shell=True, cwd=feat_dir)
+                print(f"[+] Bitstream for Feature {feat} generated successfully!")
+
+    print(f"\n[OK] imem.hex successfully built and loaded for Feature(s): {features_to_deploy}")
+
+def main():
+    parser = argparse.ArgumentParser(description="Compile and load imem.hex / dmem.hex for each feature separately")
+    parser.add_argument("program", nargs="?", default="addition", help="Program name (addition, multiplication, division, fpu, dcache_test, fibonacci, sort, negative, xor) or path to custom .c file")
+    parser.add_argument("--feature", "-f", default=None, help="Target feature number (1, 2, 3, 4, 5, 6, 7, 8, or 'all'). If omitted, automatically selects the default feature.")
+    parser.add_argument("--bitstream", "-b", action="store_true", help="Automatically rebuild FPGA bitstream in Vivado after updating hex files")
+
+    args = parser.parse_args()
+    build(args.program, args.feature, args.bitstream)
 
 if __name__ == "__main__":
-    prog = sys.argv[1] if len(sys.argv) > 1 else "addition"
-    build(prog)
+    main()
