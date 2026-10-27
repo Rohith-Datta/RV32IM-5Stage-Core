@@ -149,7 +149,7 @@ module fpga_top_feature6 #(
     // 4. Backing Instruction & Data Memories
     // ========================================================================
     instr_mem #(
-        .HEX_FILE ("imem.hex"),
+        .HEX_FILE ("C:/CS2202L/RISCV/feature_6/mem/imem.hex"),
         .WORDS    (1024)
     ) u_backing_imem (
         .clk   (clk_50mhz),
@@ -158,7 +158,7 @@ module fpga_top_feature6 #(
     );
 
     data_mem #(
-        .HEX_FILE ("dmem.hex"),
+        .HEX_FILE ("C:/CS2202L/RISCV/feature_6/mem/dmem.hex"),
         .WORDS    (1024)
     ) u_backing_dmem (
         .clk   (clk_50mhz),
