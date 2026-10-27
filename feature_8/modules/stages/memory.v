@@ -24,7 +24,17 @@ module instr_mem
     (* ram_style = "distributed" *)
     reg [31:0] imem [0:WORDS-1];
 
+    integer init_i;
     initial begin
+        for (init_i = 0; init_i < WORDS; init_i = init_i + 1)
+            imem[init_i] = 32'h0000_0013; // default nop
+        imem[0] = 32'h0030_0093; // 0x00: addi x1, x0, 2 (loop setup)
+        imem[1] = 32'h0000_0113; // 0x04: addi x2, x0, 0
+        imem[2] = 32'h0011_0113; // 0x08: addi x2, x2, 1
+        imem[3] = 32'hFFF0_8093; // 0x0C: addi x1, x1, -1
+        imem[4] = 32'hFE00_9CE3; // 0x10: bne  x1, x0, -8
+        imem[5] = 32'h0000_0013; // 0x14: nop
+        imem[6] = 32'h0000_0013; // 0x18: nop
         $readmemh(HEX_FILE, imem);
         $display("[IMEM] Loaded instruction memory from: %s", HEX_FILE);
         $display("[IMEM] imem[0] = 0x%08h, imem[1] = 0x%08h", imem[0], imem[1]);

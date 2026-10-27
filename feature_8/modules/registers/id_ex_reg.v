@@ -1,7 +1,7 @@
 // ============================================================================
-// File: id_ex_reg.v (Feature 8: Passive Performance CSRs & Counters)
-// Description: ID/EX Pipeline Register with Synchronous Stall, Flush, FPU & CSR
-// Project: Pipelined RV32IMF RISC-V Core (Feature 8: Passive CSRs)
+// File: id_ex_reg.v
+// Module: id_ex_reg (Feature 7: BTB Branch Prediction Aware)
+// Description: ID/EX Pipeline Register with Synchronous Stall, Flush, FPU & BTB
 // ============================================================================
 
 `timescale 1ns/1ps
@@ -9,8 +9,8 @@
 module id_ex_reg (
     input  wire        clk,
     input  wire        reset_n,
-    input  wire        stall,   // Active high: hold pipeline register
-    input  wire        flush,   // Active high: clear to bubble (NOP)
+    input  wire        stall,
+    input  wire        flush,
 
     // Control Signals from ID
     input  wire [2:0]  alu_op_i,
@@ -29,9 +29,11 @@ module id_ex_reg (
     input  wire        is_mul_i,
     input  wire        is_div_i,
     input  wire        is_fpu_i,
-    input  wire        is_csr_i,
-    input  wire [11:0] csr_addr_i,
     input  wire        illegal_inst_i,
+
+    // Feature 7 BTB inputs from IF/ID
+    input  wire        pred_taken_i,
+    input  wire [31:0] pred_target_i,
 
     // Data Signals from ID
     input  wire [31:0] pc_i,
@@ -64,9 +66,11 @@ module id_ex_reg (
     output reg         is_mul_o,
     output reg         is_div_o,
     output reg         is_fpu_o,
-    output reg         is_csr_o,
-    output reg  [11:0] csr_addr_o,
     output reg         illegal_inst_o,
+
+    // Feature 7 BTB outputs to EX
+    output reg         pred_taken_o,
+    output reg  [31:0] pred_target_o,
 
     // Data Outputs to EX
     output reg  [31:0] pc_o,
@@ -75,7 +79,7 @@ module id_ex_reg (
     output reg  [31:0] rdata2_o,
     output reg  [31:0] imm_o,
 
-    // Register specifiers to EX
+    // Register specifiers to EX / Hazard Unit
     output reg  [4:0]  rs1_o,
     output reg  [4:0]  rs2_o,
     output reg  [4:0]  rd_o,
@@ -101,9 +105,10 @@ module id_ex_reg (
             is_mul_o        <= 1'b0;
             is_div_o        <= 1'b0;
             is_fpu_o        <= 1'b0;
-            is_csr_o        <= 1'b0;
-            csr_addr_o      <= 12'h000;
             illegal_inst_o  <= 1'b0;
+
+            pred_taken_o    <= 1'b0;
+            pred_target_o   <= 32'd0;
 
             pc_o            <= 32'h0;
             pc_plus4_o      <= 32'h0;
@@ -133,9 +138,10 @@ module id_ex_reg (
             is_mul_o        <= 1'b0;
             is_div_o        <= 1'b0;
             is_fpu_o        <= 1'b0;
-            is_csr_o        <= 1'b0;
-            csr_addr_o      <= 12'h000;
             illegal_inst_o  <= 1'b0;
+
+            pred_taken_o    <= 1'b0;
+            pred_target_o   <= 32'd0;
 
             pc_o            <= 32'h0;
             pc_plus4_o      <= 32'h0;
@@ -165,9 +171,10 @@ module id_ex_reg (
             is_mul_o        <= is_mul_i;
             is_div_o        <= is_div_i;
             is_fpu_o        <= is_fpu_i;
-            is_csr_o        <= is_csr_i;
-            csr_addr_o      <= csr_addr_i;
             illegal_inst_o  <= illegal_inst_i;
+
+            pred_taken_o    <= pred_taken_i;
+            pred_target_o   <= pred_target_i;
 
             pc_o            <= pc_i;
             pc_plus4_o      <= pc_plus4_i;

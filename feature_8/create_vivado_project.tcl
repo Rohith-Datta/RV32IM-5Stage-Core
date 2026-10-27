@@ -1,15 +1,15 @@
 # ============================================================================
 # File: create_vivado_project.tcl
-# Description: Generates Standalone Vivado Project for Feature 8 (RV32IMF Core with Passive CSRs)
+# Description: Generates Standalone Vivado Project for Feature 8 (Static 32-Entry BTB)
 # Target Device: Xilinx Artix-7 XC7A100T-1CSG324C (Digilent Nexys A7-100T)
 # ============================================================================
 
 set SCRIPT_DIR [file dirname [file normalize [info script]]]
 set PROJ_DIR [file join $SCRIPT_DIR "vivado_project"]
-set PROJ_NAME "rv32imf_csr_fpga"
+set PROJ_NAME "rv32imf_btb_fpga"
 
 puts "=========================================================="
-puts " Creating Standalone Vivado Project for Feature 8 (CSRs)"
+puts " Creating Standalone Vivado Project for Feature 8 (BTB)"
 puts " Project Path: $PROJ_DIR/$PROJ_NAME.xpr"
 puts "=========================================================="
 
@@ -27,7 +27,7 @@ set RTL_FILES [list \
     [file join $SCRIPT_DIR "modules" "hazard_unit.v"] \
     [file join $SCRIPT_DIR "modules" "pipeline" "pipe.v"] \
     [file join $SCRIPT_DIR "modules" "pipeline" "pipeline_5stage.v"] \
-    [file join $SCRIPT_DIR "modules" "stages" "csr_perf_counters.v"] \
+    [file join $SCRIPT_DIR "modules" "stages" "btb_branch_pred.v"] \
     [file join $SCRIPT_DIR "modules" "stages" "decode_stage.v"] \
     [file join $SCRIPT_DIR "modules" "stages" "execute_stage.v"] \
     [file join $SCRIPT_DIR "modules" "stages" "fpu_single_core.v"] \
@@ -43,14 +43,14 @@ set RTL_FILES [list \
     [file join $SCRIPT_DIR "modules" "registers" "ex_mem_reg.v"] \
     [file join $SCRIPT_DIR "modules" "registers" "mem_wb_reg.v"] \
     [file join $SCRIPT_DIR "modules" "fpga" "seven_seg_controller.v"] \
+    [file join $SCRIPT_DIR "modules" "fpga" "btb_trace_rom.vh"] \
     [file join $SCRIPT_DIR "modules" "fpga" "fpga_top_feature8.v"] \
     [file join $SCRIPT_DIR "modules" "uart" "uart_tx.v"] \
-    [file join $SCRIPT_DIR "modules" "uart" "uart_unit.v"] \
 ]
 
 add_files -norecurse -fileset sources_1 $RTL_FILES
 
-# Set include directory for opcode.vh
+# Set include directory for headers
 set_property include_dirs [list \
     [file join $SCRIPT_DIR "modules"] \
     [file join $SCRIPT_DIR "modules" "pipeline"] \
@@ -73,8 +73,8 @@ add_files -norecurse -fileset sources_1 $MEM_FILES
 
 # Add Simulation Sources & Testbenches
 set SIM_FILES [list \
-    [file join $SCRIPT_DIR "testbench" "tb_csr.v"] \
-    [file join $SCRIPT_DIR "testbench" "tb_feature8_pipeline.v"] \
+    [file join $SCRIPT_DIR "testbench" "tb_fpga_top_feature8.v"] \
+    [file join $SCRIPT_DIR "testbench" "tb_btb_trace.v"] \
 ]
 add_files -norecurse -fileset sim_1 $SIM_FILES
 
@@ -89,10 +89,10 @@ set_property include_dirs [list \
 
 # Set Top Modules
 set_property top fpga_top_feature8 [get_filesets sources_1]
-set_property top tb_feature8_pipeline [get_filesets sim_1]
+set_property top tb_fpga_top_feature8 [get_filesets sim_1]
 
 puts "=========================================================="
 puts " Project successfully created!"
 puts " Top Level RTL: fpga_top_feature8"
-puts " Top Level Sim: tb_feature8_pipeline"
+puts " Top Level Sim: tb_fpga_top_feature8"
 puts "=========================================================="
