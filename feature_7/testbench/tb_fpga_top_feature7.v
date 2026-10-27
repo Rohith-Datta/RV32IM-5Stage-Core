@@ -1,14 +1,14 @@
 // ============================================================================
-// File: tb_fpga_top_feature8.v
-// Module: tb_fpga_top_feature8
-// Description: Verification testbench for fpga_top_feature8
+// File: tb_fpga_top_feature7.v
+// Module: tb_fpga_top_feature7
+// Description: Verification testbench for fpga_top_feature7
 //              Verifies both Phase 1 (BTB Benchmark) and Phase 2 (Bare-Metal C Program btb.c)
 //              with UART streaming of both traces and summaries.
 // ============================================================================
 
 `timescale 1ns/1ps
 
-module tb_fpga_top_feature8;
+module tb_fpga_top_feature7;
 
     reg         clk_100mhz;
     reg         cpu_resetn;
@@ -25,7 +25,7 @@ module tb_fpga_top_feature8;
     always #5 clk_100mhz = ~clk_100mhz;
 
     // Fast baud rate for instant simulation verification (50 MHz / 5,000,000 = 10 clocks per bit)
-    fpga_top_feature8 #(
+    fpga_top_feature7 #(
         .CLK_FREQ (50_000_000),
         .BAUD_RATE(5_000_000)
     ) dut (
@@ -55,7 +55,7 @@ module tb_fpga_top_feature8;
 
         #100;
         cpu_resetn = 1;
-        $display("=== Reset deasserted, starting Feature 8 Dual BTB Verification ===");
+        $display("=== Reset deasserted, starting Feature 7 Dual BTB Verification ===");
     end
 
     // Monitor completion of both phases

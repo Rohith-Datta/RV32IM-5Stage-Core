@@ -1,9 +1,9 @@
-# Feature 8: Static 32-Entry Branch Target Buffer (BTB) Dual Verification & Telemetry Report
+# Feature 7: Static 32-Entry Branch Target Buffer (BTB) Dual Verification & Telemetry Report
 
 ## 1. Executive Summary
 This report details the architectural implementation, pipeline timing verification, and FPGA hardware validation of the **Static 32-Entry Branch Target Buffer (BTB)** for the 5-stage pipelined RV32IMF processor core on the **Digilent Nexys A7-100T** FPGA board (Artix-7 XC7A100T-1CSG324C).
 
-Feature 8 features **Dual Verification Telemetry**:
+Feature 7 features **Dual Verification Telemetry**:
 1. **Phase 1: Synthetic BTB Verification Benchmark**: Executes the exact 16-cycle loop assembly benchmark, testing cold miss, BTB hit (0 cycle penalty), and loop-exit misprediction (2 penalty cycles).
 2. **Phase 2: Bare-Metal C Test Program (`btb.c`)**: A simple, clean, easily understandable bare-metal C program (in the style of `addition.c`) that verifies loop-branch prediction in real-world compiled C code and completes execution in **76 clock cycles** (strictly meeting the $\le 80$ cycles max requirement).
 
@@ -42,7 +42,7 @@ A branch misprediction in the EX stage (`mispredict_o`) is asserted under three 
 ## 3. Bare-Metal C Program Verification (`btb.c`)
 
 ### 3.1 C Source Code
-The bare-metal C test program is located at `c_tests/btb.c` and `feature_8/mem/btb.c`. Designed in the style of `addition.c`, it is straightforward, clean, and directly verifies loop-branch prediction:
+The bare-metal C test program is located at `c_tests/btb.c` and `feature_7/mem/btb.c`. Designed in the style of `addition.c`, it is straightforward, clean, and directly verifies loop-branch prediction:
 
 ```c
 int main(void) {
@@ -205,7 +205,7 @@ Mispredictions (Misses)    : 2
 Prediction Accuracy        : 60%
 Final Return Value (a0)    : 6 (0x00000006)
 ====================================================
-Feature 8 Dual BTB Verification: ALL TESTS PASSED!
+Feature 7 Dual BTB Verification: ALL TESTS PASSED!
 ====================================================
 ```
 

@@ -4,7 +4,10 @@
 # ============================================================================
 
 set SCRIPT_DIR [file dirname [file normalize [info script]]]
-set BIT_FILE [file join $SCRIPT_DIR "vivado_project" "rv32imf_btb_fpga.runs" "impl_1" "fpga_top_feature7.bit"]
+set BIT_FILE [file join $SCRIPT_DIR "fpga_top_feature7.bit"]
+if {![file exists $BIT_FILE]} {
+    set BIT_FILE [file join $SCRIPT_DIR "vivado_project" "rv32imf_btb_fpga.runs" "impl_1" "fpga_top_feature7.bit"]
+}
 
 if {![file exists $BIT_FILE]} {
     puts "Error: Bitstream not found at $BIT_FILE"

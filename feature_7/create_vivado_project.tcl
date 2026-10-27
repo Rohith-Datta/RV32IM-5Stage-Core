@@ -43,14 +43,15 @@ set RTL_FILES [list \
     [file join $SCRIPT_DIR "modules" "registers" "ex_mem_reg.v"] \
     [file join $SCRIPT_DIR "modules" "registers" "mem_wb_reg.v"] \
     [file join $SCRIPT_DIR "modules" "fpga" "seven_seg_controller.v"] \
+    [file join $SCRIPT_DIR "modules" "fpga" "btb_trace_rom.vh"] \
+    [file join $SCRIPT_DIR "modules" "fpga" "btb_c_trace_rom.vh"] \
     [file join $SCRIPT_DIR "modules" "fpga" "fpga_top_feature7.v"] \
     [file join $SCRIPT_DIR "modules" "uart" "uart_tx.v"] \
-    [file join $SCRIPT_DIR "modules" "uart" "uart_unit.v"] \
 ]
 
 add_files -norecurse -fileset sources_1 $RTL_FILES
 
-# Set include directory for opcode.vh
+# Set include directory for headers
 set_property include_dirs [list \
     [file join $SCRIPT_DIR "modules"] \
     [file join $SCRIPT_DIR "modules" "pipeline"] \
@@ -73,6 +74,9 @@ add_files -norecurse -fileset sources_1 $MEM_FILES
 
 # Add Simulation Sources & Testbenches
 set SIM_FILES [list \
+    [file join $SCRIPT_DIR "testbench" "tb_fpga_top_feature7.v"] \
+    [file join $SCRIPT_DIR "testbench" "tb_btb_trace.v"] \
+    [file join $SCRIPT_DIR "testbench" "tb_btb_c_test.v"] \
     [file join $SCRIPT_DIR "testbench" "tb_btb.v"] \
     [file join $SCRIPT_DIR "testbench" "tb_feature7_pipeline.v"] \
 ]
@@ -89,10 +93,10 @@ set_property include_dirs [list \
 
 # Set Top Modules
 set_property top fpga_top_feature7 [get_filesets sources_1]
-set_property top tb_feature7_pipeline [get_filesets sim_1]
+set_property top tb_fpga_top_feature7 [get_filesets sim_1]
 
 puts "=========================================================="
 puts " Project successfully created!"
 puts " Top Level RTL: fpga_top_feature7"
-puts " Top Level Sim: tb_feature7_pipeline"
+puts " Top Level Sim: tb_fpga_top_feature7"
 puts "=========================================================="

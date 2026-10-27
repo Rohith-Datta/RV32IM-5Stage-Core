@@ -970,7 +970,7 @@ function [7:0] get_c_trace_char;
             11'd964: get_c_trace_char = 8'h72; // 'r'
             11'd965: get_c_trace_char = 8'h65; // 'e'
             11'd966: get_c_trace_char = 8'h20; // ' '
-            11'd967: get_c_trace_char = 8'h38; // '8'
+            11'd967: get_c_trace_char = 8'h37; // '7'
             11'd968: get_c_trace_char = 8'h20; // ' '
             11'd969: get_c_trace_char = 8'h44; // 'D'
             11'd970: get_c_trace_char = 8'h75; // 'u'

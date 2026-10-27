@@ -1,10 +1,13 @@
-# Feature 7: Pipelined RV32IMF Processor Core with Static 32-Entry Branch Target Buffer (BTB)
+# Feature 7: Static 32-Entry Branch Target Buffer (BTB) Dual Verification System
 
 ## 1. Overview & Architectural Scope
-Feature 7 integrates a high-performance **Static 32-Entry Branch Target Buffer (BTB)** into the 5-stage pipelined RV32IMF processor core.
+Feature 7 integrates and validates the **Static 32-Entry Branch Target Buffer (BTB)** within the 5-stage pipelined RV32IMF processor core.
 - **Microarchitecture Target**: 5-Stage RV32IMF Core running at 50 MHz.
 - **Target FPGA**: Digilent Nexys A7-100T (Xilinx Artix-7 XC7A100T-1CSG324C).
 - **Core Benefit**: Eliminates the 2-cycle control hazard penalty on repeated loops and taken branches by predicting branch direction and target address in the Fetch (IF) stage with **0 penalty cycles**.
+- **Dual Telemetry Support**:
+  1. **Phase 1: 16-Cycle Synthetic BTB Verification Benchmark**: Strict cycle-by-cycle EX stage trace table and hardware counters (1 hit, 2 misses, 33% accuracy, 4 penalty cycles).
+  2. **Phase 2: Bare-Metal C Program (`btb.c`)**: Simple C program verifying loop-branch prediction in compiled C, completing in **76 cycles** ($\le 80$ cycles max) with return value `a0 = 6`, 5 branches, 3 hits, 2 misses, 60% accuracy.
 
 ---
 
@@ -41,71 +44,104 @@ Feature 7 integrates a high-performance **Static 32-Entry Branch Target Buffer (
 
 - **Table Size**: 32 entries (direct-mapped, indexed by `PC[6:2]`).
 - **Tag Size**: 25 bits (`PC[31:7]`).
-- **Target PC**: 32 bits pre-computed branch destination.
-- **Valid Bit**: 1 bit per entry.
-- **Lookup (IF Stage)**: Query in parallel with instruction fetch. On a BTB Hit, `next_pc` is redirected to `pred_target` immediately (0 bubble penalty).
-- **Resolution (EX Stage)**: Actual branch condition is evaluated.
+- **Target PC**: 32-bit pre-computed branch destination.
+- **Valid Bit**: 1 bit per entry (cold start initialized to `0`).
+- **Hit Detection (IF Stage)**: Query in parallel with instruction fetch. On a BTB Hit, `pc_next` redirects to `pred_target` immediately (0 bubble penalty).
+- **Resolution (EX Stage)**: Actual branch condition evaluated.
   - If prediction matches actual: Branch commits with 0 stall penalty.
-  - If prediction fails (mispredict): IF/ID and ID/EX are flushed (2 bubbles), BTB is updated, and fetch redirects to correct PC.
+  - If prediction fails (mispredict): IF/ID and ID/EX are flushed (2 bubbles), BTB is updated/invalidated, and fetch redirects to correct PC.
 
 ---
 
-## 3. Student Implementation & Guided `TODO` Sections
-Per project specifications, key architectural sections contain guided `TODO` blocks with detailed theory for student self-learning:
-1. `modules/stages/btb_branch_pred.v`:
-   - **TODO 1**: 5-bit index and 25-bit tag extraction from PC.
-   - **TODO 2**: Combinational hit detection and target multiplexing in IF stage.
-   - **TODO 3**: Synchronous allocation, target update, and invalidation on clock edge in EX stage.
-2. `modules/stages/execute_stage.v`:
-   - **TODO**: Misprediction detection logic and redirect PC recovery calculation.
-3. `modules/pipeline/pipe.v`:
-   - Register forwarding multiplexers (`reg_rdata1`, `reg_rdata2`), reset zeroing, and WB stage port connections.
+## 3. Dual Execution Programs
+
+### 3.1 Phase 1: Synthetic 16-Cycle Benchmark
+Executes from memory address `0x00000000`:
+```assembly
+0x00000000     addi x1, x0, 2      // Set loop counter (evaluated across 3 branch passes)
+0x00000004     addi x2, x0, 0      // Initialize accumulator
+0x00000008     addi x2, x2, 1      // LOOP START: Increment accumulator
+0x0000000C     addi x1, x1, -1     // Decrement counter
+0x00000010     bne  x1, x0, -8     // Branch back to 0x00000008 if x1 != 0
+0x00000014     nop                 // Loop exit target
+```
+- **Branch 1 (Cycle 5):** Taken, Cold BTB Miss -> 2 penalty flush cycles (Cycles 6, 7).
+- **Branch 2 (Cycle 10):** Taken, BTB HIT -> 0 penalty cycles!
+- **Branch 3 (Cycle 13):** Not Taken, BTB Predicted Taken -> 2 penalty flush cycles (Cycles 14, 15).
+- **Cycle 16:** PC `0x14` completes EX stage. Total branches: 3, hits: 1, misses: 2, accuracy: 33%.
+
+### 3.2 Phase 2: Bare-Metal C Program (`c_tests/btb.c` & `feature_7/mem/btb.c`)
+```c
+int main(void) {
+    int sum = 0;
+    for (int i = 0; i < 4; i++) {
+        sum += i;
+    }
+    return sum; // Expected return: 6 (0x06)
+}
+```
+- Total Execution Cycles: **76 clock cycles** ($\le 80$ cycles).
+- Final Return Value in `a0`: **6** (`0x00000006`).
+- Total Branches Executed: **5** (`bge` evaluated 5 times).
+- Correct Predictions (Hits): **3** (Cycles 28, 40, 52).
+- Mispredictions (Misses): **2** (Cycle 14 cold miss, Cycle 64 loop exit).
+- Prediction Accuracy: **60%** ($3 \times 100 / 5$).
 
 ---
 
-## 4. Hardware Verification & FPGA Peripheral Mapping
+## 4. Hardware Peripheral Mapping & Verification Controls
 
-### 16 Discrete Status LEDs:
-- **LED[0]**: Hazard Stall Active (Load-use, DIV, FPU)
-- **LED[1]**: Data Forwarding Active (Operand bypass active)
-- **LED[2]**: Branch / Misprediction Pipeline Flush
-- **LED[3]**: Instruction Writeback Commit (`wb_reg_write`)
-- **LED[4]**: Multiplier Unit Active (`mul_active`)
-- **LED[5]**: Divider Unit Active (`div_active`)
-- **LED[6]**: FPU Unit Active (`fpu_active`)
-- **LED[7]**: Program Execution Completed (`prog_done`)
-- **LED[8]**: **BTB Hit Indicator** (Stretched for visibility)
-- **LED[9]**: **BTB Mispredict Indicator** (Stretched for visibility)
-- **LED[10]**: **BTB Taken Prediction** (`btb_pred_taken`)
-- **LED[15:11]**: Low bits of return value or committed data
+### Slide Switches (`sw[15:0]`):
+- **`sw[4]` / `sw[5]`**:
+  - `sw[4] = 0` (Default): Automatic Sequential Mode (Executes Benchmark, then executes C Program).
+  - `sw[4] = 1, sw[5] = 0`: Runs Bare-Metal C Program only.
+  - `sw[4] = 1, sw[5] = 1`: Runs Synthetic Benchmark only.
+- **`sw[3]`**:
+  - `sw[3] = 0`: 7-segment display shows Bare-Metal C Program statistics.
+  - `sw[3] = 1`: 7-segment display shows Benchmark statistics.
+- **`sw[2:0]`**:
+  - `3'b000`: Total Branches Executed
+  - `3'b001`: Correct Predictions (Hits)
+  - `3'b010`: Mispredictions (Misses)
+  - `3'b011`: Prediction Accuracy Percentage
+  - `3'b100`: Flush Penalties / Instructions Retired
+  - `3'b101`: Return Value `a0` (Displays `0x00000006`)
+  - `3'b110`: Total Execution Cycles (Displays `76` for C program)
+  - `3'b111`: Test Pattern `0x0000C0DE`
 
-### 8-Digit Seven-Segment Display (Multiplexed via `SW[2:0]`):
-- `SW[2:0] = 3'b000`: Fetch PC Address (`pc_if`)
-- `SW[2:0] = 3'b001`: Fetched Machine Instruction (`imem_rdata`)
-- `SW[2:0] = 3'b010`: Total BTB Hits Counter
-- `SW[2:0] = 3'b011`: Total BTB Mispredicts Counter
-- `SW[2:0] = 3'b100`: Total Execution Cycles Counter
-- `SW[2:0] = 3'b101`: Total Instructions Retired Counter
-- `SW[2:0] = 3'b110`: Final Return Value in `x10` (`a0`)
+### 16 Status LEDs (`led[15:0]`):
+- **LED[0]**: BTB Query Hit (`btb_pred_hit`)
+- **LED[1]**: BTB Misprediction Active (`btb_mispredict`)
+- **LED[2]**: BTB Taken Prediction (`btb_pred_taken`)
+- **LED[3]**: Pipeline Flush Active
+- **LED[4]**: Benchmark Run Active
+- **LED[5]**: Benchmark Run Done
+- **LED[6]**: C Program Run Active
+- **LED[7]**: C Program Run Done
+- **LED[8]**: All UART Transmission Complete
+- **LED[9]**: Pass Verification Flag (`a0 == 6`)
+- **LED[10]**: UART Serial Transmitter Busy
+- **LED[11]**: Active Phase Indicator
+- **LED[15:12]**: Final Return Value low nibble (`a0[3:0] = 4'b0110` = 6)
 
 ---
 
 ## 5. Verification Commands
 
-### Vivado Simulator:
-```bash
-cd simulation
-make sim_btb       # Runs unit BTB testbench (8 assertions)
-make sim_pipeline  # Runs full 5-stage pipeline branch loop testbench
+### Run PowerShell UART Monitor:
+```powershell
+powershell -ExecutionPolicy Bypass -File feature_7\read_uart.ps1
 ```
 
-### Icarus Verilog (`iverilog`):
-```bash
-# Unit BTB Testbench
-iverilog -o sim_btb testbench/tb_btb.v modules/stages/btb_branch_pred.v && ./sim_btb
+### Compile Custom C Test to Feature 7:
+```powershell
+python c_tests/build_hex.py btb --Feature 7
+```
 
-# Full Pipeline Integration Testbench
-iverilog -I modules -I modules/stages -I modules/pipeline -I modules/registers \
-  -o sim_pipe testbench/tb_feature7_pipeline.v modules/pipeline/pipeline_5stage.v \
-  modules/hazard_unit.v modules/stages/*.v modules/registers/*.v && ./sim_pipe
+### Run Vivado Simulation:
+```powershell
+Set-Location feature_7\simulation
+xvlog -i ../modules -i ../modules/stages -i ../modules/pipeline -i ../modules/registers -i ../modules/fpga -f filelist.txt ../testbench/tb_fpga_top_feature7.v
+xelab -top tb_fpga_top_feature7 -snapshot snap_tb_fpga_top -debug typical
+xsim snap_tb_fpga_top -R
 ```

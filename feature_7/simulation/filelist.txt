@@ -22,3 +22,6 @@
 ../modules/hazard_unit.v
 ../testbench/tb_btb.v
 ../testbench/tb_feature7_pipeline.v
+../testbench/tb_btb_c_test.v
+../testbench/tb_btb_trace.v
+../testbench/tb_fpga_top_feature7.v
