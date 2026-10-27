@@ -138,7 +138,7 @@ Write-Host " Press red CPU RESET button on FPGA (Pin C12) to rerun." -Foreground
 Write-Host " Press Ctrl+C at any time to exit." -ForegroundColor DarkGray
 Write-Host "==========================================================" -ForegroundColor Cyan
 
-$sp = New-Object System.IO.Ports.SerialPort $Port, $Baud, [System.IO.Ports.Parity]::None, 8, [System.IO.Ports.StopBits]::One
+$sp = New-Object System.IO.Ports.SerialPort $Port, $Baud, 'None', 8, 'One'
 $sp.ReadTimeout  = 500
 $sp.NewLine      = "`n"
 
