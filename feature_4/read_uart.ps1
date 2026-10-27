@@ -281,10 +281,10 @@ try {
                     $stall_color = "Cyan"
                     $stall_tag = "FPU MULTIPLY STALL: $active_fpu (Stall {0,2}/3 | Latency: 4 Cycles - DSP Multiplier)" -f $consec_stalls
                 }
-                # 5. Active Hardware Integer Divider (32-cycle serial radix-2 division)
-                elseif ($active_div -and $consec_stalls -le 32) {
+                # 5. Active Hardware Integer Divider (31-cycle serial radix-2 division)
+                elseif ($active_div -and $consec_stalls -le 31) {
                     $stall_color = "Cyan"
-                    $stall_tag = "HARDWARE DIVIDER STALL: $active_div (Cycle {0,2}/32 - Radix-2 Serial Divider)" -f $consec_stalls
+                    $stall_tag = "HARDWARE DIVIDER STALL: $active_div (Cycle {0,2}/31 - Radix-2 Serial Divider)" -f $consec_stalls
                 }
                 # 6. Branch Control Hazard (2-cycle flush penalty)
                 elseif ($consec_stalls -le 2 -and ($prev_inst -match "^b[a-z]+" -or $prev_inst -match "^j" -or $prev_inst -match "^ret")) {

@@ -207,33 +207,30 @@ try {
                 $div_candidates = @($recent_disasms | Where-Object { $_ -match "^(div|divu|rem|remu)\b" })
                 $active_div = if ($div_candidates.Count -gt 0) { $div_candidates[-1] } else { "" }
 
-                $stall_tag = ""
-                $stall_color = "Yellow"
-
-                # 1. Active Divider Operation (32 stall cycles for Radix-2 Restoring Divider)
-                if ($active_div -and $consec_stalls -le 32) {
+                # 1. Load-Use Data Hazard (1-cycle interlock when load in EX and dependent inst in ID)
+                if ($consec_stalls -eq 1 -and ($prev_prev -match "^l[wbh]" -or $prev_inst -match "^l[wbh]")) {
+                    $stat_loaduse_stalls++
+                    $stall_color = "Magenta"
+                    $stall_tag = "LOAD-USE DATA HAZARD STALL: 1-Cycle Interlock ($prev_inst)"
+                }
+                # 2. Active Divider Operation (31 stall cycles for Radix-2 Restoring Divider)
+                elseif ($active_div -and $consec_stalls -le 31) {
                     $stat_div_stalls++
                     $stall_color = "Cyan"
                     $op_name = ($active_div -split '\s+')[0].ToUpper()
-                    if ($consec_stalls -eq 32) {
-                        $stall_tag = "DIVIDER STALL: $active_div (Cycle 32/32 | Quotient & Remainder Formed)"
+                    if ($consec_stalls -eq 31) {
+                        $stall_tag = "DIVIDER STALL: $active_div (Cycle 31/31 | Quotient & Remainder Formed)"
                     } elseif ($consec_stalls -eq 1) {
-                        $stall_tag = "DIVIDER STALL: $active_div (Cycle  1/32 | Operand Latch & Trial Subtraction)"
+                        $stall_tag = "DIVIDER STALL: $active_div (Cycle  1/31 | Operand Latch & Trial Subtraction)"
                     } else {
-                        $stall_tag = "DIVIDER STALL: $active_div (Cycle {0,2}/32 | Newton-Raphson Iteration)" -f $consec_stalls
+                        $stall_tag = "DIVIDER STALL: $active_div (Cycle {0,2}/31 | Newton-Raphson Iteration)" -f $consec_stalls
                     }
                 }
-                # 2. Divider Corner Case 1-Cycle Bypass (Divide-by-Zero or Signed Overflow)
+                # 3. Divider Corner Case 1-Cycle Bypass (Divide-by-Zero or Signed Overflow)
                 elseif ($active_div -and $consec_stalls -eq 1) {
                     $stat_div_stalls++
                     $stall_color = "Cyan"
                     $stall_tag = "DIVIDER CORNER CASE: $active_div (1-Cycle Early-Out Bypass)"
-                }
-                # 3. Load-Use Data Hazard (1-cycle interlock)
-                elseif ($consec_stalls -eq 1 -and ($prev_prev -match "^l[wbh]" -or $prev_inst -match "^l[wbh]")) {
-                    $stat_loaduse_stalls++
-                    $stall_color = "Magenta"
-                    $stall_tag = "LOAD-USE DATA HAZARD STALL: 1-Cycle Interlock ($prev_inst)"
                 }
                 # 4. Branch Control Hazard (2-cycle branch penalty)
                 elseif ($consec_stalls -le 2 -and ($prev_inst -match "^b[a-z]+" -or $prev_inst -match "^j" -or $prev_inst -match "^ret")) {
@@ -303,7 +300,7 @@ try {
                         Write-Host "   * Total Elapsed Clock Cycles: $total_elapsed_cycles cycles (Cycles 1 to $cycle)" -ForegroundColor Cyan
                         Write-Host "   * Total Instructions Run    : $inst_count instructions" -ForegroundColor White
                         Write-Host "   * Pipeline Stalls Breakdown :" -ForegroundColor Yellow
-                        Write-Host "       - Multi-Cycle DIV Stalls  : $stat_div_stalls stalls (div/divu/rem/remu: 32 cycles each)" -ForegroundColor Cyan
+                        Write-Host "       - Multi-Cycle DIV Stalls  : $stat_div_stalls stalls (div/divu/rem/remu: 31 cycles each)" -ForegroundColor Cyan
                         Write-Host "       - Load-Use Data Hazards   : $stat_loaduse_stalls stalls (1-cycle interlock bubbles)" -ForegroundColor Magenta
                         Write-Host "       - Branch Control Hazards  : $stat_branch_stalls stalls (2-cycle branch penalties)" -ForegroundColor DarkYellow
                         Write-Host "       - Total Pipeline Stalls   : $stall_count stalls" -ForegroundColor White
