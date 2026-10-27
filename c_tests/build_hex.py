@@ -199,6 +199,13 @@ def build(prog_name, target_feature=None, rebuild_bitstream=False):
             if os.path.exists(b_tcl):
                 print(f"[*] Rebuilding bitstream for Feature {feat} via Vivado...")
                 subprocess.check_call(f"vivado.bat -mode batch -source {b_tcl} -notrace", shell=True, cwd=feat_dir)
+                # Copy bitstream to root of feature directory
+                for root, dirs, files in os.walk(feat_dir):
+                    for file in files:
+                        if file.endswith(".bit") and "impl_1" in root:
+                            dest_bit = os.path.join(feat_dir, f"fpga_top_feature{feat}.bit")
+                            shutil.copy2(os.path.join(root, file), dest_bit)
+                            print(f"[+] Synced {dest_bit}")
                 print(f"[+] Bitstream for Feature {feat} generated successfully!")
 
     print(f"\n[OK] imem.hex successfully built and loaded for Feature(s): {features_to_deploy}")
