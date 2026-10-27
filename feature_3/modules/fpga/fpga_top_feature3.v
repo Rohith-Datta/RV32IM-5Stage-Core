@@ -267,7 +267,7 @@ module fpga_top_feature3 (
     // On-Chip Memories (IMEM & DMEM)
     // ------------------------------------------------------------------------
     instr_mem #(
-        .HEX_FILE("imem.hex"),
+        .HEX_FILE("C:/CS2202L/RISCV/feature_3/mem/imem.hex"),
         .WORDS(1024)
     ) u_imem (
         .clk  (core_clk),
@@ -311,7 +311,7 @@ module fpga_top_feature3 (
     wire dmem_ram_re  = dmem_re && !uart_addr_match;
 
     data_mem #(
-        .HEX_FILE("dmem.hex"),
+        .HEX_FILE("C:/CS2202L/RISCV/feature_3/mem/dmem.hex"),
         .WORDS(1024)
     ) u_dmem (
         .clk  (core_clk),
