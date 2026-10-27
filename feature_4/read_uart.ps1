@@ -338,13 +338,15 @@ try {
                 if ($ret_seen -and -not $prog_completed) {
                     $drain_cnt++
                     if ($drain_cnt -eq 1) {
-                        Write-Host " [CC=$cc_str] Pipeline Drain Stage 1/4 (ret advancing IF -> ID)" -ForegroundColor DarkGray
+                        Write-Host " [CC=$cc_str] Pipeline Drain Stage 1/5 (ret advancing IF -> ID)" -ForegroundColor DarkGray
                     } elseif ($drain_cnt -eq 2) {
-                        Write-Host " [CC=$cc_str] Pipeline Drain Stage 2/4 (ret advancing ID -> EX)" -ForegroundColor DarkGray
+                        Write-Host " [CC=$cc_str] Pipeline Drain Stage 2/5 (ret advancing ID -> EX)" -ForegroundColor DarkGray
                     } elseif ($drain_cnt -eq 3) {
-                        Write-Host " [CC=$cc_str] Pipeline Drain Stage 3/4 (ret advancing EX -> MEM)" -ForegroundColor DarkGray
-                    } elseif ($drain_cnt -ge 4) {
-                        Write-Host " [CC=$cc_str] Pipeline Drain Stage 4/4 (ret advancing MEM -> WB | Final Commit & Halt)" -ForegroundColor DarkGray
+                        Write-Host " [CC=$cc_str] Pipeline Drain Stage 3/5 (ret advancing EX -> MEM)" -ForegroundColor DarkGray
+                    } elseif ($drain_cnt -eq 4) {
+                        Write-Host " [CC=$cc_str] Pipeline Drain Stage 4/5 (ret advancing MEM -> WB | Retirement)" -ForegroundColor DarkGray
+                    } elseif ($drain_cnt -ge 5) {
+                        Write-Host " [CC=$cc_str] Pipeline Drain Stage 5/5 (Core Freeze & Latch Hardware Summary)" -ForegroundColor DarkGray
                         $prog_completed = $true
                         $total_elapsed_cycles = $cycle + 1
                         $ipc_total = if ($total_elapsed_cycles -gt 0) { [math]::Round($inst_count / $total_elapsed_cycles, 2) } else { 0 }
