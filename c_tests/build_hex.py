@@ -40,7 +40,11 @@ PROGRAMS = {
     "fpu":                 "fpu.c",
     "fpu_test":            "fpu.c",
     "fpu.c":               "fpu.c",
-    "fpu_test.c":          "fpu.c"
+    "fpu_test.c":          "fpu.c",
+    "btb":                 "btb.c",
+    "btb.c":               "btb.c",
+    "branch":              "btb.c",
+    "branch.c":            "btb.c"
 }
 
 DEFAULT_FEATURE_MAP = {
@@ -64,6 +68,10 @@ DEFAULT_FEATURE_MAP = {
     "fibonacci":           6,
     "code_fibonacci":      6,
     "fibonacci.c":         6,
+    "btb":                 8,
+    "btb.c":               8,
+    "branch":              8,
+    "branch.c":            8,
     "sort":                1,
     "negative":            1,
     "xor":                 1

@@ -1,7 +1,7 @@
 // ============================================================================
-// File: decode_stage.v (Feature 8: Passive Performance CSRs & Counters)
-// Description: Instruction Decode & Register File with RV32IMF + SYSTEM CSR Decoding
-// Project: Pipelined RV32IMF RISC-V Core (Feature 8: Passive CSRs)
+// File: decode_stage.v (Feature 4: RV32F IEEE 754 Floating-Point Support)
+// Description: Instruction Decode & Register File with RV32M and RV32F Decoding
+// Project: Pipelined RV32IMF RISC-V Core (Feature 4: IEEE 754 FPU)
 // ============================================================================
 
 `timescale 1ns/1ps
@@ -37,10 +37,6 @@ module decode_stage (
     output reg         is_div_o,
     output reg         is_fpu_o,
     output reg         illegal_inst_o,
-
-    // Feature 8 CSR Control Signals
-    output reg         is_csr_o,
-    output reg  [11:0] csr_addr_o,
 
     // Decoded Data Signals to ID/EX
     output wire [31:0] rdata1_o,
@@ -119,8 +115,6 @@ module decode_stage (
         is_mul_o        = 1'b0;
         is_div_o        = 1'b0;
         is_fpu_o        = 1'b0;
-        is_csr_o        = 1'b0;
-        csr_addr_o      = 12'h000;
         illegal_inst_o  = 1'b0;
         imm_o           = 32'h0;
         id_rs1_used_o   = 1'b0;
@@ -224,25 +218,6 @@ module decode_stage (
                 immediate_sel_o = 1'b1;
                 id_rs1_used_o   = 1'b1;
                 imm_o           = {{20{instruction_i[31]}}, instruction_i[31:20]};
-            end
-
-            ////////////////////////////////////////////////////////////////////
-            // TODO: Feature 8 RISC-V SYSTEM / CSR Instruction Decoding
-            //
-            // Instructions:
-            //   When opcode == SYSTEM (7'b1110011):
-            //     1. Assert is_csr_o = 1'b1
-            //     2. Assert reg_write_o = 1'b1 (the read CSR value writes to rd)
-            //     3. Extract 12-bit CSR address: instruction_i[31:20]
-            //     4. Set immediate_sel_o = 1'b1
-            //     5. Immediate is zero-extended CSR address: {20'h0, instruction_i[31:20]}
-            ////////////////////////////////////////////////////////////////////
-            SYSTEM: begin
-                is_csr_o        = /* TODO: 1'b1 */                     1'b1;
-                reg_write_o     = /* TODO: 1'b1 */                     1'b1;
-                csr_addr_o      = /* TODO: instruction_i[31:20] */      instruction_i[31:20];
-                immediate_sel_o = 1'b1;
-                imm_o           = {20'h0, instruction_i[31:20]};
             end
 
             default: begin

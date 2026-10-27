@@ -9,17 +9,22 @@ Disassembly of section .text:
    4:	00112e23          	sw	ra,28(sp)
    8:	00812c23          	sw	s0,24(sp)
    c:	02010413          	addi	s0,sp,32
-  10:	06400793          	li	a5,100
-  14:	fef42623          	sw	a5,-20(s0)
-  18:	00700793          	li	a5,7
-  1c:	fef42423          	sw	a5,-24(s0)
-  20:	fec42703          	lw	a4,-20(s0)
-  24:	fe842783          	lw	a5,-24(s0)
-  28:	02f747b3          	div	a5,a4,a5
-  2c:	fef42223          	sw	a5,-28(s0)
-  30:	fe442783          	lw	a5,-28(s0)
-  34:	00078513          	mv	a0,a5
-  38:	01c12083          	lw	ra,28(sp)
-  3c:	01812403          	lw	s0,24(sp)
-  40:	02010113          	addi	sp,sp,32
-  44:	00008067          	ret
+  10:	fe042623          	sw	zero,-20(s0)
+  14:	fe042423          	sw	zero,-24(s0)
+  18:	0200006f          	j	38 <main+0x38>
+  1c:	fec42703          	lw	a4,-20(s0)
+  20:	fe842783          	lw	a5,-24(s0)
+  24:	00f707b3          	add	a5,a4,a5
+  28:	fef42623          	sw	a5,-20(s0)
+  2c:	fe842783          	lw	a5,-24(s0)
+  30:	00178793          	addi	a5,a5,1
+  34:	fef42423          	sw	a5,-24(s0)
+  38:	fe842703          	lw	a4,-24(s0)
+  3c:	00300793          	li	a5,3
+  40:	fce7dee3          	bge	a5,a4,1c <main+0x1c>
+  44:	fec42783          	lw	a5,-20(s0)
+  48:	00078513          	mv	a0,a5
+  4c:	01c12083          	lw	ra,28(sp)
+  50:	01812403          	lw	s0,24(sp)
+  54:	02010113          	addi	sp,sp,32
+  58:	00008067          	ret

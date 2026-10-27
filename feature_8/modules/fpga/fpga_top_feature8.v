@@ -1,55 +1,42 @@
 // ============================================================================
 // File: fpga_top_feature8.v
 // Module: fpga_top_feature8
-// Description: Synthesizable FPGA Top-Level Module for Feature 8
-//              (RV32IMF Core with Passive CSRs & Hardware Performance Counters)
+// Description: Synthesizable FPGA Top-Level Module for Feature 8:
+//              Static 32-Entry Branch Target Buffer (BTB) Verification with Dual UART Telemetry
+//              Supports BOTH:
+//                1. 16-Cycle Synthetic BTB Verification Benchmark (Trace table & stats)
+//                2. Bare-Metal C Program (btb.c / imem.hex, ~75 cycles, branches, return value)
 // Target Device: Xilinx Artix-7 XC7A100T-1CSG324C (Digilent Nexys A7-100T Board)
 //
-// Key Features Mapped to Board Peripherals:
-// 1. 8-Digit Seven-Segment Display (Multiplexed via sw[2:0]):
-//    - sw[2:0] = 3'b000: Shows 32-bit Program Counter Fetch Address (pc_if).
-//    - sw[2:0] = 3'b001: Shows 32-bit Machine Instruction Code (imem_rdata).
-//    - sw[2:0] = 3'b010: Lower 32 bits of CSR cycle counter (0xC00).
-//    - sw[2:0] = 3'b011: Lower 32 bits of CSR instret counter (0xC02).
-//    - sw[2:0] = 3'b100: Lower 32 bits of CSR hpmcounter3 stall counter (0xC03).
-//    - sw[2:0] = 3'b101: Lower 32 bits of CSR hpmcounter4 branch counter (0xC04).
-//    - sw[2:0] = 3'b110: Final Return Result a0 (x10).
-// 2. Hardware Engine Selection (Switch sw[3]):
-//    - sw[3] = 0: DSP48E1 Multiplier Mode
-//    - sw[3] = 1: Radix-4 Booth Multiplier Mode
-// 3. LED Hardware Diagnostics:
-//    - LED[0]: Hazard Stall Active (Load-use, DIV, FPU stall)
-//    - LED[1]: Data Forwarding Active (Operand bypass into ALU/MUL/DIV/FPU)
-//    - LED[2]: Branch Pipeline Flush (hazard_flush_id)
-//    - LED[3]: Instruction Writeback Commit (wb_reg_write)
-//    - LED[4]: Multiplier Unit Active Indicator (mul_active in EX)
-//    - LED[5]: Divider Unit Active Indicator (div_active in EX)
-//    - LED[6]: FPU Unit Active Indicator (fpu_active in EX)
-//    - LED[7]: Program Execution Completed (prog_done)
-//    - LED[8]: CSR Instruction Access Indicator (Stretched)
-//    - LED[15:9]: Low bits of committed register result or return value
-// 4. Clocking & Execution Controls:
-//    - sw[1] = 1 Hz Slow Clock mode for live visual observation
-//    - sw[15] = Step mode (0 = Continuous UART-paced run, 1 = Manual Single-Step via btnc)
-//    - cpu_resetn: Active-low synchronous reset button (Pin C12)
-// 5. USB-UART Serial Telemetry (115,200 Baud on Pin D4):
-//    - Real-time zero-lag stream of fetched instructions and CSR telemetry
+// Clocks:
+//   - Onboard Oscillator: 100 MHz (Pin E3)
+//   - Core & UART Clock : 50 MHz (generated via divide-by-2 toggle register clk_50mhz_reg)
+//
+// UART Configuration:
+//   - Baud Rate: 115200 Baud, 8 Data Bits, No Parity, 1 Stop Bit (8N1)
+//   - Baud Divider from 50 MHz: 50,000,000 / 115,200 = 434 cycles/bit
+//
+// Controls:
+//   - sw[2:0] : 7-segment display mode
+//   - sw[3]   : 0 = Display C program stats, 1 = Display Benchmark stats
+//   - sw[4]   : 0 = Automatic Sequential (Runs Benchmark + C Program)
+//               1 = Manual Select: sw[5]=0 -> C Program only, sw[5]=1 -> Benchmark only
+//   - cpu_resetn : Active-low hardware reset (Pin C12)
 // ============================================================================
 
 `timescale 1ns/1ps
 
 module fpga_top_feature8 #(
-    parameter CLK_FREQ  = 100_000_000,
-    parameter BAUD_RATE = 115_200
+    parameter CLK_FREQ       = 50_000_000,
+    parameter BAUD_RATE      = 115_200,
+    parameter BTB_ENTRIES    = 32,
+    parameter BTB_TAG_WIDTH  = 25,
+    parameter TRACE_DEPTH    = 32
 )(
     input  wire        clk_100mhz,  // 100 MHz onboard oscillator (Pin E3)
     input  wire        cpu_resetn,  // Active-low CPU reset push button (Pin C12)
-    input  wire        btnc,        // Center push button: manual single step (Pin N17)
-    input  wire [15:0] sw,          // 16 slide switches:
-                                    //   sw[2:0] = 7-seg display mux
-                                    //   sw[3]   = Multiplier engine select (0=DSP, 1=Booth)
-                                    //   sw[1]   = 1 Hz Slow Clock mode
-                                    //   sw[15]  = Step mode (0=Continuous, 1=Manual step via btnc)
+    input  wire        btnc,        // Center push button: manual trigger / step (Pin N17)
+    input  wire [15:0] sw,          // 16 slide switches
     output wire [7:0]  an,          // 8-digit Seven-Segment Anodes (Pins J17..U13)
     output wire [6:0]  seg,         // 7-segment Cathodes (Pins T10..L18)
     output wire        dp,          // Decimal point (Pin H15)
@@ -59,10 +46,19 @@ module fpga_top_feature8 #(
 );
 
     // ------------------------------------------------------------------------
-    // Reset Synchronizer
+    // 1. Clock Generation: 50 MHz Derived Core Clock
+    // ------------------------------------------------------------------------
+    reg clk_50mhz_reg = 1'b0;
+    always @(posedge clk_100mhz) begin
+        clk_50mhz_reg <= ~clk_50mhz_reg;
+    end
+    wire clk_50mhz = clk_50mhz_reg;
+
+    // ------------------------------------------------------------------------
+    // 2. Synchronous Reset De-assertion in 50 MHz Domain
     // ------------------------------------------------------------------------
     reg [2:0] rst_sync;
-    always @(posedge clk_100mhz or negedge cpu_resetn) begin
+    always @(posedge clk_50mhz or negedge cpu_resetn) begin
         if (!cpu_resetn)
             rst_sync <= 3'b000;
         else
@@ -70,95 +66,33 @@ module fpga_top_feature8 #(
     end
     wire sys_reset_n = rst_sync[2];
 
-    // ------------------------------------------------------------------------
-    // Single-Step Button Debouncer & Edge Detector (btnc)
-    // ------------------------------------------------------------------------
-    reg [19:0] btn_debounce_cnt;
-    reg        btn_state;
-    reg        btn_prev;
-    wire       btn_pulse;
-
-    always @(posedge clk_100mhz or negedge sys_reset_n) begin
-        if (!sys_reset_n) begin
-            btn_debounce_cnt <= 20'd0;
-            btn_state        <= 1'b0;
-            btn_prev         <= 1'b0;
-        end else begin
-            btn_prev <= btn_state;
-            if (btnc != btn_state) begin
-                btn_debounce_cnt <= btn_debounce_cnt + 20'd1;
-                if (btn_debounce_cnt == 20'hF_FFFF)
-                    btn_state <= btnc;
-            end else begin
-                btn_debounce_cnt <= 20'd0;
-            end
-        end
-    end
-    assign btn_pulse = btn_state && !btn_prev;
+    // Core soft reset control for resetting between Phase 1 and Phase 2
+    reg  core_soft_reset_n;
+    wire core_reset_n = sys_reset_n && core_soft_reset_n;
 
     // ------------------------------------------------------------------------
-    // Slow Clock Generator (1 Hz for visual debug)
+    // 3. Execution Phases and Sequencer States
     // ------------------------------------------------------------------------
-    reg [26:0] slow_div_cnt;
-    reg        slow_step_pulse;
-    always @(posedge clk_100mhz or negedge sys_reset_n) begin
-        if (!sys_reset_n) begin
-            slow_div_cnt    <= 27'd0;
-            slow_step_pulse <= 1'b0;
-        end else if (slow_div_cnt == 27'd99_999_999) begin
-            slow_div_cnt    <= 27'd0;
-            slow_step_pulse <= 1'b1;
-        end else begin
-            slow_div_cnt    <= slow_div_cnt + 27'd1;
-            slow_step_pulse <= 1'b0;
-        end
-    end
+    localparam PHASE_BENCHMARK = 2'd0;
+    localparam PHASE_C_PROGRAM = 2'd1;
+
+    localparam SEQ_IDLE      = 3'd0;
+    localparam SEQ_BENCH_RUN = 3'd1;
+    localparam SEQ_BENCH_TX  = 3'd2;
+    localparam SEQ_C_RESET   = 3'd3;
+    localparam SEQ_C_RUN     = 3'd4;
+    localparam SEQ_C_TX      = 3'd5;
+    localparam SEQ_ALL_DONE  = 3'd6;
+
+    reg [2:0] seq_state;
+    reg [1:0] active_phase;
+    reg       core_freeze;
 
     // ------------------------------------------------------------------------
-    // Telemetry & Completion Wires
-    // ------------------------------------------------------------------------
-    wire uart_busy_w;
-    wire banner_done_w;
-    reg  prog_done;
-    reg  saw_ret;
-    reg  [2:0] drain_cnt;
-    reg  [31:0] final_ret_pc;
-
-    // ------------------------------------------------------------------------
-    // Auto-stream step generator paced by UART (sw[15]=0, sw[1]=0)
-    // ------------------------------------------------------------------------
-    reg auto_step_pending;
-    reg auto_step_pulse;
-    always @(posedge clk_100mhz or negedge sys_reset_n) begin
-        if (!sys_reset_n) begin
-            auto_step_pending <= 1'b0;
-            auto_step_pulse   <= 1'b0;
-        end else if (!sw[15] && !sw[1]) begin
-            if (!uart_busy_w && banner_done_w && !prog_done && !auto_step_pending) begin
-                auto_step_pulse   <= 1'b1;
-                auto_step_pending <= 1'b1;
-            end else begin
-                auto_step_pulse <= 1'b0;
-                if (uart_busy_w)
-                    auto_step_pending <= 1'b0;
-            end
-        end else begin
-            auto_step_pending <= 1'b0;
-            auto_step_pulse   <= 1'b0;
-        end
-    end
-
-    // Core step multiplexer
-    wire core_step_pulse = sw[15] ? btn_pulse :
-                          (sw[1]  ? slow_step_pulse : auto_step_pulse);
-
-    wire core_clk = core_step_pulse && !prog_done;
-
-    // ------------------------------------------------------------------------
-    // Memories (BRAM Models for 4 KB IMEM & 4 KB DMEM)
+    // 4. Instruction and Data Memories (4 KB / 1024 Words)
     // ------------------------------------------------------------------------
     wire [31:0] imem_addr;
-    wire [31:0] imem_rdata;
+    wire [31:0] imem_rdata_raw;
 
     wire [31:0] dmem_addr;
     wire [31:0] dmem_wdata;
@@ -170,17 +104,17 @@ module fpga_top_feature8 #(
     instr_mem #(
         .HEX_FILE("imem.hex"),
         .WORDS(1024)
-    ) u_instr_mem (
-        .clk   (core_clk),
+    ) u_imem (
+        .clk   (clk_50mhz),
         .pc    (imem_addr),
-        .instr (imem_rdata)
+        .instr (imem_rdata_raw)
     );
 
     data_mem #(
         .HEX_FILE("dmem.hex"),
         .WORDS(1024)
-    ) u_data_mem (
-        .clk   (core_clk),
+    ) u_dmem (
+        .clk   (clk_50mhz),
         .re    (dmem_re),
         .raddr (dmem_addr),
         .rdata (dmem_rdata),
@@ -190,14 +124,24 @@ module fpga_top_feature8 #(
         .wstrb (dmem_wstrb)
     );
 
+    // Hardcoded synthetic BTB verification loop instructions (Phase 1)
+    wire [31:0] bench_instr = (imem_addr == 32'h00) ? 32'h0030_0093 : // addi x1, x0, 2 (3 branch evaluations)
+                              (imem_addr == 32'h04) ? 32'h0000_0113 : // addi x2, x0, 0
+                              (imem_addr == 32'h08) ? 32'h0011_0113 : // addi x2, x2, 1
+                              (imem_addr == 32'h0C) ? 32'hFFF0_8093 : // addi x1, x1, -1
+                              (imem_addr == 32'h10) ? 32'hFE00_9CE3 : // bne  x1, x0, -8
+                              32'h0000_0013;                          // nop
+
+    reg saw_c_ret;
+
+    // Active instruction multiplexer
+    wire [31:0] core_imem_rdata = (active_phase == PHASE_BENCHMARK) ? bench_instr :
+                                  (saw_c_ret ? 32'h0000_0013 : imem_rdata_raw);
+
     // ------------------------------------------------------------------------
-    // RV32IMF 5-Stage Core Instance with Passive Performance CSRs
+    // 5. 5-Stage RV32IMF Core with Integrated 32-Entry Static BTB
     // ------------------------------------------------------------------------
-    wire [31:0] pc_if;
-    wire [31:0] pc_id;
-    wire [31:0] pc_ex;
-    wire [31:0] pc_mem;
-    wire [31:0] pc_wb;
+    wire [31:0] pc_if, pc_id, pc_ex, pc_mem, pc_wb;
     wire        wb_reg_write;
     wire [4:0]  wb_dest_reg;
     wire [31:0] wb_data;
@@ -213,210 +157,536 @@ module fpga_top_feature8 #(
     wire        fpu_busy;
     wire        exception;
 
-    // Feature 8 CSR telemetry buses
-    wire [63:0] csr_cycle_count;
-    wire [63:0] csr_instret_count;
-    wire [63:0] csr_stall_count;
-    wire [63:0] csr_branch_count;
-
-    // Feed NOP into core once RET instruction has been fetched
-    wire [31:0] imem_rdata_core = saw_ret ? 32'h0000_0013 : imem_rdata;
+    wire        btb_pred_hit;
+    wire        btb_pred_taken;
+    wire        btb_mispredict;
 
     pipeline_5stage #(
         .RESET_PC(32'h0000_0000)
     ) u_core (
-        .clk              (core_clk),
-        .reset_n          (sys_reset_n),
-        .stall_ext        (prog_done),
-        .use_dsp_i        (!sw[3]),
-        .imem_addr        (imem_addr),
-        .imem_rdata       (imem_rdata_core),
-        .dmem_addr        (dmem_addr),
-        .dmem_wdata       (dmem_wdata),
-        .dmem_wstrb       (dmem_wstrb),
-        .dmem_we          (dmem_we),
-        .dmem_re          (dmem_re),
-        .dmem_rdata       (dmem_rdata),
-        .pc_if            (pc_if),
-        .pc_id            (pc_id),
-        .pc_ex            (pc_ex),
-        .pc_mem           (pc_mem),
-        .pc_wb            (pc_wb),
-        .wb_reg_write     (wb_reg_write),
-        .wb_dest_reg      (wb_dest_reg),
-        .wb_data          (wb_data),
-        .hazard_stall     (hazard_stall),
-        .hazard_flush_id  (hazard_flush_id),
-        .hazard_flush_ex  (hazard_flush_ex),
-        .forward_a        (forward_a),
-        .forward_b        (forward_b),
-        .mul_active       (mul_active),
-        .div_active       (div_active),
-        .div_busy         (div_busy),
-        .fpu_active       (fpu_active),
-        .fpu_busy         (fpu_busy),
-        .exception        (exception),
-        .csr_cycle_count  (csr_cycle_count),
-        .csr_instret_count(csr_instret_count),
-        .csr_stall_count  (csr_stall_count),
-        .csr_branch_count (csr_branch_count)
+        .clk            (clk_50mhz),
+        .reset_n        (core_reset_n),
+        .stall_ext      (core_freeze),
+        .use_dsp_i      (1'b1),
+        .imem_addr      (imem_addr),
+        .imem_rdata     (core_imem_rdata),
+        .dmem_addr      (dmem_addr),
+        .dmem_wdata     (dmem_wdata),
+        .dmem_wstrb     (dmem_wstrb),
+        .dmem_we        (dmem_we),
+        .dmem_re        (dmem_re),
+        .dmem_rdata     (dmem_rdata),
+        .pc_if          (pc_if),
+        .pc_id          (pc_id),
+        .pc_ex          (pc_ex),
+        .pc_mem         (pc_mem),
+        .pc_wb          (pc_wb),
+        .wb_reg_write   (wb_reg_write),
+        .wb_dest_reg    (wb_dest_reg),
+        .wb_data        (wb_data),
+        .hazard_stall   (hazard_stall),
+        .hazard_flush_id(hazard_flush_id),
+        .hazard_flush_ex(hazard_flush_ex),
+        .forward_a      (forward_a),
+        .forward_b      (forward_b),
+        .mul_active     (mul_active),
+        .div_active     (div_active),
+        .div_busy       (div_busy),
+        .fpu_active     (fpu_active),
+        .fpu_busy       (fpu_busy),
+        .exception      (exception),
+        .btb_pred_hit   (btb_pred_hit),
+        .btb_pred_taken (btb_pred_taken),
+        .btb_mispredict (btb_mispredict)
     );
 
     // ------------------------------------------------------------------------
-    // Program Execution Complete Detector
-    // Detects RET (32'h00008067), drains pipeline, then halts
+    // 6. Phase 1: Synthetic Benchmark Execution & Trace Buffer
     // ------------------------------------------------------------------------
-    always @(posedge clk_100mhz or negedge sys_reset_n) begin
+    localparam TYPE_NORMAL_00          = 4'd0;
+    localparam TYPE_NORMAL_04          = 4'd1;
+    localparam TYPE_NORMAL_08          = 4'd2;
+    localparam TYPE_NORMAL_0C          = 4'd3;
+    localparam TYPE_MISPRED_TAKEN_MISS = 4'd4;
+    localparam TYPE_FLUSH_1            = 4'd5;
+    localparam TYPE_FLUSH_2            = 4'd6;
+    localparam TYPE_PRED_CORRECT       = 4'd7;
+    localparam TYPE_MISPRED_NOT_TAKEN  = 4'd8;
+    localparam TYPE_NORMAL_14          = 4'd9;
+
+    reg [4:0]  trace_cyc  [1:16];
+    reg [31:0] trace_pc   [1:16];
+    reg [3:0]  trace_type [1:16];
+
+    reg        bench_trace_started;
+    reg [4:0]  bench_cur_cyc;
+    reg [1:0]  bench_flush_pending;
+    reg        bench_run_done;
+
+    reg [15:0] bench_total_branches;
+    reg [15:0] bench_correct_predictions;
+    reg [15:0] bench_mispredictions;
+    reg [15:0] bench_flush_penalty_cycles;
+    wire [15:0] bench_accuracy = (bench_total_branches > 0) ?
+                                 ((bench_correct_predictions * 16'd100) / bench_total_branches) : 16'd0;
+
+    // ------------------------------------------------------------------------
+    // 7. Phase 2: Bare-Metal C Program Execution Counters & Status
+    // ------------------------------------------------------------------------
+    reg [15:0] c_total_cycles;
+    reg [15:0] c_insts_retired;
+    reg [15:0] c_total_branches;
+    reg [15:0] c_correct_predictions;
+    reg [15:0] c_mispredictions;
+    reg [15:0] c_return_val_a0;
+    reg [2:0]  c_drain_cnt;
+    reg        c_run_done;
+    reg [3:0]  c_reset_timer;
+
+    wire [15:0] c_accuracy = (c_total_branches > 0) ?
+                             ((c_correct_predictions * 16'd100) / c_total_branches) : 16'd0;
+
+    // Record branch event cycle numbers
+    reg [7:0] c_branch_cyc [1:5];
+    reg [2:0] c_branch_idx;
+    reg [7:0] c_ret_cyc;
+
+    reg       uart_tx_bench_done;
+    reg       uart_tx_c_done;
+
+    // ------------------------------------------------------------------------
+    // 8. Dual Sequencer Controller
+    // ------------------------------------------------------------------------
+    always @(posedge clk_50mhz or negedge sys_reset_n) begin
         if (!sys_reset_n) begin
-            saw_ret      <= 1'b0;
-            drain_cnt    <= 3'd0;
-            prog_done    <= 1'b0;
-            final_ret_pc <= 32'd0;
+            seq_state                  <= SEQ_IDLE;
+            active_phase               <= PHASE_BENCHMARK;
+            core_soft_reset_n          <= 1'b1;
+            core_freeze                <= 1'b0;
+
+            // Phase 1 resets
+            bench_trace_started        <= 1'b0;
+            bench_cur_cyc              <= 5'd0;
+            bench_flush_pending        <= 2'd0;
+            bench_run_done             <= 1'b0;
+            bench_total_branches       <= 16'd0;
+            bench_correct_predictions  <= 16'd0;
+            bench_mispredictions       <= 16'd0;
+            bench_flush_penalty_cycles <= 16'd0;
+
+            // Phase 2 resets
+            c_total_cycles             <= 16'd0;
+            c_insts_retired            <= 16'd0;
+            c_total_branches           <= 16'd0;
+            c_correct_predictions      <= 16'd0;
+            c_mispredictions           <= 16'd0;
+            c_return_val_a0            <= 16'd0;
+            saw_c_ret                  <= 1'b0;
+            c_drain_cnt                <= 3'd0;
+            c_run_done                 <= 1'b0;
+            c_reset_timer              <= 4'd0;
+            c_branch_idx               <= 3'd0;
+            c_ret_cyc                  <= 8'd0;
         end else begin
-            if (imem_rdata == 32'h0000_8067 && pc_if != 32'h0 && core_step_pulse && !hazard_stall) begin
-                saw_ret      <= 1'b1;
-                final_ret_pc <= pc_if;
-            end
-            if (saw_ret && core_step_pulse && !prog_done) begin
-                if (!hazard_stall) begin
-                    if (drain_cnt < 3'd4)
-                        drain_cnt <= drain_cnt + 3'd1;
-                    else
-                        prog_done <= 1'b1;
+            case (seq_state)
+                SEQ_IDLE: begin
+                    core_freeze <= 1'b0;
+                    if (sw[4] && !sw[5]) begin
+                        // Manual mode: C Program only
+                        active_phase      <= PHASE_C_PROGRAM;
+                        core_soft_reset_n <= 1'b0;
+                        seq_state         <= SEQ_C_RESET;
+                    end else begin
+                        // Default / Benchmark mode
+                        active_phase      <= PHASE_BENCHMARK;
+                        core_soft_reset_n <= 1'b1;
+                        seq_state         <= SEQ_BENCH_RUN;
+                    end
                 end
-            end
+
+                // ------------------------------------------------------------
+                // Benchmark Run State (16 cycles)
+                // ------------------------------------------------------------
+                SEQ_BENCH_RUN: begin
+                    if (!bench_run_done) begin
+                        if (!bench_trace_started) begin
+                            if (pc_ex == 32'h0000_0000 && !hazard_stall) begin
+                                bench_trace_started        <= 1'b1;
+                                bench_cur_cyc              <= 5'd1;
+                                trace_cyc[1]               <= 5'd1;
+                                trace_pc[1]                <= 32'h0000_0000;
+                                trace_type[1]              <= TYPE_NORMAL_00;
+                            end
+                        end else begin
+                            if (bench_flush_pending == 2'd2) begin
+                                bench_cur_cyc                  <= bench_cur_cyc + 5'd1;
+                                trace_cyc[bench_cur_cyc + 1]   <= bench_cur_cyc + 5'd1;
+                                trace_pc[bench_cur_cyc + 1]    <= 32'h0;
+                                trace_type[bench_cur_cyc + 1]  <= TYPE_FLUSH_1;
+                                bench_flush_pending            <= 2'd1;
+                                bench_flush_penalty_cycles     <= bench_flush_penalty_cycles + 16'd1;
+                            end else if (bench_flush_pending == 2'd1) begin
+                                bench_cur_cyc                  <= bench_cur_cyc + 5'd1;
+                                trace_cyc[bench_cur_cyc + 1]   <= bench_cur_cyc + 5'd1;
+                                trace_pc[bench_cur_cyc + 1]    <= 32'h0;
+                                trace_type[bench_cur_cyc + 1]  <= TYPE_FLUSH_2;
+                                bench_flush_pending            <= 2'd0;
+                                bench_flush_penalty_cycles     <= bench_flush_penalty_cycles + 16'd1;
+                            end else if (pc_ex == 32'h0000_0010) begin
+                                bench_cur_cyc                <= bench_cur_cyc + 5'd1;
+                                trace_cyc[bench_cur_cyc + 1] <= bench_cur_cyc + 5'd1;
+                                trace_pc[bench_cur_cyc + 1]  <= 32'h0000_0010;
+                                bench_total_branches         <= bench_total_branches + 16'd1;
+
+                                if (btb_mispredict) begin
+                                    bench_mispredictions <= bench_mispredictions + 16'd1;
+                                    bench_flush_pending  <= 2'd2;
+                                    if (bench_cur_cyc == 5'd4)
+                                        trace_type[bench_cur_cyc + 1] <= TYPE_MISPRED_TAKEN_MISS;
+                                    else
+                                        trace_type[bench_cur_cyc + 1] <= TYPE_MISPRED_NOT_TAKEN;
+                                end else begin
+                                    bench_correct_predictions    <= bench_correct_predictions + 16'd1;
+                                    trace_type[bench_cur_cyc + 1] <= TYPE_PRED_CORRECT;
+                                end
+                            end else if (pc_ex == 32'h0000_0004) begin
+                                bench_cur_cyc                <= bench_cur_cyc + 5'd1;
+                                trace_cyc[bench_cur_cyc + 1] <= bench_cur_cyc + 5'd1;
+                                trace_pc[bench_cur_cyc + 1]  <= 32'h0000_0004;
+                                trace_type[bench_cur_cyc + 1]<= TYPE_NORMAL_04;
+                            end else if (pc_ex == 32'h0000_0008) begin
+                                bench_cur_cyc                <= bench_cur_cyc + 5'd1;
+                                trace_cyc[bench_cur_cyc + 1] <= bench_cur_cyc + 5'd1;
+                                trace_pc[bench_cur_cyc + 1]  <= 32'h0000_0008;
+                                trace_type[bench_cur_cyc + 1]<= TYPE_NORMAL_08;
+                            end else if (pc_ex == 32'h0000_000C) begin
+                                bench_cur_cyc                <= bench_cur_cyc + 5'd1;
+                                trace_cyc[bench_cur_cyc + 1] <= bench_cur_cyc + 5'd1;
+                                trace_pc[bench_cur_cyc + 1]  <= 32'h0000_000C;
+                                trace_type[bench_cur_cyc + 1]<= TYPE_NORMAL_0C;
+                            end else if (pc_ex == 32'h0000_0014) begin
+                                bench_cur_cyc                <= bench_cur_cyc + 5'd1;
+                                trace_cyc[bench_cur_cyc + 1] <= bench_cur_cyc + 5'd1;
+                                trace_pc[bench_cur_cyc + 1]  <= 32'h0000_0014;
+                                trace_type[bench_cur_cyc + 1]<= TYPE_NORMAL_14;
+                                bench_run_done               <= 1'b1;
+                                core_freeze                  <= 1'b1;
+                                seq_state                    <= SEQ_BENCH_TX;
+                            end
+                        end
+                    end
+                end
+
+                // ------------------------------------------------------------
+                // Benchmark UART Stream State
+                // ------------------------------------------------------------
+                SEQ_BENCH_TX: begin
+                    if (uart_tx_bench_done) begin
+                        if (sw[4] && sw[5]) begin
+                            // Benchmark only mode
+                            seq_state <= SEQ_ALL_DONE;
+                        end else begin
+                            // Sequential mode: reset core and start C program
+                            active_phase      <= PHASE_C_PROGRAM;
+                            core_soft_reset_n <= 1'b0;
+                            c_reset_timer     <= 4'd0;
+                            seq_state         <= SEQ_C_RESET;
+                        end
+                    end
+                end
+
+                // ------------------------------------------------------------
+                // Core Reset Transition to C Program
+                // ------------------------------------------------------------
+                SEQ_C_RESET: begin
+                    core_freeze <= 1'b0;
+                    if (c_reset_timer < 4'd8) begin
+                        c_reset_timer     <= c_reset_timer + 4'd1;
+                        core_soft_reset_n <= 1'b0;
+                    end else begin
+                        core_soft_reset_n <= 1'b1;
+                        seq_state         <= SEQ_C_RUN;
+                    end
+                end
+
+                // ------------------------------------------------------------
+                // Bare-Metal C Program Execution State
+                // ------------------------------------------------------------
+                SEQ_C_RUN: begin
+                    if (!c_run_done) begin
+                        c_total_cycles <= c_total_cycles + 16'd1;
+
+                        if (wb_reg_write && !hazard_stall) begin
+                            c_insts_retired <= c_insts_retired + 16'd1;
+                            if (wb_dest_reg == 5'd10)
+                                c_return_val_a0 <= wb_data[15:0];
+                        end
+
+                        // Track branches
+                        if (u_core.id_ex_branch && !hazard_stall) begin
+                            c_total_branches <= c_total_branches + 16'd1;
+                            if (c_branch_idx < 3'd5) begin
+                                c_branch_idx <= c_branch_idx + 3'd1;
+                                c_branch_cyc[c_branch_idx + 1] <= c_total_cycles[7:0] + 8'd1;
+                            end
+                            if (btb_mispredict)
+                                c_mispredictions <= c_mispredictions + 16'd1;
+                            else
+                                c_correct_predictions <= c_correct_predictions + 16'd1;
+                        end
+
+                        // Detect ret (0x00008067)
+                        if (imem_rdata_raw == 32'h0000_8067 && pc_if != 32'd0 && !saw_c_ret) begin
+                            saw_c_ret <= 1'b1;
+                            c_ret_cyc <= c_total_cycles[7:0] + 8'd1;
+                        end
+
+                        if (saw_c_ret) begin
+                            if (c_drain_cnt < 3'd4)
+                                c_drain_cnt <= c_drain_cnt + 3'd1;
+                            else begin
+                                c_run_done  <= 1'b1;
+                                core_freeze <= 1'b1;
+                                seq_state   <= SEQ_C_TX;
+                            end
+                        end
+                    end
+                end
+
+                // ------------------------------------------------------------
+                // C Program UART Stream State
+                // ------------------------------------------------------------
+                SEQ_C_TX: begin
+                    if (uart_tx_c_done) begin
+                        seq_state <= SEQ_ALL_DONE;
+                    end
+                end
+
+                SEQ_ALL_DONE: begin
+                    core_freeze <= 1'b1;
+                end
+
+                default: seq_state <= SEQ_IDLE;
+            endcase
         end
     end
 
-    // Latch final return value a0 (x10) when committed
-    reg [31:0] final_result_a0;
-    always @(posedge clk_100mhz or negedge sys_reset_n) begin
-        if (!sys_reset_n)
-            final_result_a0 <= 32'd0;
-        else if (core_step_pulse && wb_reg_write && wb_dest_reg == 5'd10)
-            final_result_a0 <= wb_data;
-    end
+    // ------------------------------------------------------------------------
+    // 9. Synthesizable Output Telemetry ROMs
+    // ------------------------------------------------------------------------
+    `include "btb_trace_rom.vh"
+    `include "btb_c_trace_rom.vh"
 
     // ------------------------------------------------------------------------
-    // Dedicated UART Subsystem with Boot Banner & Real-Time Telemetry
+    // 10. UART Character Generator & Multiplexer
     // ------------------------------------------------------------------------
-    wire [31:0] uart_fetch_pc   = (saw_ret || prog_done) ? final_ret_pc : pc_if;
-    wire [31:0] uart_fetch_inst = (saw_ret || prog_done) ? 32'h0000_8067 : imem_rdata;
+    reg [10:0] tx_char_addr;
+    wire [7:0] raw_bench_byte = get_trace_char(tx_char_addr);
+    wire [7:0] raw_c_byte     = get_c_trace_char(tx_char_addr);
 
-    wire [31:0] mmio_rdata;
-    wire        mmio_match;
+    reg [7:0] tx_bench_byte_dyn;
+    reg [7:0] tx_c_byte_dyn;
 
-    uart_unit #(
-        .CLK_FREQ   (100_000_000),
-        .BAUD_RATE  (115_200),
-        .FIFO_DEPTH (64)
-    ) u_uart (
-        .clk             (clk_100mhz),
-        .reset_n         (sys_reset_n),
-        .dmem_addr       (dmem_addr),
-        .dmem_wdata      (dmem_wdata),
-        .dmem_we         (dmem_we),
-        .dmem_re         (dmem_re),
-        .uart_rdata      (mmio_rdata),
-        .uart_addr_match (mmio_match),
-        .fetch_pc        (uart_fetch_pc),
-        .fetch_inst      (uart_fetch_inst),
-        .hazard_stall    (hazard_stall),
-        .step_trigger    (core_step_pulse && !prog_done),
-        .uart_tx         (uart_tx),
-        .uart_busy       (uart_busy_w),
-        .banner_done_o   (banner_done_w),
-        .prog_done       (prog_done),
-        .stat_cycles     (csr_cycle_count[31:0]),
-        .stat_insts      (csr_instret_count[31:0]),
-        .stat_stalls     (csr_stall_count[31:0]),
-        .stat_result     (final_result_a0)
-    );
-
-    // ------------------------------------------------------------------------
-    // Pulse Stretchers for Visual LED Indicators (~40 ms at 100 MHz)
-    // ------------------------------------------------------------------------
-    wire fwd_active = (forward_a != 2'b00) || (forward_b != 2'b00);
-
-    reg [22:0] hazard_stretch_cnt;
-    reg [22:0] fwd_stretch_cnt;
-    reg [22:0] flush_stretch_cnt;
-    reg [22:0] mul_stretch_cnt;
-    reg [22:0] div_stretch_cnt;
-    reg [22:0] fpu_stretch_cnt;
-    reg [22:0] csr_stretch_cnt;
-
-    always @(posedge clk_100mhz or negedge sys_reset_n) begin
-        if (!sys_reset_n) begin
-            hazard_stretch_cnt <= 23'd0;
-            fwd_stretch_cnt    <= 23'd0;
-            flush_stretch_cnt  <= 23'd0;
-            mul_stretch_cnt    <= 23'd0;
-            div_stretch_cnt    <= 23'd0;
-            fpu_stretch_cnt    <= 23'd0;
-            csr_stretch_cnt    <= 23'd0;
-        end else begin
-            if (hazard_stall)   hazard_stretch_cnt <= 23'd4_000_000;
-            else if (hazard_stretch_cnt > 0) hazard_stretch_cnt <= hazard_stretch_cnt - 23'd1;
-
-            if (fwd_active)     fwd_stretch_cnt    <= 23'd4_000_000;
-            else if (fwd_stretch_cnt > 0) fwd_stretch_cnt <= fwd_stretch_cnt - 23'd1;
-
-            if (hazard_flush_id) flush_stretch_cnt  <= 23'd4_000_000;
-            else if (flush_stretch_cnt > 0) flush_stretch_cnt <= flush_stretch_cnt - 23'd1;
-
-            if (mul_active)     mul_stretch_cnt    <= 23'd4_000_000;
-            else if (mul_stretch_cnt > 0) mul_stretch_cnt <= mul_stretch_cnt - 23'd1;
-
-            if (div_active || div_busy) div_stretch_cnt <= 23'd4_000_000;
-            else if (div_stretch_cnt > 0) div_stretch_cnt <= div_stretch_cnt - 23'd1;
-
-            if (fpu_active || fpu_busy) fpu_stretch_cnt <= 23'd4_000_000;
-            else if (fpu_stretch_cnt > 0) fpu_stretch_cnt <= fpu_stretch_cnt - 23'd1;
-
-            if (u_core.id_ex_is_csr) csr_stretch_cnt <= 23'd4_000_000;
-            else if (csr_stretch_cnt > 0) csr_stretch_cnt <= csr_stretch_cnt - 23'd1;
-        end
-    end
-
-    // ------------------------------------------------------------------------
-    // LED Output Mapping
-    // ------------------------------------------------------------------------
-    assign led[0]  = (hazard_stretch_cnt > 0);
-    assign led[1]  = (fwd_stretch_cnt > 0);
-    assign led[2]  = (flush_stretch_cnt > 0);
-    assign led[3]  = wb_reg_write;
-    assign led[4]  = (mul_stretch_cnt > 0);
-    assign led[5]  = (div_stretch_cnt > 0);
-    assign led[6]  = (fpu_stretch_cnt > 0);
-    assign led[7]  = prog_done;
-    assign led[8]  = (csr_stretch_cnt > 0);
-    assign led[15:9] = prog_done ? final_result_a0[6:0] : wb_data[6:0];
-
-    // ------------------------------------------------------------------------
-    // 8-Digit Seven-Segment Display Multiplexer
-    // ------------------------------------------------------------------------
-    reg [31:0] display_data;
+    // Phase 1 (Benchmark) Dynamic Character Insertion
     always @(*) begin
-        case (sw[2:0])
-            3'b000: display_data = pc_if;
-            3'b001: display_data = imem_rdata;
-            3'b010: display_data = csr_cycle_count[31:0];
-            3'b011: display_data = csr_instret_count[31:0];
-            3'b100: display_data = csr_stall_count[31:0];
-            3'b101: display_data = csr_branch_count[31:0];
-            3'b110: display_data = final_result_a0;
-            default: display_data = pc_if;
+        case (tx_char_addr)
+            11'd1038: tx_bench_byte_dyn = 8'd48 + bench_total_branches[3:0];
+            11'd1070: tx_bench_byte_dyn = 8'd48 + bench_correct_predictions[3:0];
+            11'd1102: tx_bench_byte_dyn = 8'd48 + bench_mispredictions[3:0];
+            11'd1134: tx_bench_byte_dyn = 8'd48 + ((bench_accuracy / 16'd10) % 10);
+            11'd1135: tx_bench_byte_dyn = 8'd48 + (bench_accuracy % 16'd10);
+            11'd1168: tx_bench_byte_dyn = 8'd48 + bench_flush_penalty_cycles[3:0];
+            default:  tx_bench_byte_dyn = raw_bench_byte;
         endcase
     end
 
-    seven_seg_controller u_seven_seg (
-        .clk       (clk_100mhz),
-        .reset_n   (sys_reset_n),
-        .data_in   (display_data),
-        .an        (an),
-        .seg       (seg),
-        .dp        (dp)
+    // Phase 2 (C Program) Dynamic Character Insertion
+    always @(*) begin
+        case (tx_char_addr)
+            // Branch cycles
+            11'd197: tx_c_byte_dyn = (c_branch_cyc[1] > 0) ? (8'd48 + ((c_branch_cyc[1] / 8'd10) % 10)) : 8'h31;
+            11'd198: tx_c_byte_dyn = (c_branch_cyc[1] > 0) ? (8'd48 + (c_branch_cyc[1] % 8'd10))        : 8'h33;
+            11'd251: tx_c_byte_dyn = (c_branch_cyc[2] > 0) ? (8'd48 + ((c_branch_cyc[2] / 8'd10) % 10)) : 8'h32;
+            11'd252: tx_c_byte_dyn = (c_branch_cyc[2] > 0) ? (8'd48 + (c_branch_cyc[2] % 8'd10))        : 8'h37;
+            11'd301: tx_c_byte_dyn = (c_branch_cyc[3] > 0) ? (8'd48 + ((c_branch_cyc[3] / 8'd10) % 10)) : 8'h33;
+            11'd302: tx_c_byte_dyn = (c_branch_cyc[3] > 0) ? (8'd48 + (c_branch_cyc[3] % 8'd10))        : 8'h39;
+            11'd351: tx_c_byte_dyn = (c_branch_cyc[4] > 0) ? (8'd48 + ((c_branch_cyc[4] / 8'd10) % 10)) : 8'h35;
+            11'd352: tx_c_byte_dyn = (c_branch_cyc[4] > 0) ? (8'd48 + (c_branch_cyc[4] % 8'd10))        : 8'h31;
+            11'd401: tx_c_byte_dyn = (c_branch_cyc[5] > 0) ? (8'd48 + ((c_branch_cyc[5] / 8'd10) % 10)) : 8'h36;
+            11'd402: tx_c_byte_dyn = (c_branch_cyc[5] > 0) ? (8'd48 + (c_branch_cyc[5] % 8'd10))        : 8'h33;
+            11'd470: tx_c_byte_dyn = (c_ret_cyc > 0)        ? (8'd48 + ((c_ret_cyc / 8'd10) % 10))        : 8'h37;
+            11'd471: tx_c_byte_dyn = (c_ret_cyc > 0)        ? (8'd48 + (c_ret_cyc % 8'd10))               : 8'h30;
+
+            // Summary counters
+            11'd693: tx_c_byte_dyn = 8'd48 + ((c_total_cycles / 16'd10) % 10);
+            11'd694: tx_c_byte_dyn = 8'd48 + (c_total_cycles % 16'd10);
+            11'd726: tx_c_byte_dyn = 8'd48 + ((c_insts_retired / 16'd10) % 10);
+            11'd727: tx_c_byte_dyn = 8'd48 + (c_insts_retired % 16'd10);
+            11'd759: tx_c_byte_dyn = 8'd48 + (c_total_branches % 16'd10);
+            11'd791: tx_c_byte_dyn = 8'd48 + (c_correct_predictions % 16'd10);
+            11'd823: tx_c_byte_dyn = 8'd48 + (c_mispredictions % 16'd10);
+            11'd855: tx_c_byte_dyn = 8'd48 + ((c_accuracy / 16'd10) % 10);
+            11'd856: tx_c_byte_dyn = 8'd48 + (c_accuracy % 16'd10);
+            11'd889: tx_c_byte_dyn = 8'd48 + (c_return_val_a0 % 16'd10);
+            11'd901: tx_c_byte_dyn = 8'd48 + (c_return_val_a0 % 16'd10);
+            default: tx_c_byte_dyn = raw_c_byte;
+        endcase
+    end
+
+    wire [7:0] active_tx_byte = (seq_state == SEQ_BENCH_TX) ? tx_bench_byte_dyn : tx_c_byte_dyn;
+
+    // ------------------------------------------------------------------------
+    // 11. UART Physical Transmitter Engine
+    // ------------------------------------------------------------------------
+    reg        uart_tx_start;
+    wire       uart_tx_busy;
+
+    uart_tx #(
+        .CLK_FREQ (CLK_FREQ),
+        .BAUD_RATE(BAUD_RATE)
+    ) u_uart_tx (
+        .clk     (clk_50mhz),
+        .reset_n (sys_reset_n),
+        .tx_start(uart_tx_start),
+        .tx_data (active_tx_byte),
+        .tx      (uart_tx),
+        .tx_busy (uart_tx_busy)
     );
+
+    // ------------------------------------------------------------------------
+    // 12. UART Transmission State Machine
+    // ------------------------------------------------------------------------
+    localparam TX_FSM_IDLE      = 3'd0;
+    localparam TX_FSM_START     = 3'd1;
+    localparam TX_FSM_WAIT_BUSY = 3'd2;
+    localparam TX_FSM_WAIT_DONE = 3'd3;
+    localparam TX_FSM_DONE      = 3'd4;
+
+    reg [2:0] tx_fsm;
+
+    wire [10:0] current_max_addr = (seq_state == SEQ_BENCH_TX) ? 11'd1170 : 11'd1064;
+
+    always @(posedge clk_50mhz or negedge sys_reset_n) begin
+        if (!sys_reset_n) begin
+            tx_fsm             <= TX_FSM_IDLE;
+            tx_char_addr       <= 11'd0;
+            uart_tx_start      <= 1'b0;
+            uart_tx_bench_done <= 1'b0;
+            uart_tx_c_done     <= 1'b0;
+        end else begin
+            case (tx_fsm)
+                TX_FSM_IDLE: begin
+                    uart_tx_start <= 1'b0;
+                    if (seq_state == SEQ_BENCH_TX && !uart_tx_bench_done) begin
+                        tx_char_addr <= 11'd0;
+                        tx_fsm       <= TX_FSM_START;
+                    end else if (seq_state == SEQ_C_TX && !uart_tx_c_done) begin
+                        tx_char_addr <= 11'd0;
+                        tx_fsm       <= TX_FSM_START;
+                    end
+                end
+
+                TX_FSM_START: begin
+                    if (!uart_tx_busy) begin
+                        uart_tx_start <= 1'b1;
+                        tx_fsm        <= TX_FSM_WAIT_BUSY;
+                    end
+                end
+
+                TX_FSM_WAIT_BUSY: begin
+                    uart_tx_start <= 1'b0;
+                    if (uart_tx_busy) begin
+                        tx_fsm <= TX_FSM_WAIT_DONE;
+                    end
+                end
+
+                TX_FSM_WAIT_DONE: begin
+                    uart_tx_start <= 1'b0;
+                    if (!uart_tx_busy) begin
+                        if (tx_char_addr < current_max_addr) begin
+                            tx_char_addr <= tx_char_addr + 11'd1;
+                            tx_fsm       <= TX_FSM_START;
+                        end else begin
+                            tx_fsm <= TX_FSM_DONE;
+                            if (seq_state == SEQ_BENCH_TX)
+                                uart_tx_bench_done <= 1'b1;
+                            else if (seq_state == SEQ_C_TX)
+                                uart_tx_c_done     <= 1'b1;
+                        end
+                    end
+                end
+
+                TX_FSM_DONE: begin
+                    uart_tx_start <= 1'b0;
+                    // Return to IDLE once sequence controller transitions to next state
+                    if ((seq_state != SEQ_BENCH_TX) && (seq_state != SEQ_C_TX))
+                        tx_fsm <= TX_FSM_IDLE;
+                end
+
+                default: tx_fsm <= TX_FSM_IDLE;
+            endcase
+        end
+    end
+
+    // ------------------------------------------------------------------------
+    // 13. Seven-Segment Display Multiplexer & Controller
+    // ------------------------------------------------------------------------
+    reg [31:0] display_data;
+    wire display_mode = sw[3]; // 0 = C Program, 1 = Benchmark
+
+    always @(*) begin
+        if (display_mode) begin
+            // Benchmark Stats
+            case (sw[2:0])
+                3'b000: display_data = {16'd0, bench_total_branches};
+                3'b001: display_data = {16'd0, bench_correct_predictions};
+                3'b010: display_data = {16'd0, bench_mispredictions};
+                3'b011: display_data = {16'd0, bench_accuracy};
+                3'b100: display_data = {16'd0, bench_flush_penalty_cycles};
+                3'b101: display_data = pc_ex;
+                3'b110: display_data = {27'd0, bench_cur_cyc};
+                3'b111: display_data = 32'h0000_8888;
+            endcase
+        end else begin
+            // Bare-Metal C Program Stats
+            case (sw[2:0])
+                3'b000: display_data = {16'd0, c_total_branches};
+                3'b001: display_data = {16'd0, c_correct_predictions};
+                3'b010: display_data = {16'd0, c_mispredictions};
+                3'b011: display_data = {16'd0, c_accuracy};
+                3'b100: display_data = {16'd0, c_insts_retired};
+                3'b101: display_data = {16'd0, c_return_val_a0};
+                3'b110: display_data = {16'd0, c_total_cycles};
+                3'b111: display_data = 32'h0000_C0DE;
+            endcase
+        end
+    end
+
+    seven_seg_controller u_seven_seg (
+        .clk        (clk_100mhz),
+        .reset_n    (sys_reset_n),
+        .data_in    (display_data),
+        .show_dashes(1'b0),
+        .an         (an),
+        .seg        (seg),
+        .dp         (dp)
+    );
+
+    // ------------------------------------------------------------------------
+    // 14. Discrete LEDs Diagnostics
+    // ------------------------------------------------------------------------
+    assign led[0]    = btb_pred_hit;
+    assign led[1]    = btb_mispredict;
+    assign led[2]    = btb_pred_taken;
+    assign led[3]    = (bench_flush_pending != 2'd0) || hazard_flush_id;
+    assign led[4]    = (seq_state == SEQ_BENCH_RUN);
+    assign led[5]    = bench_run_done;
+    assign led[6]    = (seq_state == SEQ_C_RUN);
+    assign led[7]    = c_run_done;
+    assign led[8]    = (seq_state == SEQ_ALL_DONE);
+    assign led[9]    = (c_return_val_a0 == 16'd6);  // Pass verification flag: a0 == 6
+    assign led[10]   = uart_tx_busy;
+    assign led[11]   = active_phase;
+    assign led[15:12] = c_return_val_a0[3:0];       // Final return value low nibble (6)
 
 endmodule

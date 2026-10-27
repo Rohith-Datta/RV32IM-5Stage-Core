@@ -1,12 +1,13 @@
 // ============================================================================
-// File: pipeline_5stage.v (Feature 8: Passive Performance Counters & CSR Unit)
-// Description: Top-Level 5-Stage RV32IMF Core with Passive CSR Counters
+// File: pipeline_5stage.v
+// Module: pipeline_5stage (Feature 7: RV32IMF Core with Static 32-Entry BTB)
+// Description: Top-Level 5-Stage RV32IMF Pipelined Processor Core with BTB
 // Integrated Subsystems:
 //   - Feature 1: 5-Stage Pipeline Registers & Hazard Unit
 //   - Feature 2: Dual-Mode Hardware Multiplier (DSP48E1 / Booth Radix-4)
 //   - Feature 3: 32-Cycle Radix-2 Hardware Divider & Remainder Unit
 //   - Feature 4: IEEE 754 Single-Precision FPU (FADD/FSUB 5c, FMUL 4c, FDIV 15c)
-//   - Feature 8: Passive Performance Counters & CSRRS/CSRRW Instruction Decoding
+//   - Feature 7: Static 32-Entry Branch Target Buffer (BTB) in Fetch (IF) Stage
 // ============================================================================
 
 `timescale 1ns/1ps
@@ -52,11 +53,10 @@ module pipeline_5stage #(
     output wire        fpu_busy,
     output wire        exception,
 
-    // Feature 8 Performance Telemetry Outputs
-    output wire [63:0] csr_cycle_count,
-    output wire [63:0] csr_instret_count,
-    output wire [63:0] csr_stall_count,
-    output wire [63:0] csr_branch_count
+    // Feature 7 Monitoring Signals
+    output wire        btb_pred_hit,
+    output wire        btb_pred_taken,
+    output wire        btb_mispredict
 );
 
     `include "opcode.vh"
@@ -69,18 +69,42 @@ module pipeline_5stage #(
     wire        flush_id_ex;
     wire        flush_ex_mem;
 
-    wire        branch_or_jump_taken;
-    wire [31:0] target_pc;
+    // Feature 7 BTB Signals
+    wire        pred_hit;
+    wire        pred_taken;
+    wire [31:0] pred_target;
+
+    wire        ex_mispredict;
+    wire [31:0] ex_redirect_pc;
+    wire        ex_btb_update_en;
+    wire        ex_btb_update_taken;
+    wire [31:0] ex_btb_update_pc;
+    wire [31:0] ex_btb_update_target;
+
+    assign btb_pred_hit   = pred_hit;
+    assign btb_pred_taken = pred_taken;
+    assign btb_mispredict = ex_mispredict;
 
     // ========================================================================
-    // 1. IF Stage (Instruction Fetch & PC Update)
+    // 1. IF Stage (Instruction Fetch & BTB Prediction)
     // ========================================================================
     reg  [31:0] pc_reg;
     wire [31:0] pc_next;
     wire [31:0] pc_plus4;
 
     assign pc_plus4 = pc_reg + 32'd4;
-    assign pc_next  = branch_or_jump_taken ? target_pc : pc_plus4;
+
+    ////////////////////////////////////////////////////////////////////////////
+    // TODO: Feature 7 Next PC Selection with BTB Prediction
+    //
+    // PC Selection Priority:
+    // 1. Misprediction Recovery: If ex_mispredict is asserted, redirect to ex_redirect_pc!
+    // 2. BTB Predicted Taken: If pred_hit && pred_taken, branch target = pred_target!
+    // 3. Normal Sequential: Otherwise, pc_plus4.
+    ////////////////////////////////////////////////////////////////////////////
+    assign pc_next = /* TODO: Multiplex next_pc */
+                     ex_mispredict ? ex_redirect_pc :
+                     (pred_hit && pred_taken) ? pred_target : pc_plus4;
 
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n)
@@ -92,30 +116,55 @@ module pipeline_5stage #(
     assign imem_addr = pc_reg;
     assign pc_if     = pc_reg;
 
+    // Feature 7: BTB Instance
+    btb_branch_pred #(
+        .ENTRIES(32),
+        .TAG_WIDTH(25)
+    ) u_btb (
+        .clk          (clk),
+        .reset_n      (reset_n),
+        .fetch_pc     (pc_reg),
+        .pred_hit     (pred_hit),
+        .pred_taken   (pred_taken),
+        .pred_target  (pred_target),
+        .update_en    (ex_btb_update_en),
+        .update_pc    (ex_btb_update_pc),
+        .update_target(ex_btb_update_target),
+        .update_taken (ex_btb_update_taken)
+    );
+
     // ========================================================================
     // IF/ID Pipeline Register
     // ========================================================================
     wire [31:0] if_id_pc;
     wire [31:0] if_id_pc_plus4;
     wire [31:0] if_id_inst;
+    wire        if_id_pred_taken;
+    wire [31:0] if_id_pred_target;
 
-    if_id_reg u_if_id_reg (
-        .clk        (clk),
-        .reset_n    (reset_n),
-        .stall      (stall_if_id || stall_ext),
-        .flush      (flush_if_id || branch_or_jump_taken),
-        .pc_i       (pc_reg),
-        .pc_plus4_i (pc_plus4),
-        .instr_i    (imem_rdata),
-        .pc_o       (if_id_pc),
-        .pc_plus4_o (if_id_pc_plus4),
-        .instr_o    (if_id_inst)
+    if_id_reg #(
+        .RESET_PC(RESET_PC)
+    ) u_if_id_reg (
+        .clk          (clk),
+        .reset_n      (reset_n),
+        .stall        (stall_if_id || stall_ext),
+        .flush        (flush_if_id),
+        .pc_i         (pc_reg),
+        .pc_plus4_i   (pc_plus4),
+        .instr_i      (imem_rdata),
+        .pred_taken_i (pred_taken),
+        .pred_target_i(pred_target),
+        .pc_o         (if_id_pc),
+        .pc_plus4_o   (if_id_pc_plus4),
+        .instr_o      (if_id_inst),
+        .pred_taken_o (if_id_pred_taken),
+        .pred_target_o(if_id_pred_target)
     );
 
     assign pc_id = if_id_pc;
 
     // ========================================================================
-    // 2. ID Stage (Decode, Register File, CSR Detection)
+    // 2. ID Stage (Decode, Register File, & Hazard Source Signals)
     // ========================================================================
     wire [2:0]  id_alu_op;
     wire        id_arithsubtype;
@@ -133,8 +182,6 @@ module pipeline_5stage #(
     wire        id_is_mul;
     wire        id_is_div;
     wire        id_is_fpu;
-    wire        id_is_csr;
-    wire [11:0] id_csr_addr;
     wire        id_illegal_inst;
     wire [31:0] id_rdata1;
     wire [31:0] id_rdata2;
@@ -171,8 +218,6 @@ module pipeline_5stage #(
         .is_mul_o        (id_is_mul),
         .is_div_o        (id_is_div),
         .is_fpu_o        (id_is_fpu),
-        .is_csr_o        (id_is_csr),
-        .csr_addr_o      (id_csr_addr),
         .illegal_inst_o  (id_illegal_inst),
         .rdata1_o        (id_rdata1),
         .rdata2_o        (id_rdata2),
@@ -205,8 +250,6 @@ module pipeline_5stage #(
     wire        id_ex_is_mul;
     wire        id_ex_is_div;
     wire        id_ex_is_fpu;
-    wire        id_ex_is_csr;
-    wire [11:0] id_ex_csr_addr;
     wire        id_ex_illegal_inst;
     wire [31:0] id_ex_pc;
     wire [31:0] id_ex_pc_plus4;
@@ -218,12 +261,14 @@ module pipeline_5stage #(
     wire [4:0]  id_ex_rd;
     wire [2:0]  id_ex_funct3;
     wire [6:0]  id_ex_funct7;
+    wire        id_ex_pred_taken;
+    wire [31:0] id_ex_pred_target;
 
     id_ex_reg u_id_ex_reg (
         .clk             (clk),
         .reset_n         (reset_n),
         .stall           (stall_id_ex || stall_ext),
-        .flush           (flush_id_ex || branch_or_jump_taken),
+        .flush           (flush_id_ex),
         .alu_op_i        (id_alu_op),
         .arithsubtype_i  (id_arithsubtype),
         .alu_i           (id_alu),
@@ -240,9 +285,9 @@ module pipeline_5stage #(
         .is_mul_i        (id_is_mul),
         .is_div_i        (id_is_div),
         .is_fpu_i        (id_is_fpu),
-        .is_csr_i        (id_is_csr),
-        .csr_addr_i      (id_csr_addr),
         .illegal_inst_i  (id_illegal_inst),
+        .pred_taken_i    (if_id_pred_taken),
+        .pred_target_i   (if_id_pred_target),
         .pc_i            (if_id_pc),
         .pc_plus4_i      (if_id_pc_plus4),
         .rdata1_i        (id_rdata1),
@@ -269,9 +314,9 @@ module pipeline_5stage #(
         .is_mul_o        (id_ex_is_mul),
         .is_div_o        (id_ex_is_div),
         .is_fpu_o        (id_ex_is_fpu),
-        .is_csr_o        (id_ex_is_csr),
-        .csr_addr_o      (id_ex_csr_addr),
         .illegal_inst_o  (id_ex_illegal_inst),
+        .pred_taken_o    (id_ex_pred_taken),
+        .pred_target_o   (id_ex_pred_target),
         .pc_o            (id_ex_pc),
         .pc_plus4_o      (id_ex_pc_plus4),
         .rdata1_o        (id_ex_rdata1),
@@ -287,32 +332,13 @@ module pipeline_5stage #(
     assign pc_ex = id_ex_pc;
 
     // ========================================================================
-    // Feature 8: Passive Performance Counters & CSR Unit Instance
-    // ========================================================================
-    wire [31:0] csr_rdata;
-    wire        inst_commit = wb_reg_write && !stall_ext;
-
-    csr_perf_counters u_csr_perf (
-        .clk               (clk),
-        .reset_n           (reset_n),
-        .stall_cycle       (stall_if),
-        .inst_retired      (inst_commit),
-        .branch_exec       (branch_or_jump_taken),
-        .branch_mispredict (id_ex_branch && branch_or_jump_taken),
-        .csr_addr          (id_ex_csr_addr),
-        .csr_rdata         (csr_rdata),
-        .cycle_count_o     (csr_cycle_count),
-        .instret_count_o   (csr_instret_count),
-        .stall_count_o     (csr_stall_count),
-        .branch_count_o    (csr_branch_count)
-    );
-
-    // ========================================================================
-    // 3. EX Stage (Execution, Multiplier, Divider, FPU, & CSR Multiplexing)
+    // 3. EX Stage (Execution, Multiplier, Divider, FPU, Branch Resolution)
     // ========================================================================
     wire [31:0] ex_alu_result;
     wire [31:0] ex_store_data;
+    wire [31:0] ex_target_pc;
     wire        ex_branch_taken;
+    wire        ex_branch_or_jump_taken;
     wire [31:0] ex_mem_alu_result;
 
     execute_stage u_execute_stage (
@@ -342,15 +368,21 @@ module pipeline_5stage #(
         .is_fpu_i              (id_ex_is_fpu),
         .funct7_i              (id_ex_funct7),
         .use_dsp_i             (use_dsp_i),
-        .is_csr_i              (id_ex_is_csr),
-        .csr_rdata_i           (csr_rdata),
+        .pred_taken_i          (id_ex_pred_taken),
+        .pred_target_i         (id_ex_pred_target),
         .alu_result_o          (ex_alu_result),
         .mem_wdata_o           (ex_store_data),
-        .target_pc_o           (target_pc),
+        .target_pc_o           (ex_target_pc),
         .branch_taken_o        (ex_branch_taken),
-        .branch_or_jump_taken_o(branch_or_jump_taken),
+        .branch_or_jump_taken_o(ex_branch_or_jump_taken),
         .div_busy_o            (div_busy),
-        .fpu_busy_o            (fpu_busy)
+        .fpu_busy_o            (fpu_busy),
+        .mispredict_o          (ex_mispredict),
+        .redirect_pc_o         (ex_redirect_pc),
+        .btb_update_en_o       (ex_btb_update_en),
+        .btb_update_taken_o    (ex_btb_update_taken),
+        .btb_update_pc_o       (ex_btb_update_pc),
+        .btb_update_target_o   (ex_btb_update_target)
     );
 
     assign mul_active = id_ex_is_mul;
@@ -485,6 +517,7 @@ module pipeline_5stage #(
         .ex_branch_taken (ex_branch_taken),
         .div_busy        (div_busy),
         .fpu_busy        (fpu_busy),
+        .mispredict      (ex_mispredict),
         .ex_mem_rd       (ex_mem_rd),
         .ex_mem_reg_write(ex_mem_reg_write),
         .mem_wb_rd       (mem_wb_rd),

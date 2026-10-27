@@ -1,7 +1,7 @@
 // ============================================================================
-// File: execute_stage.v (Feature 8: Passive Performance CSRs & Counters)
-// Description: Execution Stage with Base ALU, Multiplier, Divider, FPU, & CSR Input
-// Project: Pipelined RV32IMF RISC-V Core (Feature 8: Passive CSRs)
+// File: execute_stage.v
+// Module: execute_stage (Feature 7: BTB Branch Prediction Aware)
+// Description: Execution Stage with Base ALU, Multiplier, Divider, FPU, & BTB Resolve
 // ============================================================================
 
 `timescale 1ns/1ps
@@ -40,9 +40,9 @@ module execute_stage (
     input  wire [6:0]  funct7_i,
     input  wire        use_dsp_i,
 
-    // Feature 8 CSR Read Data Input
-    input  wire        is_csr_i,
-    input  wire [31:0] csr_rdata_i,
+    // Feature 7 BTB Predictions from ID/EX
+    input  wire        pred_taken_i,
+    input  wire [31:0] pred_target_i,
 
     // Outputs to Pipeline / Hazard Unit
     output reg  [31:0] alu_result_o,
@@ -51,7 +51,15 @@ module execute_stage (
     output reg         branch_taken_o,
     output wire        branch_or_jump_taken_o,
     output wire        div_busy_o,
-    output wire        fpu_busy_o
+    output wire        fpu_busy_o,
+
+    // Feature 7 BTB Resolution Outputs
+    output wire        mispredict_o,
+    output wire [31:0] redirect_pc_o,
+    output wire        btb_update_en_o,
+    output wire        btb_update_taken_o,
+    output wire [31:0] btb_update_pc_o,
+    output wire [31:0] btb_update_target_o
 );
 
     `include "opcode.vh"
@@ -112,6 +120,35 @@ module execute_stage (
 
     assign branch_or_jump_taken_o = (branch_i && branch_taken_o) || jal_i || jalr_i;
     assign target_pc_o            = jalr_i ? jalr_target : branch_target;
+
+    ////////////////////////////////////////////////////////////////////////////
+    // TODO: Feature 7 BTB Branch Resolution & Misprediction Recovery
+    //
+    // Instructions:
+    // 1. A branch/jump update to BTB is enabled whenever the EX stage instruction
+    //    is a conditional branch, JAL, or JALR (branch_i || jal_i || jalr_i).
+    // 2. A misprediction occurs IF:
+    //    a) The actual branch decision != predicted decision:
+    //       (branch_or_jump_taken_o != pred_taken_i)
+    //    b) OR the branch was taken, but actual target PC != predicted target:
+    //       (branch_or_jump_taken_o && (target_pc_o != pred_target_i))
+    // 3. Recovery Redirect PC:
+    //    - If actual was taken: redirect to target_pc_o
+    //    - If actual was NOT taken: redirect to sequential pc_plus4_i
+    ////////////////////////////////////////////////////////////////////////////
+
+    assign btb_update_en_o     = branch_i || jal_i || jalr_i;
+    assign btb_update_taken_o  = branch_or_jump_taken_o;
+    assign btb_update_pc_o     = pc_i;
+    assign btb_update_target_o = target_pc_o;
+
+    assign mispredict_o = /* TODO: Detect misprediction */
+                          btb_update_en_o &&
+                          ((branch_or_jump_taken_o != pred_taken_i) ||
+                           (branch_or_jump_taken_o && (target_pc_o != pred_target_i)));
+
+    assign redirect_pc_o = /* TODO: Redirect to target_pc_o if taken, else pc_plus4_i */
+                           branch_or_jump_taken_o ? target_pc_o : pc_plus4_i;
 
     // ------------------------------------------------------------------------
     // 4. Hardware Multiplier Execution Unit (DSP48E1 / Booth Radix-4)
@@ -175,17 +212,11 @@ module execute_stage (
 
     assign fpu_busy_o = fpu_busy;
 
-    ////////////////////////////////////////////////////////////////////////////
-    // TODO: Execution Result Multiplexer with Feature 8 CSR Support
-    //
-    // Instructions:
-    //   If is_csr_i is asserted, route csr_rdata_i directly into alu_result_o!
-    //   Otherwise, arbitrate between MUL, DIV, FPU, LUI, AUIPC, Jump, Mem, and ALU.
-    ////////////////////////////////////////////////////////////////////////////
+    // ------------------------------------------------------------------------
+    // 7. Execution Result Multiplexer
+    // ------------------------------------------------------------------------
     always @(*) begin
-        if (is_csr_i) begin
-            alu_result_o = /* TODO: csr_rdata_i */ csr_rdata_i;
-        end else if (is_mul_i) begin
+        if (is_mul_i) begin
             alu_result_o = mul_result;
         end else if (is_div_i) begin
             alu_result_o = div_result;
