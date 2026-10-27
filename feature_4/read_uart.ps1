@@ -83,10 +83,12 @@ function Disassemble-RV32 {
             return "$($m_names[$funct3]) $rdName, $rs1Name, $rs2Name"
         }
         if ($funct3 -eq 0) {
-            return if ($funct7 -eq 0x20) { "sub $rdName, $rs1Name, $rs2Name" } else { "add $rdName, $rs1Name, $rs2Name" }
+            if ($funct7 -eq 0x20) { return "sub $rdName, $rs1Name, $rs2Name" }
+            return "add $rdName, $rs1Name, $rs2Name"
         }
         if ($funct3 -eq 5) {
-            return if ($funct7 -eq 0x20) { "sra $rdName, $rs1Name, $rs2Name" } else { "srl $rdName, $rs1Name, $rs2Name" }
+            if ($funct7 -eq 0x20) { return "sra $rdName, $rs1Name, $rs2Name" }
+            return "srl $rdName, $rs1Name, $rs2Name"
         }
         $names = @('add/sub','sll','slt','sltu','xor','srl/sra','or','and')
         return "$($names[$funct3]) $rdName, $rs1Name, $rs2Name"
@@ -150,7 +152,8 @@ function Disassemble-RV32 {
 
     # JAL (0x6F)
     if ($opcode -eq 0x6F) {
-        return if ($rd -eq 0) { "j" } else { "jal $rdName" }
+        if ($rd -eq 0) { return "j" }
+        return "jal $rdName"
     }
 
     # JALR (0x67)
