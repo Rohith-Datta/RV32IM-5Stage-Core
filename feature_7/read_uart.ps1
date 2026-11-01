@@ -33,7 +33,7 @@ Write-Host " Connecting to $Port at $Baud baud (8N1)..." -ForegroundColor White
 Write-Host " Press CPU_RESETN (Pin C12) on Nexys A7 to run both tests." -ForegroundColor Yellow
 Write-Host "==========================================================" -ForegroundColor Cyan
 
-$serial = New-Object System.IO.Ports.SerialPort $Port, $Baud, [System.IO.Ports.Parity]::None, 8, [System.IO.Ports.StopBits]::One
+$serial = New-Object System.IO.Ports.SerialPort $Port, $Baud, 'None', 8, 'One'
 $serial.ReadTimeout  = 3000
 $serial.WriteTimeout = 1000
 $serial.NewLine      = "`r`n"
