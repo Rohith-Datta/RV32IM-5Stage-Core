@@ -96,8 +96,8 @@ module execute_stage (
     // ------------------------------------------------------------------------
     // 2. Subtractions for Comparisons (Branch, SLT, SLTU, and Zbb min/max)
     // ------------------------------------------------------------------------
-    wire [32:0] sub_signed   = {alu_in1[31], alu_in1} - {forwarded_rdata2[31], forwarded_rdata2};
-    wire [32:0] sub_unsigned = {1'b0, alu_in1} - {1'b0, forwarded_rdata2};
+    wire [32:0] sub_signed   = {alu_in1[31], alu_in1} - {alu_in2[31], alu_in2};
+    wire [32:0] sub_unsigned = {1'b0, alu_in1} - {1'b0, alu_in2};
 
     // ------------------------------------------------------------------------
     // 3. Branch Condition Evaluation

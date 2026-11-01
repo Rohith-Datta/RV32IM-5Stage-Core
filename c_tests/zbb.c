@@ -1,178 +1,109 @@
 // ============================================================================
 // File: zbb.c
-// Description: Bare-Metal C Program for RISC-V Zbb Extension Verification
-// Target: RV32I_ZBB / RV32IM_ZBB
+// Description: Simple Bare-Metal C Verification for RISC-V Zbb Extension
+// Tests all 18 instructions and returns 18 (0x12) in register a0 on 100% PASS
 // ============================================================================
 
-static inline unsigned int rv32_andn(unsigned int a, unsigned int b) {
-    unsigned int rd;
-    __asm__ ("andn %0, %1, %2" : "=r"(rd) : "r"(a), "r"(b));
-    return rd;
-}
-
-static inline unsigned int rv32_orn(unsigned int a, unsigned int b) {
-    unsigned int rd;
-    __asm__ ("orn %0, %1, %2" : "=r"(rd) : "r"(a), "r"(b));
-    return rd;
-}
-
-static inline unsigned int rv32_xnor(unsigned int a, unsigned int b) {
-    unsigned int rd;
-    __asm__ ("xnor %0, %1, %2" : "=r"(rd) : "r"(a), "r"(b));
-    return rd;
-}
-
-static inline int rv32_max(int a, int b) {
-    int rd;
-    __asm__ ("max %0, %1, %2" : "=r"(rd) : "r"(a), "r"(b));
-    return rd;
-}
-
-static inline unsigned int rv32_maxu(unsigned int a, unsigned int b) {
-    unsigned int rd;
-    __asm__ ("maxu %0, %1, %2" : "=r"(rd) : "r"(a), "r"(b));
-    return rd;
-}
-
-static inline int rv32_min(int a, int b) {
-    int rd;
-    __asm__ ("min %0, %1, %2" : "=r"(rd) : "r"(a), "r"(b));
-    return rd;
-}
-
-static inline unsigned int rv32_minu(unsigned int a, unsigned int b) {
-    unsigned int rd;
-    __asm__ ("minu %0, %1, %2" : "=r"(rd) : "r"(a), "r"(b));
-    return rd;
-}
-
-static inline unsigned int rv32_zext_h(unsigned int a) {
-    unsigned int rd;
-    __asm__ ("zext.h %0, %1" : "=r"(rd) : "r"(a));
-    return rd;
-}
-
-static inline int rv32_sext_h(int a) {
-    int rd;
-    __asm__ ("sext.h %0, %1" : "=r"(rd) : "r"(a));
-    return rd;
-}
-
-static inline int rv32_sext_b(int a) {
-    int rd;
-    __asm__ ("sext.b %0, %1" : "=r"(rd) : "r"(a));
-    return rd;
-}
-
-static inline unsigned int rv32_clz(unsigned int a) {
-    unsigned int rd;
-    __asm__ ("clz %0, %1" : "=r"(rd) : "r"(a));
-    return rd;
-}
-
-static inline unsigned int rv32_ctz(unsigned int a) {
-    unsigned int rd;
-    __asm__ ("ctz %0, %1" : "=r"(rd) : "r"(a));
-    return rd;
-}
-
-static inline unsigned int rv32_cpop(unsigned int a) {
-    unsigned int rd;
-    __asm__ ("cpop %0, %1" : "=r"(rd) : "r"(a));
-    return rd;
-}
-
-static inline unsigned int rv32_rol(unsigned int a, unsigned int b) {
-    unsigned int rd;
-    __asm__ ("rol %0, %1, %2" : "=r"(rd) : "r"(a), "r"(b));
-    return rd;
-}
-
-static inline unsigned int rv32_ror(unsigned int a, unsigned int b) {
-    unsigned int rd;
-    __asm__ ("ror %0, %1, %2" : "=r"(rd) : "r"(a), "r"(b));
-    return rd;
-}
-
-static inline unsigned int rv32_rori4(unsigned int a) {
-    unsigned int rd;
-    __asm__ ("rori %0, %1, 4" : "=r"(rd) : "r"(a));
-    return rd;
-}
-
-static inline unsigned int rv32_rev8(unsigned int a) {
-    unsigned int rd;
-    __asm__ ("rev8 %0, %1" : "=r"(rd) : "r"(a));
-    return rd;
-}
-
-static inline unsigned int rv32_orc_b(unsigned int a) {
-    unsigned int rd;
-    __asm__ ("orc.b %0, %1" : "=r"(rd) : "r"(a));
-    return rd;
-}
-
 int main(void) {
-    int pass_count = 0;
+    int passes = 0;
 
-    int x1 = -2;
-    int x2 = 5;
+    int a = 5;
+    int b = -2; // 0xFFFFFFFE
 
-    // 1. andn
-    if (rv32_andn(x2, x1) == 0x00000001) pass_count++;
+    // 1. ANDN: rd = a & ~b -> 5 & 1 = 1
+    int r1;
+    __asm__ ("andn %0, %1, %2" : "=r"(r1) : "r"(a), "r"(b));
+    if (r1 == 1) passes++;
 
-    // 2. orn
-    if (rv32_orn(x2, x1) == 0x00000005) pass_count++;
+    // 2. ORN: rd = a | ~b -> 5 | 1 = 5
+    int r2;
+    __asm__ ("orn %0, %1, %2" : "=r"(r2) : "r"(a), "r"(b));
+    if (r2 == 5) passes++;
 
-    // 3. xnor
-    if (rv32_xnor(x2, x1) == 0x00000004) pass_count++;
+    // 3. XNOR: rd = ~(a ^ b) -> ~(5 ^ -2) = 4
+    int r3;
+    __asm__ ("xnor %0, %1, %2" : "=r"(r3) : "r"(a), "r"(b));
+    if (r3 == 4) passes++;
 
-    // 4. max
-    if (rv32_max(x1, x2) == 5) pass_count++;
+    // 4. MAX: signed max(-2, 5) = 5
+    int r4;
+    __asm__ ("max %0, %1, %2" : "=r"(r4) : "r"(b), "r"(a));
+    if (r4 == 5) passes++;
 
-    // 5. maxu
-    if (rv32_maxu((unsigned int)x1, (unsigned int)x2) == 0xFFFFFFFE) pass_count++;
+    // 5. MIN: signed min(-2, 5) = -2
+    int r5;
+    __asm__ ("min %0, %1, %2" : "=r"(r5) : "r"(b), "r"(a));
+    if (r5 == -2) passes++;
 
-    // 6. min
-    if (rv32_min(x1, x2) == -2) pass_count++;
+    // 6. MAXU: unsigned max(0xFFFFFFFE, 5) = 0xFFFFFFFE
+    unsigned int r6;
+    __asm__ ("maxu %0, %1, %2" : "=r"(r6) : "r"(b), "r"(a));
+    if (r6 == 0xFFFFFFFE) passes++;
 
-    // 7. minu
-    if (rv32_minu((unsigned int)x1, (unsigned int)x2) == 5) pass_count++;
+    // 7. MINU: unsigned min(0xFFFFFFFE, 5) = 5
+    unsigned int r7;
+    __asm__ ("minu %0, %1, %2" : "=r"(r7) : "r"(b), "r"(a));
+    if (r7 == 5) passes++;
 
-    int x10 = -1;
-    // 8. zext.h
-    if (rv32_zext_h((unsigned int)x10) == 0x0000FFFF) pass_count++;
+    int neg1 = -1; // 0xFFFFFFFF
 
-    // 9. sext.h
-    if (rv32_sext_h(x10) == -1) pass_count++;
+    // 8. ZEXT.H: zero-extend 16 bits -> 0x0000FFFF
+    unsigned int r8;
+    __asm__ ("zext.h %0, %1" : "=r"(r8) : "r"(neg1));
+    if (r8 == 0x0000FFFF) passes++;
 
-    // 10. sext.b
-    if (rv32_sext_b(x10) == -1) pass_count++;
+    // 9. SEXT.H: sign-extend 16 bits -> -1
+    int r9;
+    __asm__ ("sext.h %0, %1" : "=r"(r9) : "r"(neg1));
+    if (r9 == -1) passes++;
 
-    unsigned int x14 = 0x000000F0;
-    // 11. clz
-    if (rv32_clz(x14) == 24) pass_count++;
+    // 10. SEXT.B: sign-extend 8 bits -> -1
+    int r10;
+    __asm__ ("sext.b %0, %1" : "=r"(r10) : "r"(neg1));
+    if (r10 == -1) passes++;
 
-    // 12. ctz
-    if (rv32_ctz(x14) == 4) pass_count++;
+    unsigned int val = 0x000000F0;
 
-    // 13. cpop
-    if (rv32_cpop(x14) == 4) pass_count++;
+    // 11. CLZ: count leading zeros in 0x000000F0 -> 24
+    unsigned int r11;
+    __asm__ ("clz %0, %1" : "=r"(r11) : "r"(val));
+    if (r11 == 24) passes++;
 
-    // 14. rol
-    if (rv32_rol(x14, (unsigned int)x2) == 0x00001E00) pass_count++;
+    // 12. CTZ: count trailing zeros in 0x000000F0 -> 4
+    unsigned int r12;
+    __asm__ ("ctz %0, %1" : "=r"(r12) : "r"(val));
+    if (r12 == 4) passes++;
 
-    // 15. ror
-    if (rv32_ror(x14, (unsigned int)x2) == 0x80000007) pass_count++;
+    // 13. CPOP: count set bits (popcount) in 0x000000F0 -> 4
+    unsigned int r13;
+    __asm__ ("cpop %0, %1" : "=r"(r13) : "r"(val));
+    if (r13 == 4) passes++;
 
-    // 16. rori
-    if (rv32_rori4(x14) == 0x0000000F) pass_count++;
+    // 14. ROL: rotate left 0x000000F0 by 5 -> 0x00001E00
+    unsigned int r14;
+    __asm__ ("rol %0, %1, %2" : "=r"(r14) : "r"(val), "r"(a));
+    if (r14 == 0x00001E00) passes++;
 
-    // 17. rev8
-    if (rv32_rev8(x14) == 0xF0000000) pass_count++;
+    // 15. ROR: rotate right 0x000000F0 by 5 -> 0x80000007
+    unsigned int r15;
+    __asm__ ("ror %0, %1, %2" : "=r"(r15) : "r"(val), "r"(a));
+    if (r15 == 0x80000007) passes++;
 
-    // 18. orc.b
-    if (rv32_orc_b(x14) == 0x000000FF) pass_count++;
+    // 16. RORI: rotate right immediate 0x000000F0 by 4 -> 0x0000000F
+    unsigned int r16;
+    __asm__ ("rori %0, %1, 4" : "=r"(r16) : "r"(val));
+    if (r16 == 0x0000000F) passes++;
 
-    return pass_count; // Returns 18 on full pass
+    // 17. REV8: byte-swap (endianness reverse) -> 0xF0000000
+    unsigned int r17;
+    __asm__ ("rev8 %0, %1" : "=r"(r17) : "r"(val));
+    if (r17 == 0xF0000000) passes++;
+
+    // 18. ORC.B: byte-wise OR combine -> 0x000000FF
+    unsigned int r18;
+    __asm__ ("orc.b %0, %1" : "=r"(r18) : "r"(val));
+    if (r18 == 0x000000FF) passes++;
+
+    // Return total passed checks (18 if all passed)
+    return passes;
 }
