@@ -88,24 +88,37 @@ The hazard unit (`hazard_unit.v`) coordinates all stalls, flushes, and bypasses 
 - **`SW[0]`**: Pipeline Run Enable (`1` = normal execution, `0` = pipeline pause).
 - **`SW[1]`**: I-Cache Bypass Mode (`0` = L1 I-Cache enabled, `1` = bypass cache).
 - **`SW[2]`**: Multiplier Selection (`1` = DSP48E1 slices, `0` = Radix-4 Booth).
-- **`SW[5:3]`**: 7-Segment Display Diagnostic Mode:
-  - `3'b000`: Program Counter in Writeback stage (`pc_wb[15:0]`)
-  - `3'b001`: Writeback Data (`wb_data[15:0]`)
-  - `3'b010`: I-Cache Diagnostic Hit Counter (`icache_hit_count[15:0]`)
-  - `3'b011`: I-Cache Diagnostic Miss Counter (`icache_miss_count[15:0]`)
-  - `3'b100`: Fetched Instruction (`imem_rdata[15:0]`)
-  - `3'b101`: Destination Register (`wb_dest_reg`)
-  - `3'b110`: Math Busy Flags (`div_busy`, `fpu_busy`)
+- **`SW[3]`**: Diagnostic Telemetry Select:
+  - `0`: Bare-Metal C Program telemetry (`SW[5:4]` select metric)
+  - `1`: Synthetic Benchmark telemetry (`SW[5:3]` select metric)
+- **`SW[5:4]` (when `SW[3]=0`, Bare-Metal C Program)**:
+  - `2'b00`: Return value `a0` / `x10` (`0x0025` = 37)
+  - `2'b01`: Total Clock Cycles (`~31` cycles, `< 40 cycles approx`)
+  - `2'b10`: L1 I-Cache Hits (`9`)
+  - `2'b11`: L1 I-Cache Misses (`3`)
+- **`SW[5:3]` (when `SW[3]=1`, Synthetic Benchmark)**:
+  - `3'b001`: Total Clock Cycles
+  - `3'b011`: Cache Misses
+  - `3'b101`: Destination Register
   - `3'b111`: Feature 6 Tag (`0x0006`)
+- **`SW[15]`**: Single-step debug mode (advance with `BTNC`).
 
 ### Diagnostic LEDs (`LED[15:0]`):
-- **`LED[7:0]`**: Writeback PC word index.
-- **`LED[8]`**: I-Cache Hit (pulse stretched for human visibility).
-- **`LED[9]`**: I-Cache Miss (pulse stretched).
-- **`LED[11:10]`**: Reserved for multi-cache integration.
+- **`LED[0]`**: Phase 1 Benchmark actively executing.
+- **`LED[1]`**: Phase 1 Benchmark run completed.
+- **`LED[2]`**: Latched Cache Mode (`0` = Cache Enabled, `1` = Cache Bypassed).
+- **`LED[3]`**: UART printer active.
+- **`LED[4]`**: UART transmission completed.
+- **`LED[5]`**: Phase 2 Bare-Metal C Program actively executing.
+- **`LED[6]`**: Phase 2 Bare-Metal C Program run completed.
+- **`LED[7]`**: Dual Verification Complete (both Benchmark and C Program done).
+- **`LED[8]`**: I-Cache Hit pulse (pulse stretched).
+- **`LED[9]`**: I-Cache Miss pulse (pulse stretched).
+- **`LED[10]`**: Step Mode Active (`SW[15]=1`).
+- **`LED[11]`**: Debounced `BTNC` state.
 - **`LED[12]`**: Multi-Cycle Math Busy (`div_busy || fpu_busy`).
 - **`LED[13]`**: Pipeline Stall Active (`hazard_stall`).
-- **`LED[14]`**: UART Transmitter Active.
+- **`LED[14]`**: Active Phase Indicator (`1` = C Program, `0` = Benchmark).
 - **`LED[15]`**: Heartbeat Blink Indicator (~1.5 Hz).
 
 ### Dedicated UART Telemetry Subsystem:

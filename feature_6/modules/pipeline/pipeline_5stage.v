@@ -70,7 +70,9 @@ module pipeline_5stage #(
     output wire [1:0]  icache_state_o,
     output wire [3:0]  icache_refill_cnt_o,
     output wire [31:0] icache_latched_pc_o,
-    output wire        icache_just_refilled_o
+    output wire        icache_just_refilled_o,
+    output wire [31:0] inst_if,
+    output wire [31:0] inst_id
 );
 
     `include "opcode.vh"
@@ -175,7 +177,9 @@ module pipeline_5stage #(
         .instr_o    (if_id_inst)
     );
 
-    assign pc_id = if_id_pc;
+    assign pc_id   = if_id_pc;
+    assign inst_if = icache_cpu_rdata;
+    assign inst_id = if_id_inst;
 
     // ========================================================================
     // 2. ID Stage (Decode, Register File, & Hazard Source Signals)

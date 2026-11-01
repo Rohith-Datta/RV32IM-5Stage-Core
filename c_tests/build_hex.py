@@ -41,6 +41,8 @@ PROGRAMS = {
     "fpu_test":            "fpu.c",
     "fpu.c":               "fpu.c",
     "fpu_test.c":          "fpu.c",
+    "icache":              "icache.c",
+    "icache.c":            "icache.c",
     "btb":                 "btb.c",
     "btb.c":               "btb.c",
     "branch":              "btb.c",
@@ -68,6 +70,8 @@ DEFAULT_FEATURE_MAP = {
     "fibonacci":           6,
     "code_fibonacci":      6,
     "fibonacci.c":         6,
+    "icache":              6,
+    "icache.c":            6,
     "btb":                 7,
     "btb.c":               7,
     "branch":              7,
@@ -159,7 +163,10 @@ def build(prog_name, target_feature=None, rebuild_bitstream=False):
     else:
         march = "rv32i"
 
-    cflags = ["-march=" + march, "-mabi=ilp32", "-O0"]
+    if "icache" in base_name:
+        cflags = ["-march=" + march, "-mabi=ilp32", "-O0", "-fomit-frame-pointer"]
+    else:
+        cflags = ["-march=" + march, "-mabi=ilp32", "-O0"]
     print(f"[*] Compiling {os.path.basename(src_file)} ({march}) -> code.o...")
     subprocess.check_call([CC, "-c", src_file, "-o", obj_file, "-I", C_TESTS_DIR, "-ffunction-sections"] + cflags)
 

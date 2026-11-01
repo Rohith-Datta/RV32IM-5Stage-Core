@@ -18,5 +18,6 @@
 ../modules/stages/memory_stage.v
 ../modules/stages/writeback_stage.v
 ../modules/uart/uart_tx.v
+../modules/uart/icache_uart_printer.v
 ../modules/uart/uart_unit.v
 ../modules/hazard_unit.v

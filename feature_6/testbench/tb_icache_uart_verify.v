@@ -3,10 +3,12 @@
 // Module: tb_icache_uart_verify
 // Description: Comprehensive End-to-End Simulation Testbench for Feature 6
 //              Verifies:
-//              1. Mode 0: I-Cache Enabled (SW0=0), Cold Cache, 3 JAL loops, Halts
-//              2. Mode 1: I-Cache Bypassed (SW0=1), Cold Cache, 3 JAL loops, Halts
-//              3. Decodes and prints real-time UART TX serial output at 115200 baud
-//              4. Verifies Cycle-by-cycle Trace, Mode Summaries, & Final Comparison
+//              1. Dual Telemetry Execution:
+//                 - Phase 1: Synthetic JAL Loop Benchmark (32 cycles, 11 insts, 9 hits, 2 misses)
+//                 - Phase 2: Bare-Metal C Program (icache.c, ~32 cycles, < 40 cycles approx, return 37)
+//              2. Mode 1: I-Cache Bypassed (SW0=1, 11 misses, comparison summary)
+//              3. Decodes and prints real-time UART TX serial output
+//              4. Hardware Single-Step Debug Mode (SW15=1 with BTNC)
 // ============================================================================
 
 `timescale 1ns/1ps
@@ -73,46 +75,62 @@ module tb_icache_uart_verify;
     // ------------------------------------------------------------------------
     initial begin
         $display("\n============================================================");
-        $display("   STARTING FEATURE 6 I-CACHE VERIFICATION TESTBENCH");
+        $display("   STARTING FEATURE 6 I-CACHE DUAL VERIFICATION TESTBENCH");
         $display("============================================================\n");
 
         clk100mhz  = 1'b0;
         cpu_resetn = 1'b0;
         btnc       = 1'b0;
-        sw         = 16'h0000; // SW[0] = 0 (I-cache enabled)
+        sw         = 16'h0000; // SW[0] = 0 (I-cache enabled), SW[4] = 0 (Sequential dual mode)
 
         // --------------------------------------------------------------------
-        // TEST 1: Run in Mode 0 (I-Cache Enabled)
+        // TEST 1: Dual Execution in Mode 0 (Benchmark + Bare-Metal C Program)
         // --------------------------------------------------------------------
         $display("[TB] --------------------------------------------------------");
-        $display("[TB] TEST 1: Running Benchmark in Mode 0 (I-Cache Enabled)...");
+        $display("[TB] TEST 1: Running Phase 1 Benchmark in Mode 0 (I-Cache Enabled)...");
         $display("[TB] SW0 = 0, Cold Cache, Expecting ~32 cycles, 11 insts, 9 hits, 2 misses.");
+        $display("[TB] Followed by Phase 2: Bare-Metal C Program (icache.c, < 40 cycles).");
         $display("[TB] --------------------------------------------------------");
 
         sw[0] = 1'b0;
+        sw[4] = 1'b0; // Sequential mode
         #300;
         cpu_resetn = 1'b1; // Release reset to start run
 
-        // Wait until benchmark run completes and UART printing finishes (LED[4] == 1)
+        // Wait until benchmark run completes
         wait (led[1] == 1'b1);
-        $display("[TB] >>> Core halted! Active benchmark completed in Mode 0.");
-        $display("[TB] >>> Waiting for UART transmission to complete...");
+        $display("[TB] >>> Core halted! Phase 1 Benchmark completed in Mode 0.");
+        $display("[TB] >>> Waiting for Benchmark UART transmission to complete...");
 
         wait (led[4] == 1'b1);
-        $display("[TB] >>> UART transmission finished for Mode 0!\n");
-        #20000; // Wait 20 us
+        $display("[TB] >>> UART transmission finished for Phase 1 Benchmark!\n");
+
+        // Wait for Phase 2 Bare-Metal C program to execute and finish
+        $display("[TB] >>> Now waiting for Phase 2: Bare-Metal C Program (icache.c) to complete...");
+        wait (led[6] == 1'b1);
+        $display("[TB] >>> Core halted! Phase 2 Bare-Metal C Program completed.");
+        $display("[TB] >>> C Program Cycles: %0d (< 40 cycles approx!)", u_dut.c_total_cycles);
+        $display("[TB] >>> C Program Return Value (a0): %0d (0x%04h)", u_dut.c_return_val_a0, u_dut.c_return_val_a0);
+        $display("[TB] >>> Waiting for C Program UART report transmission to complete...");
+
+        wait (led[4] == 1'b1 && led[7] == 1'b1);
+        $display("[TB] >>> UART transmission finished for Phase 2 C Program!\n");
+        $display("[TB] >>> LED[7] = 1: Both Phase 1 and Phase 2 successfully verified!");
+        #30000;
 
         // --------------------------------------------------------------------
-        // TEST 2: Run in Mode 1 (I-Cache Bypassed)
+        // TEST 2: Run in Mode 1 (I-Cache Bypassed - Benchmark only for comparison)
         // --------------------------------------------------------------------
         $display("\n[TB] --------------------------------------------------------");
         $display("[TB] TEST 2: Switching to Mode 1 (I-Cache Bypassed)...");
-        $display("[TB] Setting SW0 = 1, pressing CPU_RESETN (cold cache).");
+        $display("[TB] Setting SW0 = 1, SW4 = 1, SW5 = 1 (Benchmark only), pressing CPU_RESETN.");
         $display("[TB] Expecting ~113 cycles, 11 insts, 0 hits, 11 misses.");
-        $display("[TB] Expecting Comparison Table at the end!");
+        $display("[TB] Expecting Side-by-Side Comparison Table at the end!");
         $display("[TB] --------------------------------------------------------");
 
-        sw[0] = 1'b1;
+        sw[0] = 1'b1; // Bypassed
+        sw[4] = 1'b1; // Manual mode
+        sw[5] = 1'b1; // Benchmark only
         #500;
         cpu_resetn = 1'b0; // Press reset button
         #1000;
@@ -124,7 +142,7 @@ module tb_icache_uart_verify;
 
         wait (led[4] == 1'b1);
         $display("[TB] >>> UART transmission finished for Mode 1!\n");
-        #50000; // Wait 50 us
+        #50000;
 
         // --------------------------------------------------------------------
         // TEST 3: Hardware Debug Stepping Mode (SW[15] = 1, BTNC pulses)
@@ -137,6 +155,8 @@ module tb_icache_uart_verify;
 
         sw[15] = 1'b1; // Enable Hardware Debug Step Mode
         sw[0]  = 1'b0; // Cold Cache Mode 0
+        sw[4]  = 1'b1;
+        sw[5]  = 1'b1; // Benchmark mode
         #500;
         cpu_resetn = 1'b0; // Reset core
         #1000;

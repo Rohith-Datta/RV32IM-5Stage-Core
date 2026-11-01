@@ -200,7 +200,7 @@ try {
             if (-not $line) { continue }
 
             # 1. Reset counters on new benchmark / trace start
-            if ($line -match "^===\s*I-CACHE" -or $line -match "I-CACHE TRACE \(MODE:") {
+            if ($line -match "^===\s*I-CACHE" -or $line -match "I-CACHE TRACE \(MODE:" -or $line -match "FEATURE 6: BARE-METAL C PROGRAM") {
                 $total_hits   = 0
                 $total_misses = 0
                 $total_stalls = 0
@@ -256,7 +256,7 @@ try {
             }
 
             # 5. Summary and Comparison Table lines
-            if ($line -match "EXECUTION SUMMARY" -or $line -match "SIDE-BY-SIDE" -or $line -match "Total Cycles" -or $line -match "Instructions Run" -or $line -match "I-Cache Hits" -or $line -match "I-Cache Misses" -or $line -match "Hit Rate" -or $line -match "Average CPI" -or $line -match "Metric\s+Enabled") {
+            if ($line -match "EXECUTION SUMMARY" -or $line -match "BARE-METAL C VERIFICATION SUMMARY" -or $line -match "Program Source" -or $line -match "Execution Status" -or $line -match "Return Value" -or $line -match "SIDE-BY-SIDE" -or $line -match "Total Cycles" -or $line -match "Instructions Run" -or $line -match "I-Cache Hits" -or $line -match "I-Cache Misses" -or $line -match "Hit Rate" -or $line -match "Average CPI" -or $line -match "Metric\s+Enabled") {
                 Write-Host " $line" -ForegroundColor Green
                 continue
             }
