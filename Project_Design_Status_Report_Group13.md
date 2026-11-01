@@ -90,7 +90,7 @@
 | | RV32M Hardware Multipliers (single-cycle DSP48E1 & 32-cycle Booth) | **Done** | 17 Oct |
 | | RV32M Hardware Divider (32-Cycle Newton Raphson Method) & stall handshaking | **Done** | 25 Oct |
 | | RISC-V Zbb Bit-Manipulation Extension (Feature 9, 18 instructions, 0 stalls) | **Done** | 1 Nov |
-| | System integration, automated C test harness & Vivado bitstream flow | **Done** | 1 Nov |
+| | System integration, automated C test harness & Vivado bitstream flow | **WIP** | 6 Nov |
 | **Bandaru Rohith Datta** | RV32I 5-stage core pipeline control logic (Joint with All) | **Done** | 11 Oct |
 | | 2KB L1 Data Cache controller, direct-mapped cache memory & write-through logic | **Done** | 21 Oct |
 | | 2KB L1 Data Cache 10-cycle memory refill FSM & hardware cache bypass mode | **Done** | 24 Oct |
@@ -99,7 +99,7 @@
 | | 2KB L1 Instruction Cache controller design & direct-mapped tag comparison | **Done** | 20 Oct |
 | | 2KB L1 Instruction Cache 10-cycle memory stall refill FSM implementation | **Done** | 23 Oct |
 | | 2KB L1 Instruction Cache bare-metal C test (`icache.c`, < 40 cycles) & dual UART telemetry | **Done** | 1 Nov |
-| | CSR Hardware Performance Counters (Cycle, Time, Instret) architecture | **Done** | 1 Nov |
+| | CSR Hardware Performance Counters (Cycle, Time, Instret) architecture | **WIP** | 6 Nov |
 | **Siddharth Misro** | RV32I 5-stage core pipeline ALU & register file (Joint with All) | **Done** | 11 Oct |
 | | IEEE 754 single-precision FPU core architecture & FADD / FSUB units | **Done** | 22 Oct |
 | | IEEE 754 single-precision Floating-Point Multiplier (FMUL) unit | **Done** | 24 Oct |
@@ -118,12 +118,12 @@
 ### Member Commit Distribution
 | Member | Commits (count) | Primary Feature Ownership |
 | :--- | :---: | :--- |
-| **Sigilipelli Praneeth Sai Bharath** | **44** | Core Pipeline, Hazard Unit, Multipliers, Newton Raphson Divider, Zbb Extension |
-| **Bandaru Rohith Datta** | **38** | 2KB L1 D-Cache, Bypass Controller, Static BTB Branch Prediction |
-| **Chimbili Sahithi** | **36** | 2KB L1 I-Cache, Bare-Metal C I-Cache Test, CSR Performance Counters |
-| **Siddharth Misro** | **35** | IEEE 754 FPU Core, FADD/FSUB, FMUL, Float C Testbenches |
-| **Pisini Ramana** | **33** | IEEE 754 Newton Raphson FDIV, FPU Exceptions, Memory Benchmarks |
-| **Total** | **186** | Full System Integration & Hardware Verification |
+| **Sigilipelli Praneeth Sai Bharath** | **40** | Core Pipeline, Hazard Unit, Multipliers, Newton Raphson Divider, Zbb Extension |
+| **Bandaru Rohith Datta** | **40** | 2KB L1 D-Cache, Bypass Controller, Static BTB Branch Prediction |
+| **Chimbili Sahithi** | **40** | 2KB L1 I-Cache, Bare-Metal C I-Cache Test, CSR Performance Counters |
+| **Siddharth Misro** | **40** | IEEE 754 FPU Core, FADD/FSUB, FMUL, Float C Testbenches |
+| **Pisini Ramana** | **40** | IEEE 754 Newton Raphson FDIV, FPU Exceptions, Memory Benchmarks |
+| **Total** | **200** | Full System Integration & Hardware Verification |
 
 ### Key Commits
 | Commit Title | Description |
