@@ -22,7 +22,7 @@ static inline float fmul_s(float a, float b) {
     return res;
 }
 
-// 15-cycle Newton-Raphson Hardware Divider
+// 15-cycle Restoring Hardware Divider
 static inline float fdiv_s(float a, float b) {
     float res;
     asm volatile ("fdiv.s %0, %1, %2" : "=r"(res) : "r"(a), "r"(b));
@@ -54,7 +54,7 @@ int main(void) {
     float r_add = fadd_s(a, b); // 1.5 + 2.5 = 4.0f (0x40800000)
     float r_sub = fsub_s(r_add, a); // 4.0 - 1.5 = 2.5f (0x40200000)
     float r_mul = fmul_s(c, b); // 2.0 * 2.5 = 5.0f (0x40A00000)
-    float r_div = fdiv_s(d, c); // 7.0 / 2.0 = 3.5f (0x40600000 via Newton-Raphson)
+    float r_div = fdiv_s(d, c); // 7.0 / 2.0 = 3.5f (0x40600000 via Restoring Division)
 
     // -------------------------------------------------------------------------
     // 2. Special Case 1: Division by Zero (x / 0.0) -> +Infinity (0x7F800000)

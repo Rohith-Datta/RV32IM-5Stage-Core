@@ -26,7 +26,7 @@ An interactive, high-resolution vector visualizer is available in [block_diagram
 | **FMUL.S (Float)** | **4** | Multi-cycle FSM utilizing DSP Slices for 24-bit mantissa multiplication. |
 | **FADD.S (Float)** | **5** | Multi-cycle FSM using Standard Logic (LUTs, Adders, Shifters). *No DSP slices.* |
 | **FSUB.S (Float)** | **5** | Multi-cycle FSM using Standard Logic (inverts sign bit, shares FADD hardware). *No DSP slices.* |
-| **FDIV.S (Float)\*** | **15** | Newton-Raphson Algorithm utilizing DSP Slices (for iterative multiplication) and BRAM (for initial guess lookup). |
+| **FDIV.S (Float)\*** | **15** | Restoring Division Algorithm utilizing DSP Slices (for iterative multiplication) and BRAM (for initial guess lookup). |
 | **DIV (Integer)** | **32** | Shift-and-Subtract state machine using Standard Logic (LUTs and Registers). *No DSP slices.* |
 
 ### Comprehensive Hardware Architecture ASCII Schematic
@@ -576,7 +576,7 @@ Target FPGA Architecture: **Xilinx Artix-7 XC7A100T-1CSG324C** (Digilent Nexys A
 |---|:---:|:---:|:---:|---|
 | **LUTs (Look-Up Tables)** | **63,400** | **4,850** | **7.6 %** | Base core (2,100), 5-cycle FADD/FSUB standard logic adders/shifters (1,800), 32-cycle DIV shift-and-subtract (450), Booth/CSRs (500) |
 | **FF (Flip-Flops)** | **126,800** | **4,200** | **3.3 %** | Pipeline registers (1,200), FPU registers (1,024), Cache tags/data (1,336), CSR counters (640) |
-| **BRAM (36Kb Blocks)** | **135 blocks** (4,860 Kb) | **8 blocks** | **5.9 %** | 4 BRAMs for L1 I-Cache, 3 BRAMs for L1 D-Cache, 1 BRAM for FDIV.S Newton-Raphson initial guess lookup |
+| **BRAM (36Kb Blocks)** | **135 blocks** (4,860 Kb) | **8 blocks** | **5.9 %** | 4 BRAMs for L1 I-Cache, 3 BRAMs for L1 D-Cache, 1 BRAM for FDIV.S Restoring Division initial guess lookup |
 | **DSP48E1 Slices** | **240 slices** | **4 slices** | **1.7 %** | Dedicated to 1-cycle integer MUL, 4-cycle FMUL.S mantissa multiply, and 15-cycle FDIV.S iterative multiply. *No DSPs for FADD/SUB/DIV.* |
 
 ---

@@ -1,5 +1,5 @@
-# Reciprocal Initial Guess Table
+# Radix-4 Restoring Division Quotient Step Architecture
 
-## ROM Architecture
-- 8-bit lookup table indexed by high bits of divisor mantissa.
-- Provides 8-bit initial seed accuracy, reducing required Newton Raphson iterations.
+## Architecture
+- 2-bit per cycle quotient digit generator using Radix-4 restoring division.
+- 13 calculation iterations yielding 26 quotient bits for exact IEEE 754 mantissa computation and rounding.

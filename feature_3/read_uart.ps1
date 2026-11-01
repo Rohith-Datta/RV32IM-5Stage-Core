@@ -223,7 +223,7 @@ try {
                     } elseif ($consec_stalls -eq 1) {
                         $stall_tag = "DIVIDER STALL: $active_div (Cycle  1/31 | Operand Latch & Trial Subtraction)"
                     } else {
-                        $stall_tag = "DIVIDER STALL: $active_div (Cycle {0,2}/31 | Newton-Raphson Iteration)" -f $consec_stalls
+                        $stall_tag = "DIVIDER STALL: $active_div (Cycle {0,2}/31 | Restoring Division Iteration)" -f $consec_stalls
                     }
                 }
                 # 3. Divider Corner Case 1-Cycle Bypass (Divide-by-Zero or Signed Overflow)

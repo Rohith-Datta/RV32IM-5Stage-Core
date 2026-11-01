@@ -47,7 +47,7 @@ instructions = [
     ("fsub.s x13, x12, x1",       encode_r(0x04, 1, 12, 0x0, 13, 0x53)),
     # FMUL.S x14, x3, x2 (2.0 * 2.5 = 5.0f -> 0x40A00000)
     ("fmul.s x14, x2, x3",        encode_r(0x08, 2, 3, 0x0, 14, 0x53)),
-    # FDIV.S x15, x4, x3 (7.0 / 2.0 = 3.5f -> 0x40600000 via Newton-Raphson!)
+    # FDIV.S x15, x4, x3 (7.0 / 2.0 = 3.5f -> 0x40600000 via Restoring Division!)
     ("fdiv.s x15, x3, x4",        encode_r(0x0C, 3, 4, 0x0, 15, 0x53)),
     
     # 4. Special Cases:

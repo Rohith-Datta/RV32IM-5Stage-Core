@@ -1,7 +1,7 @@
 # ==============================================================================
 # File: asm_tests/04_fpu_special_cases.s
 # Description: IEEE-754 FPU Arithmetic and Corner/Special Cases Verification
-# Target: Feature 4 Pipelined RV32IMF Core with Hardware Newton-Raphson Divider
+# Target: Feature 4 Pipelined RV32IMF Core with Hardware Restoring Divider
 # ==============================================================================
 
 .globl main
