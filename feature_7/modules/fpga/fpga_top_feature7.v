@@ -291,16 +291,16 @@ module fpga_top_feature7 #(
             case (seq_state)
                 SEQ_IDLE: begin
                     core_freeze <= 1'b0;
-                    if (sw[4] && !sw[5]) begin
-                        // Manual mode: C Program only
-                        active_phase      <= PHASE_C_PROGRAM;
-                        core_soft_reset_n <= 1'b0;
-                        seq_state         <= SEQ_C_RESET;
-                    end else begin
-                        // Default / Benchmark mode
+                    if (sw[4]) begin
+                        // SW[4] = 1 (ON / Up): Runs ONLY Synthetic BTB Benchmark
                         active_phase      <= PHASE_BENCHMARK;
                         core_soft_reset_n <= 1'b1;
                         seq_state         <= SEQ_BENCH_RUN;
+                    end else begin
+                        // SW[4] = 0 (OFF / Down): Runs ONLY Bare-Metal C Program (btb.c)
+                        active_phase      <= PHASE_C_PROGRAM;
+                        core_soft_reset_n <= 1'b0;
+                        seq_state         <= SEQ_C_RESET;
                     end
                 end
 
@@ -382,16 +382,8 @@ module fpga_top_feature7 #(
                 // ------------------------------------------------------------
                 SEQ_BENCH_TX: begin
                     if (uart_tx_bench_done) begin
-                        if (sw[4] && sw[5]) begin
-                            // Benchmark only mode
-                            seq_state <= SEQ_ALL_DONE;
-                        end else begin
-                            // Sequential mode: reset core and start C program
-                            active_phase      <= PHASE_C_PROGRAM;
-                            core_soft_reset_n <= 1'b0;
-                            c_reset_timer     <= 4'd0;
-                            seq_state         <= SEQ_C_RESET;
-                        end
+                        // Benchmark complete -> stop directly (no continuous chaining)
+                        seq_state <= SEQ_ALL_DONE;
                     end
                 end
 
@@ -632,7 +624,7 @@ module fpga_top_feature7 #(
     // 13. Seven-Segment Display Multiplexer & Controller
     // ------------------------------------------------------------------------
     reg [31:0] display_data;
-    wire display_mode = sw[3]; // 0 = C Program, 1 = Benchmark
+    wire display_mode = sw[4]; // 0 = C Program, 1 = Benchmark (synchronized to mode switch)
 
     always @(*) begin
         if (display_mode) begin

@@ -28,9 +28,9 @@ if (-not $Port) {
 
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host " Feature 7: Dual BTB Verification UART Receiver" -ForegroundColor Green
-Write-Host " Monitoring: Synthetic BTB Benchmark + Bare-Metal C (btb.c)" -ForegroundColor White
+Write-Host " Monitoring: Selected BTB Test via SW[4] (0=btb.c, 1=Benchmark)" -ForegroundColor White
 Write-Host " Connecting to $Port at $Baud baud (8N1)..." -ForegroundColor White
-Write-Host " Press CPU_RESETN (Pin C12) on Nexys A7 to run both tests." -ForegroundColor Yellow
+Write-Host " Set SW[4] (0=btb.c, 1=Benchmark) and press CPU_RESETN (Pin C12)." -ForegroundColor Yellow
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 $serial = New-Object System.IO.Ports.SerialPort $Port, $Baud, 'None', 8, 'One'

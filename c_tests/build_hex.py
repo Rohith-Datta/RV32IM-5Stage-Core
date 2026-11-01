@@ -46,7 +46,9 @@ PROGRAMS = {
     "btb":                 "btb.c",
     "btb.c":               "btb.c",
     "branch":              "btb.c",
-    "branch.c":            "btb.c"
+    "branch.c":            "btb.c",
+    "zbb":                 "zbb.c",
+    "zbb.c":               "zbb.c"
 }
 
 DEFAULT_FEATURE_MAP = {
@@ -78,7 +80,9 @@ DEFAULT_FEATURE_MAP = {
     "branch.c":            7,
     "sort":                1,
     "negative":            1,
-    "xor":                 1
+    "xor":                 1,
+    "zbb":                 9,
+    "zbb.c":               9
 }
 
 def hex_change(val):
@@ -158,6 +162,8 @@ def build(prog_name, target_feature=None, rebuild_bitstream=False):
     # Select ISA flags based on target
     if "fpu" in base_name:
         march = "rv32imf"
+    elif "zbb" in base_name:
+        march = "rv32i_zbb"
     elif any(k in base_name for k in ["multiplication", "division", "fibonacci", "dcache"]):
         march = "rv32im"
     else:
@@ -165,6 +171,8 @@ def build(prog_name, target_feature=None, rebuild_bitstream=False):
 
     if "icache" in base_name:
         cflags = ["-march=" + march, "-mabi=ilp32", "-O0", "-fomit-frame-pointer"]
+    elif "zbb" in base_name:
+        cflags = ["-march=" + march, "-mabi=ilp32", "-O2"]
     else:
         cflags = ["-march=" + march, "-mabi=ilp32", "-O0"]
     print(f"[*] Compiling {os.path.basename(src_file)} ({march}) -> code.o...")

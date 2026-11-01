@@ -229,13 +229,11 @@ Feature 7 Dual BTB Verification: ALL TESTS PASSED!
 ## 7. FPGA Peripheral Mapping & Verification Controls
 
 ### 7.1 Slide Switches (`sw[15:0]`)
-- **`sw[4]` / `sw[5]` (Mode Select):**
-  - `sw[4] = 0` (Default): Automatic Sequential Mode (Executes Benchmark, then executes C Program).
-  - `sw[4] = 1, sw[5] = 0`: Runs Bare-Metal C Program only.
-  - `sw[4] = 1, sw[5] = 1`: Runs Synthetic Benchmark only.
-- **`sw[3]` (7-Segment Target):**
-  - `sw[3] = 0`: Displays Bare-Metal C Program statistics.
-  - `sw[3] = 1`: Displays Benchmark statistics.
+- **`sw[4]` (Single Mode Switch):**
+  - `sw[4] = 0` (OFF / down): Runs **ONLY Bare-Metal C Program (`btb.c`)** -> streams C trace -> halts.
+  - `sw[4] = 1` (ON / up): Runs **ONLY Synthetic BTB Benchmark** -> streams Benchmark trace -> halts.
+  - *No continuous/chained execution*: Each test runs completely standalone.
+  - 7-segment display automatically shows statistics for the selected program.
 - **`sw[2:0]` (7-Segment Multiplexer):**
   - `3'b000`: Total Branches Executed
   - `3'b001`: Correct Predictions (Hits)
