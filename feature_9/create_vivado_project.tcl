@@ -44,6 +44,9 @@ set RTL_FILES [list \
     [file join $SCRIPT_DIR "modules" "registers" "mem_wb_reg.v"] \
     [file join $SCRIPT_DIR "modules" "fpga" "seven_seg_controller.v"] \
     [file join $SCRIPT_DIR "modules" "fpga" "zbb_trace_rom.vh"] \
+    [file join $SCRIPT_DIR "modules" "fpga" "zbb_c_trace_rom.vh"] \
+    [file join $SCRIPT_DIR "modules" "fpga" "zbb_bench_rom.vh"] \
+    [file join $SCRIPT_DIR "modules" "fpga" "zbb_c_rom.vh"] \
     [file join $SCRIPT_DIR "modules" "fpga" "fpga_top_feature9.v"] \
     [file join $SCRIPT_DIR "modules" "uart" "uart_tx.v"] \
 ]

@@ -26,39 +26,33 @@ if (-not $Port) {
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host " Feature 9: Zbb Bit-Manipulation UART Telemetry Receiver" -ForegroundColor Green
 Write-Host " Connecting to $Port at $Baud baud (8N1)..." -ForegroundColor White
-Write-Host " Press CPU_RESETN (Pin C12) on Nexys A7 to run verification." -ForegroundColor Yellow
-Write-Host " Press BTNC (Pin N17) to re-transmit UART trace." -ForegroundColor Gray
+Write-Host " Single Switch Program Selection:" -ForegroundColor Yellow
+Write-Host "   SW[4] = 0 (Down) : Runs Bare-Metal C Program (zbb.c) -> 7-Seg: 00180018" -ForegroundColor Yellow
+Write-Host "   SW[4] = 1 (Up)   : Runs Synthetic Benchmark          -> 7-Seg: 00180022" -ForegroundColor Yellow
+Write-Host " Dynamic Controls:" -ForegroundColor Gray
+Write-Host "   Flip SW[4]       : Dynamically switches program and streams UART" -ForegroundColor Gray
+Write-Host "   Press BTNC (N17) : Re-runs currently selected program & streams UART" -ForegroundColor Gray
+Write-Host "   Press CPU_RESETN : Full hardware reset (Pin C12)" -ForegroundColor Gray
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 $serial = New-Object System.IO.Ports.SerialPort $Port, $Baud, 'None', 8, 'One'
-$serial.ReadTimeout  = 3000
-$serial.WriteTimeout = 1000
-$serial.NewLine      = "`r`n"
+$serial.ReadTimeout  = 500
+$serial.WriteTimeout = 500
 
 try {
     $serial.Open()
-    Write-Host "[*] Port $Port opened successfully. Waiting for Zbb telemetry..." -ForegroundColor Green
+    Write-Host "[*] Port $Port opened successfully. Listening for telemetry..." -ForegroundColor Green
     
     while ($true) {
         try {
-            $line = $serial.ReadLine()
-            if ($line) {
-                if ($line.StartsWith("=====")) {
-                    Write-Host $line -ForegroundColor Cyan
-                } elseif ($line.StartsWith("PC")) {
-                    Write-Host $line -ForegroundColor Yellow
-                } elseif ($line.Contains("Timing Violation Detected      : NO")) {
-                    Write-Host $line -ForegroundColor Green
-                } elseif ($line.Contains("Timing Violation Detected      : YES")) {
-                    Write-Host $line -ForegroundColor Red
-                } elseif ($line.StartsWith("Total Zbb")) {
-                    Write-Host $line -ForegroundColor White
-                } else {
-                    Write-Host $line -ForegroundColor Gray
-                }
+            $data = $serial.ReadExisting()
+            if ($data.Length -gt 0) {
+                Write-Host -NoNewline $data
+            } else {
+                Start-Sleep -Milliseconds 20
             }
         } catch [System.TimeoutException] {
-            # Idle timeout - keep listening
+            # Idle
         }
     }
 } catch {

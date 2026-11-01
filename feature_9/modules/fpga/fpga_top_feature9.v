@@ -20,8 +20,9 @@
 `timescale 1ns/1ps
 
 module fpga_top_feature9 #(
-    parameter CLK_FREQ  = 50_000_000,
-    parameter BAUD_RATE = 115_200
+    parameter CLK_FREQ      = 50_000_000,
+    parameter BAUD_RATE     = 115_200,
+    parameter DEBOUNCE_BITS = 20
 )(
     input  wire        clk_100mhz,  // 100 MHz onboard oscillator (Pin E3)
     input  wire        cpu_resetn,  // Active-low CPU reset push button (Pin C12)
@@ -59,31 +60,16 @@ module fpga_top_feature9 #(
     // ------------------------------------------------------------------------
     // 3. Instruction and Data Memories
     // ------------------------------------------------------------------------
+    `include "zbb_bench_rom.vh"
+    `include "zbb_c_rom.vh"
+
     localparam PHASE_BENCHMARK = 1'b1;
     localparam PHASE_C_PROGRAM = 1'b0;
     reg active_phase;
 
     wire [31:0] imem_addr;
-    wire [31:0] bench_imem_rdata;
-    wire [31:0] c_imem_rdata;
-
-    instr_mem #(
-        .HEX_FILE("imem_bench.hex"),
-        .WORDS(1024)
-    ) u_imem_bench (
-        .clk   (clk_50mhz),
-        .pc    (imem_addr),
-        .instr (bench_imem_rdata)
-    );
-
-    instr_mem #(
-        .HEX_FILE("imem_c.hex"),
-        .WORDS(1024)
-    ) u_imem_c (
-        .clk   (clk_50mhz),
-        .pc    (imem_addr),
-        .instr (c_imem_rdata)
-    );
+    wire [31:0] bench_imem_rdata = get_bench_instr(imem_addr);
+    wire [31:0] c_imem_rdata     = get_c_instr(imem_addr);
 
     reg saw_c_ret;
     wire [31:0] core_imem_rdata = (active_phase == PHASE_BENCHMARK) ? bench_imem_rdata :
@@ -179,13 +165,60 @@ module fpga_top_feature9 #(
     // ------------------------------------------------------------------------
     // 5. Execution Sequencer & Dual Verification Controller
     // ------------------------------------------------------------------------
-    localparam SEQ_IDLE      = 3'd0;
-    localparam SEQ_BENCH_RUN = 3'd1;
-    localparam SEQ_BENCH_TX  = 3'd2;
-    localparam SEQ_C_RESET   = 3'd3;
-    localparam SEQ_C_RUN     = 3'd4;
-    localparam SEQ_C_TX      = 3'd5;
-    localparam SEQ_ALL_DONE  = 3'd6;
+    // Debounce filter for SW[4] and BTNC (~20 ms at 50 MHz with DEBOUNCE_BITS=20)
+    reg [DEBOUNCE_BITS-1:0] sw4_debounce_cnt;
+    reg                     sw4_stable;
+    reg                     sw4_prev;
+    reg [DEBOUNCE_BITS-1:0] btnc_debounce_cnt;
+    reg                     btnc_stable;
+    reg                     btnc_prev;
+
+    always @(posedge clk_50mhz or negedge sys_reset_n) begin
+        if (!sys_reset_n) begin
+            sw4_debounce_cnt  <= {DEBOUNCE_BITS{1'b0}};
+            sw4_stable        <= sw[4];
+            sw4_prev          <= sw[4];
+            btnc_debounce_cnt <= {DEBOUNCE_BITS{1'b0}};
+            btnc_stable       <= 1'b0;
+            btnc_prev         <= 1'b0;
+        end else begin
+            // SW[4] debounce
+            if (sw[4] != sw4_stable) begin
+                sw4_debounce_cnt <= sw4_debounce_cnt + 1'b1;
+                if (&sw4_debounce_cnt) begin
+                    sw4_stable       <= sw[4];
+                    sw4_debounce_cnt <= {DEBOUNCE_BITS{1'b0}};
+                end
+            end else begin
+                sw4_debounce_cnt <= {DEBOUNCE_BITS{1'b0}};
+            end
+            sw4_prev <= sw4_stable;
+
+            // BTNC debounce
+            if (btnc != btnc_stable) begin
+                btnc_debounce_cnt <= btnc_debounce_cnt + 1'b1;
+                if (&btnc_debounce_cnt) begin
+                    btnc_stable       <= btnc;
+                    btnc_debounce_cnt <= {DEBOUNCE_BITS{1'b0}};
+                end
+            end else begin
+                btnc_debounce_cnt <= {DEBOUNCE_BITS{1'b0}};
+            end
+            btnc_prev <= btnc_stable;
+        end
+    end
+
+    wire sw4_changed = (sw4_stable != sw4_prev);
+    wire btnc_pulse  = (btnc_stable && !btnc_prev);
+
+    localparam SEQ_IDLE        = 3'd0;
+    localparam SEQ_BENCH_RESET = 3'd1;
+    localparam SEQ_BENCH_RUN   = 3'd2;
+    localparam SEQ_BENCH_TX    = 3'd3;
+    localparam SEQ_C_RESET     = 3'd4;
+    localparam SEQ_C_RUN       = 3'd5;
+    localparam SEQ_C_TX        = 3'd6;
+    localparam SEQ_ALL_DONE    = 3'd7;
 
     reg [2:0] seq_state;
 
@@ -202,18 +235,18 @@ module fpga_top_feature9 #(
     reg [15:0] c_return_val_a0;
     reg [2:0]  c_drain_cnt;
     reg        c_run_done;
-    reg [3:0]  c_reset_timer;
+    reg [3:0]  reset_timer;
 
     wire run_done = (active_phase == PHASE_BENCHMARK) ? bench_run_done : c_run_done;
 
     reg uart_seq_done;
 
     always @(posedge clk_50mhz or negedge sys_reset_n) begin
-        if (!sys_reset_n) begin
+        if (!sys_reset_n || sw4_changed || btnc_pulse) begin
             seq_state          <= SEQ_IDLE;
-            active_phase       <= PHASE_BENCHMARK;
+            active_phase       <= sw4_stable ? PHASE_BENCHMARK : PHASE_C_PROGRAM;
             core_freeze        <= 1'b0;
-            core_soft_reset_n  <= 1'b1;
+            core_soft_reset_n  <= 1'b0;
 
             bench_retire_count <= 5'd0;
             bench_run_done     <= 1'b0;
@@ -227,22 +260,34 @@ module fpga_top_feature9 #(
             c_return_val_a0    <= 16'd0;
             c_drain_cnt        <= 3'd0;
             c_run_done         <= 1'b0;
-            c_reset_timer      <= 4'd0;
+            reset_timer        <= 4'd0;
             saw_c_ret          <= 1'b0;
         end else begin
             case (seq_state)
                 SEQ_IDLE: begin
                     core_freeze <= 1'b0;
-                    if (sw[4]) begin
+                    reset_timer <= 4'd0;
+                    if (sw4_stable) begin
                         // SW[4] = 1 (ON / Up): Runs ONLY Synthetic BTB/Zbb Benchmark
                         active_phase      <= PHASE_BENCHMARK;
-                        core_soft_reset_n <= 1'b1;
-                        seq_state         <= SEQ_BENCH_RUN;
+                        core_soft_reset_n <= 1'b0;
+                        seq_state         <= SEQ_BENCH_RESET;
                     end else begin
                         // SW[4] = 0 (OFF / Down): Runs ONLY Bare-Metal C Program (zbb.c)
                         active_phase      <= PHASE_C_PROGRAM;
                         core_soft_reset_n <= 1'b0;
                         seq_state         <= SEQ_C_RESET;
+                    end
+                end
+
+                SEQ_BENCH_RESET: begin
+                    core_freeze <= 1'b0;
+                    if (reset_timer < 4'd8) begin
+                        reset_timer       <= reset_timer + 4'd1;
+                        core_soft_reset_n <= 1'b0;
+                    end else begin
+                        core_soft_reset_n <= 1'b1;
+                        seq_state         <= SEQ_BENCH_RUN;
                     end
                 end
 
@@ -260,8 +305,8 @@ module fpga_top_feature9 #(
                         end
                     end
 
-                    // Stop condition: nop at 0x58 completes Writeback stage
-                    if (pc_wb == 32'h0000_0058) begin
+                    // Stop condition: nop at 0x58 completes Writeback stage or 22 insts retired
+                    if (pc_wb == 32'h0000_0058 || (bench_retire_count == 5'd22 && pc_wb >= 32'h0000_0054)) begin
                         bench_run_done <= 1'b1;
                         core_freeze    <= 1'b1;
                         seq_state      <= SEQ_BENCH_TX;
@@ -276,8 +321,8 @@ module fpga_top_feature9 #(
 
                 SEQ_C_RESET: begin
                     core_freeze <= 1'b0;
-                    if (c_reset_timer < 4'd8) begin
-                        c_reset_timer     <= c_reset_timer + 4'd1;
+                    if (reset_timer < 4'd8) begin
+                        reset_timer       <= reset_timer + 4'd1;
                         core_soft_reset_n <= 1'b0;
                     end else begin
                         core_soft_reset_n <= 1'b1;
@@ -385,7 +430,7 @@ module fpga_top_feature9 #(
     wire [11:0] max_tx_rom_addr = (active_phase == PHASE_BENCHMARK) ? (ZBB_ROM_LEN - 1) : (ZBB_C_ROM_LEN - 1);
 
     always @(posedge clk_50mhz or negedge sys_reset_n) begin
-        if (!sys_reset_n) begin
+        if (!sys_reset_n || sw4_changed || btnc_pulse) begin
             tx_rom_addr   <= 12'd0;
             uart_tx_start <= 1'b0;
             uart_tx_data  <= 8'd0;
@@ -395,8 +440,7 @@ module fpga_top_feature9 #(
             case (tx_fsm)
                 TX_IDLE: begin
                     uart_tx_start <= 1'b0;
-                    if (((seq_state == SEQ_BENCH_TX || seq_state == SEQ_C_TX) && !uart_seq_done) ||
-                        ((seq_state == SEQ_ALL_DONE) && btnc)) begin
+                    if ((seq_state == SEQ_BENCH_TX || seq_state == SEQ_C_TX) && !uart_seq_done) begin
                         tx_rom_addr   <= 12'd0;
                         uart_seq_done <= 1'b0;
                         tx_fsm        <= TX_SEND;
@@ -443,23 +487,23 @@ module fpga_top_feature9 #(
     // ------------------------------------------------------------------------
     // 7. Seven-Segment Display Controller
     // ------------------------------------------------------------------------
-    wire display_mode = sw[4]; // 0 = C Program, 1 = Benchmark
+    wire display_mode = sw4_stable; // 0 = C Program, 1 = Benchmark
 
     reg [31:0] display_data;
     always @(*) begin
         if (display_mode) begin
             // Benchmark Stats
             case (sw[2:0])
-                3'b000:  display_data = {16'h0018, 16'h0022}; // 18 Zbb / 22 Total
+                3'b000:  display_data = {16'h0018, 16'h0022}; // 18 Zbb / 22 Total -> displays 00180022
                 default: display_data = ((sw[3:0] < 22) ? wb_trace_data[sw[3:0]] : 32'h0);
             endcase
         end else begin
             // Bare-Metal C Program Stats
             case (sw[2:0])
-                3'b000:  display_data = {16'h0000, c_return_val_a0}; // Return value: 0x0012 (18)
+                3'b000:  display_data = (c_return_val_a0 == 16'd18) ? 32'h0018_0018 : {16'h0000, c_return_val_a0}; // 18/18 Passed -> displays 00180018
                 3'b001:  display_data = {16'h0000, c_total_cycles};   // Cycles: 83 (0x0053)
                 3'b010:  display_data = {16'h0000, c_insts_retired};  // Retired: 93 (0x005D)
-                3'b011:  display_data = 32'h0000_0018;                // 18 Passed
+                3'b011:  display_data = {16'h0000, c_return_val_a0};  // Return value: 0x0012 (18)
                 default: display_data = 32'h0000_BEEF;
             endcase
         end
@@ -486,6 +530,6 @@ module fpga_top_feature9 #(
                         ((active_phase == PHASE_BENCHMARK) ? (bench_retire_count == 22) : (c_return_val_a0 == 18));
     assign led[9:5]   = (active_phase == PHASE_BENCHMARK) ? bench_retire_count : c_return_val_a0[4:0];
     assign led[14:10] = 5'd0;
-    assign led[15]    = sw[4]; // Mode switch indicator (1 = Benchmark, 0 = C Program)
+    assign led[15]    = sw4_stable; // Mode switch indicator (1 = Benchmark, 0 = C Program)
 
 endmodule
