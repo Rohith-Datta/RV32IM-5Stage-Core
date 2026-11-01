@@ -25,8 +25,10 @@ module tb_fpga_top;
         forever #5 clk_100mhz = ~clk_100mhz;
     end
 
-    // Instantiate Top FPGA Module
-    fpga_top_feature4 dut (
+    // Instantiate Top FPGA Module (Fast 2 MHz Baud for fast simulation)
+    fpga_top_feature4 #(
+        .BAUD_RATE(2_000_000)
+    ) dut (
         .clk_100mhz (clk_100mhz),
         .cpu_resetn (cpu_resetn),
         .sw         (sw),
@@ -74,7 +76,7 @@ module tb_fpga_top;
 
     // Timeout watchdog
     initial begin
-        #50_000_000; // 50 ms timeout
+        #250_000_000; // 250 ms timeout
         $display("\n[FPGA TB] ERROR: Simulation timed out!");
         $finish;
     end

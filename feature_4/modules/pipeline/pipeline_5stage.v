@@ -17,7 +17,7 @@ module pipeline_5stage #(
 )(
     input  wire        clk,
     input  wire        reset_n,
-    input  wire        stall_ext,     // External freeze (e.g. UART / memory refill)
+    input  wire        stall_ext,     // External freeze (e.g. debugging / single step)
     input  wire        use_dsp_i,     // 1: DSP48E1, 0: Booth Radix-4 Multiplier
 
     // Instruction Memory Bus (IF stage)
@@ -41,6 +41,7 @@ module pipeline_5stage #(
     output wire        wb_reg_write,
     output wire [4:0]  wb_dest_reg,
     output wire [31:0] wb_data,
+    output wire        wb_rd_fp,      // 1: this writeback goes to the FP register file
     output wire        hazard_stall,
     output wire        hazard_flush_id,
     output wire        hazard_flush_ex,
@@ -78,11 +79,10 @@ module pipeline_5stage #(
     assign pc_next  = branch_or_jump_taken ? target_pc : pc_plus4;
 
     always @(posedge clk or negedge reset_n) begin
-        if (!reset_n) begin
+        if (!reset_n)
             pc_reg <= RESET_PC;
-        end else if (!stall_if && !stall_ext) begin
+        else if (!stall_if && !stall_ext)
             pc_reg <= pc_next;
-        end
     end
 
     assign imem_addr = pc_reg;
@@ -95,17 +95,19 @@ module pipeline_5stage #(
     wire [31:0] if_id_pc_plus4;
     wire [31:0] if_id_inst;
 
-    if_id_reg u_if_id_reg (
-        .clk        (clk),
-        .reset_n    (reset_n),
-        .stall      (stall_if_id || stall_ext),
-        .flush      (flush_if_id || branch_or_jump_taken),
-        .pc_i       (pc_reg),
-        .pc_plus4_i (pc_plus4),
-        .instr_i    (imem_rdata),
-        .pc_o       (if_id_pc),
-        .pc_plus4_o (if_id_pc_plus4),
-        .instr_o    (if_id_inst)
+    if_id_reg #(
+        .RESET_PC(RESET_PC)
+    ) u_if_id_reg (
+        .clk          (clk),
+        .reset_n      (reset_n),
+        .stall        (stall_if_id || stall_ext),
+        .flush        (flush_if_id || branch_or_jump_taken),
+        .pc_i         (pc_reg),
+        .pc_plus4_i   (pc_plus4),
+        .instr_i      (imem_rdata),
+        .pc_o         (if_id_pc),
+        .pc_plus4_o   (if_id_pc_plus4),
+        .instr_o      (if_id_inst)
     );
 
     assign pc_id = if_id_pc;
@@ -129,6 +131,10 @@ module pipeline_5stage #(
     wire        id_is_mul;
     wire        id_is_div;
     wire        id_is_fpu;
+    wire        id_is_fmv;
+    wire        id_rs1_fp;
+    wire        id_rs2_fp;
+    wire        id_rd_fp;
     wire        id_illegal_inst;
     wire [31:0] id_rdata1;
     wire [31:0] id_rdata2;
@@ -142,40 +148,45 @@ module pipeline_5stage #(
     wire        id_rs2_used;
 
     decode_stage u_decode_stage (
-        .clk            (clk),
-        .reset_n        (reset_n),
-        .instruction_i  (if_id_inst),
-        .pc_i           (if_id_pc),
-        .wb_reg_write_i (wb_reg_write),
-        .wb_dest_reg_i  (wb_dest_reg),
-        .wb_data_i      (wb_data),
-        .alu_op_o       (id_alu_op),
-        .arithsubtype_o (id_arithsubtype),
-        .alu_o          (id_alu),
-        .lui_o          (id_lui),
-        .auipc_o        (id_auipc),
-        .jal_o          (id_jal),
-        .jalr_o         (id_jalr),
-        .branch_o       (id_branch),
-        .mem_read_o     (id_mem_read),
-        .mem_write_o    (id_mem_write),
-        .mem_to_reg_o   (id_mem_to_reg),
-        .reg_write_o    (id_reg_write),
-        .immediate_sel_o(id_immediate_sel),
-        .is_mul_o       (id_is_mul),
-        .is_div_o       (id_is_div),
-        .is_fpu_o       (id_is_fpu),
-        .illegal_inst_o (id_illegal_inst),
-        .rdata1_o       (id_rdata1),
-        .rdata2_o       (id_rdata2),
-        .imm_o          (id_imm),
-        .rs1_o          (id_rs1),
-        .rs2_o          (id_rs2),
-        .rd_o           (id_rd),
-        .funct3_o       (id_funct3),
-        .funct7_o       (id_funct7),
-        .id_rs1_used_o  (id_rs1_used),
-        .id_rs2_used_o  (id_rs2_used)
+        .clk             (clk),
+        .reset_n         (reset_n),
+        .instruction_i   (if_id_inst),
+        .pc_i            (if_id_pc),
+        .wb_reg_write_i  (wb_reg_write),
+        .wb_dest_reg_i   (wb_dest_reg),
+        .wb_data_i       (wb_data),
+        .wb_rd_fp_i      (wb_rd_fp),
+        .alu_op_o        (id_alu_op),
+        .arithsubtype_o  (id_arithsubtype),
+        .alu_o           (id_alu),
+        .lui_o           (id_lui),
+        .auipc_o         (id_auipc),
+        .jal_o           (id_jal),
+        .jalr_o          (id_jalr),
+        .branch_o        (id_branch),
+        .mem_read_o      (id_mem_read),
+        .mem_write_o     (id_mem_write),
+        .mem_to_reg_o    (id_mem_to_reg),
+        .reg_write_o     (id_reg_write),
+        .immediate_sel_o (id_immediate_sel),
+        .is_mul_o        (id_is_mul),
+        .is_div_o        (id_is_div),
+        .is_fpu_o        (id_is_fpu),
+        .is_fmv_o        (id_is_fmv),
+        .rs1_fp_o        (id_rs1_fp),
+        .rs2_fp_o        (id_rs2_fp),
+        .rd_fp_o         (id_rd_fp),
+        .illegal_inst_o  (id_illegal_inst),
+        .rdata1_o        (id_rdata1),
+        .rdata2_o        (id_rdata2),
+        .imm_o           (id_imm),
+        .rs1_o           (id_rs1),
+        .rs2_o           (id_rs2),
+        .rd_o            (id_rd),
+        .funct3_o        (id_funct3),
+        .funct7_o        (id_funct7),
+        .id_rs1_used_o   (id_rs1_used),
+        .id_rs2_used_o   (id_rs2_used)
     );
 
     // ========================================================================
@@ -197,6 +208,10 @@ module pipeline_5stage #(
     wire        id_ex_is_mul;
     wire        id_ex_is_div;
     wire        id_ex_is_fpu;
+    wire        id_ex_is_fmv;
+    wire        id_ex_rs1_fp;
+    wire        id_ex_rs2_fp;
+    wire        id_ex_rd_fp;
     wire        id_ex_illegal_inst;
     wire [31:0] id_ex_pc;
     wire [31:0] id_ex_pc_plus4;
@@ -213,7 +228,7 @@ module pipeline_5stage #(
         .clk             (clk),
         .reset_n         (reset_n),
         .stall           (stall_id_ex || stall_ext),
-        .flush           (flush_id_ex || branch_or_jump_taken),
+        .flush           (flush_id_ex),
         .alu_op_i        (id_alu_op),
         .arithsubtype_i  (id_arithsubtype),
         .alu_i           (id_alu),
@@ -230,6 +245,10 @@ module pipeline_5stage #(
         .is_mul_i        (id_is_mul),
         .is_div_i        (id_is_div),
         .is_fpu_i        (id_is_fpu),
+        .is_fmv_i        (id_is_fmv),
+        .rs1_fp_i        (id_rs1_fp),
+        .rs2_fp_i        (id_rs2_fp),
+        .rd_fp_i         (id_rd_fp),
         .illegal_inst_i  (id_illegal_inst),
         .pc_i            (if_id_pc),
         .pc_plus4_i      (if_id_pc_plus4),
@@ -257,6 +276,10 @@ module pipeline_5stage #(
         .is_mul_o        (id_ex_is_mul),
         .is_div_o        (id_ex_is_div),
         .is_fpu_o        (id_ex_is_fpu),
+        .is_fmv_o        (id_ex_is_fmv),
+        .rs1_fp_o        (id_ex_rs1_fp),
+        .rs2_fp_o        (id_ex_rs2_fp),
+        .rd_fp_o         (id_ex_rd_fp),
         .illegal_inst_o  (id_ex_illegal_inst),
         .pc_o            (id_ex_pc),
         .pc_plus4_o      (id_ex_pc_plus4),
@@ -273,12 +296,12 @@ module pipeline_5stage #(
     assign pc_ex = id_ex_pc;
 
     // ========================================================================
-    // 3. EX Stage (Execution, ALU, Multiplier, Divider, FPU, & Branch)
+    // 3. EX Stage (Execution, Multiplier, Divider, FPU, Branch Resolution)
     // ========================================================================
     wire [31:0] ex_alu_result;
     wire [31:0] ex_store_data;
     wire        ex_branch_taken;
-    wire [31:0] ex_mem_alu_result; // Forwarded from EX/MEM
+    wire [31:0] ex_mem_alu_result;
 
     execute_stage u_execute_stage (
         .clk                   (clk),
@@ -305,6 +328,7 @@ module pipeline_5stage #(
         .is_mul_i              (id_ex_is_mul),
         .is_div_i              (id_ex_is_div),
         .is_fpu_i              (id_ex_is_fpu),
+        .is_fmv_i              (id_ex_is_fmv),
         .funct7_i              (id_ex_funct7),
         .use_dsp_i             (use_dsp_i),
         .alu_result_o          (ex_alu_result),
@@ -330,6 +354,7 @@ module pipeline_5stage #(
     wire [2:0]  ex_mem_funct3;
     wire [31:0] ex_mem_store_data;
     wire [4:0]  ex_mem_rd;
+    wire        ex_mem_rd_fp;
     wire [31:0] ex_mem_pc;
     wire [31:0] ex_mem_pc_plus4;
 
@@ -346,6 +371,7 @@ module pipeline_5stage #(
         .alu_result_i (ex_alu_result),
         .store_data_i (ex_store_data),
         .rd_i         (id_ex_rd),
+        .rd_fp_i      (id_ex_rd_fp),
         .pc_i         (id_ex_pc),
         .pc_plus4_i   (id_ex_pc_plus4),
         .mem_read_o   (ex_mem_mem_read),
@@ -356,6 +382,7 @@ module pipeline_5stage #(
         .alu_result_o (ex_mem_alu_result),
         .store_data_o (ex_mem_store_data),
         .rd_o         (ex_mem_rd),
+        .rd_fp_o      (ex_mem_rd_fp),
         .pc_o         (ex_mem_pc),
         .pc_plus4_o   (ex_mem_pc_plus4)
     );
@@ -388,6 +415,7 @@ module pipeline_5stage #(
     wire [31:0] mem_wb_alu_result;
     wire [31:0] mem_wb_rdata;
     wire [4:0]  mem_wb_rd;
+    wire        mem_wb_rd_fp;
     wire [31:0] mem_wb_pc_plus4;
 
     mem_wb_reg u_mem_wb_reg (
@@ -401,6 +429,7 @@ module pipeline_5stage #(
         .alu_result_i  (ex_mem_alu_result),
         .mem_rdata_i   (dmem_rdata),
         .rd_i          (ex_mem_rd),
+        .rd_fp_i       (ex_mem_rd_fp),
         .pc_plus4_i    (ex_mem_pc_plus4),
         .mem_to_reg_o  (mem_wb_mem_to_reg),
         .reg_write_o   (mem_wb_reg_write),
@@ -409,6 +438,7 @@ module pipeline_5stage #(
         .alu_result_o  (mem_wb_alu_result),
         .mem_rdata_o   (mem_wb_rdata),
         .rd_o          (mem_wb_rd),
+        .rd_fp_o       (mem_wb_rd_fp),
         .pc_plus4_o    (mem_wb_pc_plus4)
     );
 
@@ -425,8 +455,10 @@ module pipeline_5stage #(
         .alu_result_i  (mem_wb_alu_result),
         .mem_rdata_i   (mem_wb_rdata),
         .rd_i          (mem_wb_rd),
+        .rd_fp_i       (mem_wb_rd_fp),
         .wb_reg_write_o(wb_reg_write),
         .wb_dest_reg_o (wb_dest_reg),
+        .wb_rd_fp_o    (wb_rd_fp),
         .wb_data_o     (wb_data)
     );
 
@@ -438,9 +470,14 @@ module pipeline_5stage #(
         .id_rs2          (id_rs2),
         .id_rs1_used     (id_rs1_used),
         .id_rs2_used     (id_rs2_used),
+        .id_rs1_fp       (id_rs1_fp),
+        .id_rs2_fp       (id_rs2_fp),
         .id_ex_rs1       (id_ex_rs1),
         .id_ex_rs2       (id_ex_rs2),
         .id_ex_rd        (id_ex_rd),
+        .id_ex_rs1_fp    (id_ex_rs1_fp),
+        .id_ex_rs2_fp    (id_ex_rs2_fp),
+        .id_ex_rd_fp     (id_ex_rd_fp),
         .id_ex_mem_read  (id_ex_mem_read),
         .id_ex_branch    (id_ex_branch),
         .id_ex_jal       (id_ex_jal),
@@ -450,8 +487,10 @@ module pipeline_5stage #(
         .fpu_busy        (fpu_busy),
         .ex_mem_rd       (ex_mem_rd),
         .ex_mem_reg_write(ex_mem_reg_write),
+        .ex_mem_rd_fp    (ex_mem_rd_fp),
         .mem_wb_rd       (mem_wb_rd),
         .mem_wb_reg_write(mem_wb_reg_write),
+        .mem_wb_rd_fp    (mem_wb_rd_fp),
         .forward_a       (forward_a),
         .forward_b       (forward_b),
         .stall_if        (stall_if),

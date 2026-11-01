@@ -37,6 +37,7 @@ module execute_stage (
     input  wire        is_mul_i,
     input  wire        is_div_i,
     input  wire        is_fpu_i,
+    input  wire        is_fmv_i,
     input  wire [6:0]  funct7_i,
     input  wire        use_dsp_i,
 
@@ -107,7 +108,7 @@ module execute_stage (
     wire [31:0] jalr_target   = (alu_in1 + imm_i) & ~32'b1;
 
     assign branch_or_jump_taken_o = (branch_i && branch_taken_o) || jal_i || jalr_i;
-    assign target_pc_o = jalr_i ? jalr_target : branch_target;
+    assign target_pc_o            = jalr_i ? jalr_target : branch_target;
 
     // ------------------------------------------------------------------------
     // 4. Hardware Multiplier Execution Unit (DSP48E1 / Booth Radix-4)
@@ -181,6 +182,8 @@ module execute_stage (
             alu_result_o = div_result;
         end else if (is_fpu_i) begin
             alu_result_o = fpu_result;
+        end else if (is_fmv_i) begin
+            alu_result_o = alu_in1;   // FMV.X.W / FMV.W.X: plain 32-bit copy
         end else if (lui_i) begin
             alu_result_o = imm_i;
         end else if (auipc_i) begin

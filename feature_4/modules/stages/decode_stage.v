@@ -1,5 +1,5 @@
 // ============================================================================
-// File: decode_stage.v (Feature 4: RV32F IEEE 754 Floating-Point Support)
+// File: decode_stage.v (RV32F with separate FP register file: FLW/FSW/FMV + FADD..FDIV)
 // Description: Instruction Decode & Register File with RV32M and RV32F Decoding
 // Project: Pipelined RV32IMF RISC-V Core (Feature 4: IEEE 754 FPU)
 // ============================================================================
@@ -18,6 +18,7 @@ module decode_stage (
     input  wire        wb_reg_write_i,
     input  wire [4:0]  wb_dest_reg_i,
     input  wire [31:0] wb_data_i,
+    input  wire        wb_rd_fp_i,       // 1: writeback targets the FP register file
 
     // Decoded Control Signals to ID/EX
     output reg  [2:0]  alu_op_o,
@@ -36,6 +37,10 @@ module decode_stage (
     output reg         is_mul_o,
     output reg         is_div_o,
     output reg         is_fpu_o,
+    output reg         is_fmv_o,         // FMV.X.W / FMV.W.X (bit-copy between files)
+    output reg         rs1_fp_o,         // rs1 is read from the FP register file
+    output reg         rs2_fp_o,         // rs2 is read from the FP register file
+    output reg         rd_fp_o,          // rd  is written to the FP register file
     output reg         illegal_inst_o,
 
     // Decoded Data Signals to ID/EX
@@ -69,30 +74,42 @@ module decode_stage (
     wire [6:0] opcode = instruction_i[`OPCODE];
 
     // ------------------------------------------------------------------------
-    // Register File (32 x 32-bit, x0 hardwired to 0)
+    // Integer Register File (x1..x31, x0 hardwired to 0)
+    // FP Register File      (f0..f31, f0 is a NORMAL register)
+    // Writeback selects the file with wb_rd_fp_i.
     // ------------------------------------------------------------------------
-    reg [31:0] regs [1:31];
+    reg [31:0] regs  [1:31];
+    reg [31:0] fregs [0:31];
     integer i;
+    integer j;
 
-    // Synchronous Write Port
+    // Synchronous Write Ports (mirror into both files so integer code and FP code interoperate)
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
-            for (i = 1; i < 32; i = i + 1) begin
-                regs[i] <= 32'h0;
-            end
-        end else if (wb_reg_write_i && (wb_dest_reg_i != 5'd0)) begin
-            regs[wb_dest_reg_i] <= wb_data_i;
+            for (i = 1; i < 32; i = i + 1) regs[i]  <= 32'h0;
+            for (j = 0; j < 32; j = j + 1) fregs[j] <= 32'h0;
+        end else if (wb_reg_write_i) begin
+            if (wb_dest_reg_i != 5'd0)
+                regs[wb_dest_reg_i]  <= wb_data_i;
+            fregs[wb_dest_reg_i]     <= wb_data_i;
         end
     end
 
-    // Dual Asynchronous Read Ports with Internal Forwarding (WB -> ID)
-    assign rdata1_o = (rs1_o == 5'd0) ? 32'd0 :
-                      (wb_reg_write_i && (wb_dest_reg_i == rs1_o)) ? wb_data_i :
-                      regs[rs1_o];
+    // Asynchronous Read Ports with WB -> ID bypass
+    wire [31:0] int_rdata1 = (rs1_o == 5'd0) ? 32'd0 :
+                             (wb_reg_write_i && (wb_dest_reg_i == rs1_o)) ? wb_data_i :
+                             regs[rs1_o];
+    wire [31:0] int_rdata2 = (rs2_o == 5'd0) ? 32'd0 :
+                             (wb_reg_write_i && (wb_dest_reg_i == rs2_o)) ? wb_data_i :
+                             regs[rs2_o];
 
-    assign rdata2_o = (rs2_o == 5'd0) ? 32'd0 :
-                      (wb_reg_write_i && (wb_dest_reg_i == rs2_o)) ? wb_data_i :
-                      regs[rs2_o];
+    wire [31:0] fp_rdata1  = (wb_reg_write_i && (wb_dest_reg_i == rs1_o)) ? wb_data_i :
+                             fregs[rs1_o];
+    wire [31:0] fp_rdata2  = (wb_reg_write_i && (wb_dest_reg_i == rs2_o)) ? wb_data_i :
+                             fregs[rs2_o];
+
+    assign rdata1_o = rs1_fp_o ? fp_rdata1 : int_rdata1;
+    assign rdata2_o = rs2_fp_o ? fp_rdata2 : int_rdata2;
 
     // ------------------------------------------------------------------------
     // Control Signal Decoding and Immediate Generation
@@ -115,6 +132,10 @@ module decode_stage (
         is_mul_o        = 1'b0;
         is_div_o        = 1'b0;
         is_fpu_o        = 1'b0;
+        is_fmv_o        = 1'b0;
+        rs1_fp_o        = 1'b0;
+        rs2_fp_o        = 1'b0;
+        rd_fp_o         = 1'b0;
         illegal_inst_o  = 1'b0;
         imm_o           = 32'h0;
         id_rs1_used_o   = 1'b0;
@@ -147,12 +168,65 @@ module decode_stage (
             end
 
             OP_FP: begin
-                // RV32F IEEE 754 Floating Point (FADD.S, FSUB.S, FMUL.S, FDIV.S)
-                is_fpu_o      = 1'b1;
-                alu_o         = 1'b0;
-                reg_write_o   = 1'b1;
-                id_rs1_used_o = 1'b1;
-                id_rs2_used_o = 1'b1;
+                // Only the supported RV32F single-precision instructions are legal.
+                // Anything else is an illegal instruction (all controls stay 0).
+                case (instruction_i[31:25])
+                    FUNCT7_FADD, FUNCT7_FSUB, FUNCT7_FMUL, FUNCT7_FDIV: begin
+                        is_fpu_o      = 1'b1;
+                        alu_o         = 1'b0;
+                        reg_write_o   = 1'b1;
+                        id_rs1_used_o = 1'b1;
+                        id_rs2_used_o = 1'b1;
+                        rs1_fp_o      = 1'b1;   // f[rs1]
+                        rs2_fp_o      = 1'b1;   // f[rs2]
+                        rd_fp_o       = 1'b1;   // f[rd]
+                    end
+
+                    FUNCT7_FMV_X_W: begin       // x[rd] <- f[rs1]
+                        if (instruction_i[24:20] == 5'd0 && instruction_i[`FUNC3] == 3'b000) begin
+                            is_fmv_o      = 1'b1;
+                            reg_write_o   = 1'b1;
+                            id_rs1_used_o = 1'b1;
+                            rs1_fp_o      = 1'b1;
+                        end else illegal_inst_o = 1'b1;
+                    end
+
+                    FUNCT7_FMV_W_X: begin       // f[rd] <- x[rs1]
+                        if (instruction_i[24:20] == 5'd0 && instruction_i[`FUNC3] == 3'b000) begin
+                            is_fmv_o      = 1'b1;
+                            reg_write_o   = 1'b1;
+                            id_rs1_used_o = 1'b1;
+                            rd_fp_o       = 1'b1;
+                        end else illegal_inst_o = 1'b1;
+                    end
+
+                    default: illegal_inst_o = 1'b1;
+                endcase
+            end
+
+            // FLW rd(fp), imm(rs1 int)  -- same datapath as LW, destination is the FP file
+            LOAD_FP: begin
+                if (instruction_i[`FUNC3] == 3'b010) begin
+                    mem_read_o      = 1'b1;
+                    mem_to_reg_o    = 1'b1;
+                    reg_write_o     = 1'b1;
+                    immediate_sel_o = 1'b1;
+                    id_rs1_used_o   = 1'b1;
+                    rd_fp_o         = 1'b1;
+                    imm_o           = {{20{instruction_i[31]}}, instruction_i[31:20]};
+                end else illegal_inst_o = 1'b1;
+            end
+
+            // FSW rs2(fp), imm(rs1 int)  -- same datapath as SW, data comes from the FP file
+            STORE_FP: begin
+                if (instruction_i[`FUNC3] == 3'b010) begin
+                    mem_write_o     = 1'b1;
+                    immediate_sel_o = 1'b1;
+                    id_rs1_used_o   = 1'b1;
+                    id_rs2_used_o   = 1'b1;
+                    rs2_fp_o        = 1'b1;
+                    imm_o           = {{20{instruction_i[31]}}, instruction_i[31:25], instruction_i[11:7]};
+                end else illegal_inst_o = 1'b1;
             end
 
             ARITHI: begin

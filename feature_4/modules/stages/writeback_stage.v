@@ -15,10 +15,12 @@ module writeback_stage (
     input  wire [31:0] alu_result_i,
     input  wire [31:0] mem_rdata_i,
     input  wire [4:0]  rd_i,
+    input  wire        rd_fp_i,
 
     // Outputs to Register File & Hazard/Debug
     output wire        wb_reg_write_o,
     output wire [4:0]  wb_dest_reg_o,
+    output wire        wb_rd_fp_o,
     output wire [31:0] wb_data_o
 );
 
@@ -69,5 +71,6 @@ module writeback_stage (
     assign wb_data_o      = mem_to_reg_i ? formatted_load_data : alu_result_i;
     assign wb_reg_write_o = reg_write_i;
     assign wb_dest_reg_o  = rd_i;
+    assign wb_rd_fp_o     = rd_fp_i;   // 1: write f[rd], 0: write x[rd]
 
 endmodule

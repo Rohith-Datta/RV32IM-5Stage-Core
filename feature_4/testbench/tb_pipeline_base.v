@@ -108,7 +108,7 @@ module tb_pipeline_base;
     // Instruction Memory (IMEM)
     // ------------------------------------------------------------------------
     instr_mem #(
-        .HEX_FILE("C:/CS2202L/RISCV/feature_4/mem/imem.hex"),
+        .HEX_FILE("imem.hex"),
         .WORDS(1024)
     ) IMEM (
         .clk  (clk),
@@ -131,7 +131,7 @@ module tb_pipeline_base;
     end
 
     data_mem #(
-        .HEX_FILE("C:/CS2202L/RISCV/feature_4/mem/dmem.hex"),
+        .HEX_FILE("dmem.hex"),
         .WORDS(1024)
     ) DMEM (
         .clk  (clk),

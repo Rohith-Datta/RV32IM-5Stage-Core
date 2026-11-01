@@ -156,7 +156,7 @@ module tb_fpu_c_test;
 
                 5'd15: begin // FDIV.S (7.0 / 2.0 = 3.5f -> 0x40600000)
                     if (wb_data === 32'h40600000) begin
-                        $display("[PASS] 4. FDIV.S (7.0 / 2.0): x15 = 0x%08h (3.5f, Newton-Raphson)", wb_data);
+                        $display("[PASS] 4. FDIV.S (7.0 / 2.0): x15 = 0x%08h (3.5f, Restoring Division)", wb_data);
                         pass_count = pass_count + 1;
                     end else begin
                         $display("[FAIL] 4. FDIV.S (7.0 / 2.0): x15 = 0x%08h, Expected: 0x40600000", wb_data);

@@ -117,6 +117,46 @@ module fpu_single_core (
     wire [27:0] m_small_aligned = {1'b0, small_shifted[26:1], small_shifted[0] | small_sticky};
     wire [27:0] m_large_aligned = {1'b0, m_large_in, 3'b000};
 
+
+    // ---- FIX: special cases (NaN / Inf / -0) ----
+    localparam [31:0] QNAN = 32'h7FC0_0000;
+    reg        sp_valid_c, sp_valid;
+    reg [31:0] sp_res_c,   sp_res;
+    always @(*) begin
+        sp_valid_c = 1'b0;  sp_res_c = 32'd0;
+        case (funct7)
+            FUNCT7_FDIV: ;
+            FUNCT7_FMUL: begin
+                if (a_is_nan || b_is_nan || (a_is_inf && b_is_zero) || (a_is_zero && b_is_inf))
+                    begin sp_valid_c = 1'b1; sp_res_c = QNAN; end
+                else if (a_is_inf || b_is_inf)
+                    begin sp_valid_c = 1'b1; sp_res_c = {op_a[31] ^ op_b[31], 8'hFF, 23'd0}; end
+            end
+            default: begin
+                if (a_is_nan || b_is_nan || (a_is_inf && b_is_inf && (sign_a != sign_b)))
+                    begin sp_valid_c = 1'b1; sp_res_c = QNAN; end
+                else if (a_is_inf) begin sp_valid_c = 1'b1; sp_res_c = {sign_a, 8'hFF, 23'd0}; end
+                else if (b_is_inf) begin sp_valid_c = 1'b1; sp_res_c = {sign_b, 8'hFF, 23'd0}; end
+                else if (a_is_zero && b_is_zero)
+                    begin sp_valid_c = 1'b1; sp_res_c = {sign_a & sign_b, 31'd0}; end
+            end
+        endcase
+    end
+
+    // ---- FIX: rounding-mode aware increment ----
+    function round_inc;
+        input [2:0] frm; input sign, lsb, g, r, s;
+        begin
+            case (frm)
+                FRM_RTZ: round_inc = 1'b0;
+                FRM_RDN: round_inc = sign  && (g | r | s);
+                FRM_RUP: round_inc = !sign && (g | r | s);
+                FRM_RMM: round_inc = g;
+                default: round_inc = g && (r | s | lsb);
+            endcase
+        end
+    endfunction
+
     // Leading Zero Counter Function for FADD Normalization (27 bits)
     function [4:0] clz27;
         input [26:0] val;
@@ -163,6 +203,8 @@ module fpu_single_core (
             saved_op     <= 7'd0;
             saved_frm    <= 3'd0;
             result_reg   <= 32'd0;
+            sp_valid     <= 1'b0;
+            sp_res       <= 32'd0;
 
             // FADD
             fadd_sign_large       <= 1'b0;
@@ -202,6 +244,8 @@ module fpu_single_core (
                     if (is_fpu) begin
                         saved_op  <= funct7;
                         saved_frm <= funct3;
+                        sp_valid  <= sp_valid_c;
+                        sp_res    <= sp_res_c;
 
                         case (funct7)
                             // ------------------------------------------------
@@ -282,7 +326,7 @@ module fpu_single_core (
                                     fmul_norm_e   = fmul_raw_exp;
                                 end
 
-                                fmul_round_up = fmul_g && (fmul_r || fmul_s || fmul_frac_raw[0]);
+                                fmul_round_up = round_inc(saved_frm, fmul_sign_res, fmul_frac_raw[0], fmul_g, fmul_r, fmul_s);
                                 if (fmul_round_up) begin
                                     if (fmul_frac_raw == 23'h7FFFFF) begin
                                         fmul_frac_final = 23'd0;
@@ -349,7 +393,7 @@ module fpu_single_core (
                                 fdiv_s         = |fdiv_rem_cur;
                                 fdiv_final_exp = fdiv_exp_res;
 
-                                fdiv_round_up = fdiv_g && (fdiv_r || fdiv_s || fdiv_frac_raw[0]);
+                                fdiv_round_up = round_inc(saved_frm, fdiv_sign_res, fdiv_frac_raw[0], fdiv_g, fdiv_r, fdiv_s);
                                 if (fdiv_round_up) begin
                                     if (fdiv_frac_raw == 23'h7FFFFF) begin
                                         fdiv_frac_final = 23'd0;
@@ -416,7 +460,7 @@ module fpu_single_core (
                                 fadd_r        = fadd_norm_m[1];
                                 fadd_s        = fadd_norm_m[0] | fadd_sticky_round;
 
-                                fadd_round_up = fadd_g && (fadd_r || fadd_s || fadd_frac_raw[0]);
+                                fadd_round_up = round_inc(saved_frm, fadd_sign_large, fadd_frac_raw[0], fadd_g, fadd_r, fadd_s);
                                 if (fadd_round_up) begin
                                     if (fadd_frac_raw == 23'h7FFFFF) begin
                                         fadd_frac_final = 23'd0;
@@ -447,7 +491,8 @@ module fpu_single_core (
                 S_DONE: begin
                     // Cycle 5 (FADD/FSUB), Cycle 4 (FMUL), Cycle 15 (FDIV)
                     // Output is valid, return to IDLE on next clock edge
-                    case (saved_op)
+                    if (sp_valid) result_reg <= sp_res;
+                    else case (saved_op)
                         FUNCT7_FMUL: result_reg <= fmul_final_res;
                         FUNCT7_FDIV: result_reg <= fdiv_final_res;
                         default:     result_reg <= fadd_final_res;
@@ -462,7 +507,9 @@ module fpu_single_core (
 
     // Result Mux
     always @(*) begin
-        if (state == S_DONE) begin
+        if (state == S_DONE && sp_valid) begin
+            fpu_result = sp_res;
+        end else if (state == S_DONE) begin
             case (saved_op)
                 FUNCT7_FMUL: fpu_result = fmul_final_res;
                 FUNCT7_FDIV: fpu_result = fdiv_final_res;

@@ -29,6 +29,10 @@ module id_ex_reg (
     input  wire        is_mul_i,
     input  wire        is_div_i,
     input  wire        is_fpu_i,
+    input  wire        is_fmv_i,
+    input  wire        rs1_fp_i,
+    input  wire        rs2_fp_i,
+    input  wire        rd_fp_i,
     input  wire        illegal_inst_i,
 
     // Data Signals from ID
@@ -62,6 +66,10 @@ module id_ex_reg (
     output reg         is_mul_o,
     output reg         is_div_o,
     output reg         is_fpu_o,
+    output reg         is_fmv_o,
+    output reg         rs1_fp_o,
+    output reg         rs2_fp_o,
+    output reg         rd_fp_o,
     output reg         illegal_inst_o,
 
     // Data Outputs to EX
@@ -97,6 +105,10 @@ module id_ex_reg (
             is_mul_o        <= 1'b0;
             is_div_o        <= 1'b0;
             is_fpu_o        <= 1'b0;
+            is_fmv_o        <= 1'b0;
+            rs1_fp_o        <= 1'b0;
+            rs2_fp_o        <= 1'b0;
+            rd_fp_o         <= 1'b0;
             illegal_inst_o  <= 1'b0;
 
             pc_o            <= 32'h0;
@@ -127,6 +139,10 @@ module id_ex_reg (
             is_mul_o        <= 1'b0;
             is_div_o        <= 1'b0;
             is_fpu_o        <= 1'b0;
+            is_fmv_o        <= 1'b0;
+            rs1_fp_o        <= 1'b0;
+            rs2_fp_o        <= 1'b0;
+            rd_fp_o         <= 1'b0;
             illegal_inst_o  <= 1'b0;
 
             pc_o            <= 32'h0;
@@ -157,6 +173,10 @@ module id_ex_reg (
             is_mul_o        <= is_mul_i;
             is_div_o        <= is_div_i;
             is_fpu_o        <= is_fpu_i;
+            is_fmv_o        <= is_fmv_i;
+            rs1_fp_o        <= rs1_fp_i;
+            rs2_fp_o        <= rs2_fp_i;
+            rd_fp_o         <= rd_fp_i;
             illegal_inst_o  <= illegal_inst_i;
 
             pc_o            <= pc_i;

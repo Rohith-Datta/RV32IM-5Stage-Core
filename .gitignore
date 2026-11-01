@@ -23,6 +23,8 @@ Desktop.ini
 .DS_Store
 ~$*
 *_UPDATED.docx
+Project Design Status Report*.docx
+Project Design Status Repor*.docx
 build_team_branch.py
 # Compiler intermediate binaries
 *.o

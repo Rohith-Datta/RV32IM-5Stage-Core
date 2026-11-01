@@ -51,10 +51,12 @@ localparam [2:0] F3_MUL    = 3'b000,
 // RV32F Extension Definitions (Feature 4 IEEE 754 Floating-Point Unit)
 // Opcode == OP_FP (7'b1010011)
 // ----------------------------------------------------------------------------
-localparam [6:0] FUNCT7_FADD = 7'b0000000,  // FADD.S (5 cycles)
-                 FUNCT7_FSUB = 7'b0000100,  // FSUB.S (5 cycles)
-                 FUNCT7_FMUL = 7'b0001000,  // FMUL.S (4 cycles)
-                 FUNCT7_FDIV = 7'b0001100;  // FDIV.S (15 cycles)
+localparam [6:0] FUNCT7_FADD    = 7'b0000000,  // FADD.S (5 cycles)
+                 FUNCT7_FSUB    = 7'b0000100,  // FSUB.S (5 cycles)
+                 FUNCT7_FMUL    = 7'b0001000,  // FMUL.S (4 cycles)
+                 FUNCT7_FDIV    = 7'b0001100,  // FDIV.S (15 cycles)
+                 FUNCT7_FMV_X_W = 7'b1110000,  // FMV.X.W (copy f to x)
+                 FUNCT7_FMV_W_X = 7'b1111000;  // FMV.W.X (copy x to f)
 
 localparam [2:0] FRM_RNE = 3'b000,  // Round to Nearest, ties to Even
                  FRM_RTZ = 3'b001,  // Round towards Zero

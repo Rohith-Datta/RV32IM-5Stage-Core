@@ -23,6 +23,7 @@ module ex_mem_reg (
     input  wire [31:0] alu_result_i,
     input  wire [31:0] store_data_i,
     input  wire [4:0]  rd_i,
+    input  wire        rd_fp_i,
     input  wire [31:0] pc_i,
     input  wire [31:0] pc_plus4_i,
 
@@ -37,6 +38,7 @@ module ex_mem_reg (
     output reg  [31:0] alu_result_o,
     output reg  [31:0] store_data_o,
     output reg  [4:0]  rd_o,
+    output reg         rd_fp_o,
     output reg  [31:0] pc_o,
     output reg  [31:0] pc_plus4_o
 );
@@ -51,6 +53,7 @@ module ex_mem_reg (
             alu_result_o <= 32'h0;
             store_data_o <= 32'h0;
             rd_o         <= 5'h0;
+            rd_fp_o      <= 1'b0;
             pc_o         <= 32'h0;
             pc_plus4_o   <= 32'h0;
         end else if (flush) begin
@@ -62,6 +65,7 @@ module ex_mem_reg (
             alu_result_o <= 32'h0;
             store_data_o <= 32'h0;
             rd_o         <= 5'h0;
+            rd_fp_o      <= 1'b0;
             pc_o         <= 32'h0;
             pc_plus4_o   <= 32'h0;
         end else if (!stall) begin
@@ -73,6 +77,7 @@ module ex_mem_reg (
             alu_result_o <= alu_result_i;
             store_data_o <= store_data_i;
             rd_o         <= rd_i;
+            rd_fp_o      <= rd_fp_i;
             pc_o         <= pc_i;
             pc_plus4_o   <= pc_plus4_i;
         end

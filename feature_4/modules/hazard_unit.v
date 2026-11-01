@@ -18,11 +18,16 @@ module hazard_unit (
     input  wire [4:0]  id_rs2,
     input  wire        id_rs1_used,
     input  wire        id_rs2_used,
+    input  wire        id_rs1_fp,       // ID rs1 lives in the FP register file
+    input  wire        id_rs2_fp,       // ID rs2 lives in the FP register file
 
     // Instruction specifiers from EX stage
     input  wire [4:0]  id_ex_rs1,
     input  wire [4:0]  id_ex_rs2,
     input  wire [4:0]  id_ex_rd,
+    input  wire        id_ex_rs1_fp,
+    input  wire        id_ex_rs2_fp,
+    input  wire        id_ex_rd_fp,
     input  wire        id_ex_mem_read,
     input  wire        id_ex_branch,
     input  wire        id_ex_jal,
@@ -34,10 +39,12 @@ module hazard_unit (
     // Instruction specifiers from MEM stage
     input  wire [4:0]  ex_mem_rd,
     input  wire        ex_mem_reg_write,
+    input  wire        ex_mem_rd_fp,
 
     // Instruction specifiers from WB stage
     input  wire [4:0]  mem_wb_rd,
     input  wire        mem_wb_reg_write,
+    input  wire        mem_wb_rd_fp,
 
     // Forwarding Control Outputs to EX stage
     output reg  [1:0]  forward_a,
@@ -57,34 +64,32 @@ module hazard_unit (
     // ------------------------------------------------------------------------
     // 1. Data Forwarding Logic (ALU/Mul/Div/FPU Operands in EX stage)
     // ------------------------------------------------------------------------
-    // Forwarding for Operand A (RS1)
-    // Priority: EX/MEM (most recent) > MEM/WB > Register File
+    wire exmem_dest_valid = ex_mem_reg_write && (ex_mem_rd_fp || (ex_mem_rd != 5'd0));
+    wire memwb_dest_valid = mem_wb_reg_write && (mem_wb_rd_fp || (mem_wb_rd != 5'd0));
+
+    wire exmem_hit_a = exmem_dest_valid && (ex_mem_rd == id_ex_rs1);
+    wire memwb_hit_a = memwb_dest_valid && (mem_wb_rd == id_ex_rs1);
+    wire exmem_hit_b = exmem_dest_valid && (ex_mem_rd == id_ex_rs2);
+    wire memwb_hit_b = memwb_dest_valid && (mem_wb_rd == id_ex_rs2);
+
     always @(*) begin
-        if (ex_mem_reg_write && (ex_mem_rd != 5'd0) && (ex_mem_rd == id_ex_rs1)) begin
-            forward_a = FWD_MEM; // 2'b10: Forward from EX/MEM stage
-        end else if (mem_wb_reg_write && (mem_wb_rd != 5'd0) && (mem_wb_rd == id_ex_rs1)) begin
-            forward_a = FWD_WB;  // 2'b01: Forward from MEM/WB stage
-        end else begin
-            forward_a = FWD_NONE;// 2'b00: No forward (use ID/EX register data)
-        end
+        if (exmem_hit_a)      forward_a = FWD_MEM; // 2'b10: Forward from EX/MEM stage
+        else if (memwb_hit_a) forward_a = FWD_WB;  // 2'b01: Forward from MEM/WB stage
+        else                  forward_a = FWD_NONE;// 2'b00: No forward (use ID/EX register data)
     end
 
-    // Forwarding for Operand B / Store Data (RS2)
-    // Priority: EX/MEM (most recent) > MEM/WB > Register File
     always @(*) begin
-        if (ex_mem_reg_write && (ex_mem_rd != 5'd0) && (ex_mem_rd == id_ex_rs2)) begin
-            forward_b = FWD_MEM; // 2'b10: Forward from EX/MEM stage
-        end else if (mem_wb_reg_write && (mem_wb_rd != 5'd0) && (mem_wb_rd == id_ex_rs2)) begin
-            forward_b = FWD_WB;  // 2'b01: Forward from MEM/WB stage
-        end else begin
-            forward_b = FWD_NONE;// 2'b00: No forward (use ID/EX register data)
-        end
+        if (exmem_hit_b)      forward_b = FWD_MEM;
+        else if (memwb_hit_b) forward_b = FWD_WB;
+        else                  forward_b = FWD_NONE;
     end
 
     // ------------------------------------------------------------------------
     // 2. Load-Use Hazard Detection
     // ------------------------------------------------------------------------
-    wire load_use_hazard = id_ex_mem_read && (id_ex_rd != 5'd0) &&
+    wire load_dest_valid = id_ex_rd_fp || (id_ex_rd != 5'd0);
+
+    wire load_use_hazard = id_ex_mem_read && load_dest_valid &&
                            ((id_rs1_used && (id_ex_rd == id_rs1)) ||
                             (id_rs2_used && (id_ex_rd == id_rs2)));
 

@@ -35,7 +35,9 @@
 
 `timescale 1ns/1ps
 
-module fpga_top_feature4 (
+module fpga_top_feature4 #(
+    parameter BAUD_RATE = 115_200
+)(
     input  wire        clk_100mhz,  // 100 MHz primary oscillator (Pin E3)
     input  wire        cpu_resetn,  // Active-low CPU reset pushbutton (Pin C12)
     input  wire        btnc,        // Center pushbutton for single-stepping (Pin N17)
@@ -307,7 +309,7 @@ module fpga_top_feature4 (
     // Memory Subsystem (Standalone BRAM Models - NO CACHE)
     // ------------------------------------------------------------------------
     instr_mem #(
-        .HEX_FILE("C:/CS2202L/RISCV/feature_4/mem/imem.hex"),
+        .HEX_FILE("imem.hex"),
         .WORDS(1024)
     ) u_imem (
         .clk  (core_clk),
@@ -320,7 +322,7 @@ module fpga_top_feature4 (
     wire        uart_addr_match;
     uart_unit #(
         .CLK_FREQ  (100_000_000),
-        .BAUD_RATE (115_200),
+        .BAUD_RATE (BAUD_RATE),
         .FIFO_DEPTH(64)
     ) u_uart (
         .clk            (clk_100mhz),
@@ -352,7 +354,7 @@ module fpga_top_feature4 (
     wire dmem_ram_re  = dmem_re && !uart_addr_match;
 
     data_mem #(
-        .HEX_FILE("C:/CS2202L/RISCV/feature_4/mem/dmem.hex"),
+        .HEX_FILE("dmem.hex"),
         .WORDS(1024)
     ) u_dmem (
         .clk  (core_clk),

@@ -21,6 +21,7 @@ module mem_wb_reg (
     input  wire [31:0] alu_result_i,
     input  wire [31:0] mem_rdata_i,
     input  wire [4:0]  rd_i,
+    input  wire        rd_fp_i,
     input  wire [31:0] pc_plus4_i,
 
     // Control Outputs to WB
@@ -33,6 +34,7 @@ module mem_wb_reg (
     output reg  [31:0] alu_result_o,
     output reg  [31:0] mem_rdata_o,
     output reg  [4:0]  rd_o,
+    output reg         rd_fp_o,
     output reg  [31:0] pc_plus4_o
 );
 
@@ -45,6 +47,7 @@ module mem_wb_reg (
             alu_result_o  <= 32'h0;
             mem_rdata_o   <= 32'h0;
             rd_o          <= 5'h0;
+            rd_fp_o       <= 1'b0;
             pc_plus4_o    <= 32'h0;
         end else if (!stall) begin
             mem_to_reg_o  <= mem_to_reg_i;
@@ -54,6 +57,7 @@ module mem_wb_reg (
             alu_result_o  <= alu_result_i;
             mem_rdata_o   <= mem_rdata_i;
             rd_o          <= rd_i;
+            rd_fp_o       <= rd_fp_i;
             pc_plus4_o    <= pc_plus4_i;
         end
     end
