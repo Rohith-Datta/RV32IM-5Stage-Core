@@ -58,6 +58,7 @@ module dcache_controller #(
     output wire [3:0]  mem_wstrb,       // Write-through byte strobes
     output wire        mem_we,          // Write-through enable to backing memory
     output wire        mem_req,         // Refill read strobe to backing memory
+    input  wire        mem_grant,       // Memory bus grant from arbiter
 
     // Diagnostic & Performance Monitoring Counters
     output wire        cache_hit,
@@ -167,7 +168,7 @@ module dcache_controller #(
 
     // Multiplex memory bus between Refill (read) and Write-Through (write)
     assign mem_addr  = (state == STATE_REFILL) ? refill_mem_addr : cpu_addr;
-    assign mem_req   = (state == STATE_REFILL) && (refill_cnt >= 4'd2 && refill_cnt <= 4'd5);
+    assign mem_req   = (state == STATE_REFILL);
 
     // Write-Through with Write Buffer:
     // When CPU issues a store (hit or miss), forward directly to backing memory
@@ -187,7 +188,7 @@ module dcache_controller #(
             if (cpu_wstrb[1]) data_mem0[curr_index][15:8]  <= cpu_wdata[15:8];
             if (cpu_wstrb[2]) data_mem0[curr_index][23:16] <= cpu_wdata[23:16];
             if (cpu_wstrb[3]) data_mem0[curr_index][31:24] <= cpu_wdata[31:24];
-        end else if ((state == STATE_REFILL) && (refill_cnt == 4'd3)) begin
+        end else if ((state == STATE_REFILL) && mem_grant && (refill_cnt == 4'd3)) begin
             if (!bypass_act) data_mem0[refill_index] <= mem_rdata;
             if (refill_offset == 2'b00) bypass_word <= mem_rdata;
         end
@@ -200,7 +201,7 @@ module dcache_controller #(
             if (cpu_wstrb[1]) data_mem1[curr_index][15:8]  <= cpu_wdata[15:8];
             if (cpu_wstrb[2]) data_mem1[curr_index][23:16] <= cpu_wdata[23:16];
             if (cpu_wstrb[3]) data_mem1[curr_index][31:24] <= cpu_wdata[31:24];
-        end else if ((state == STATE_REFILL) && (refill_cnt == 4'd4)) begin
+        end else if ((state == STATE_REFILL) && mem_grant && (refill_cnt == 4'd4)) begin
             if (!bypass_act) data_mem1[refill_index] <= mem_rdata;
             if (refill_offset == 2'b01) bypass_word <= mem_rdata;
         end
@@ -213,7 +214,7 @@ module dcache_controller #(
             if (cpu_wstrb[1]) data_mem2[curr_index][15:8]  <= cpu_wdata[15:8];
             if (cpu_wstrb[2]) data_mem2[curr_index][23:16] <= cpu_wdata[23:16];
             if (cpu_wstrb[3]) data_mem2[curr_index][31:24] <= cpu_wdata[31:24];
-        end else if ((state == STATE_REFILL) && (refill_cnt == 4'd5)) begin
+        end else if ((state == STATE_REFILL) && mem_grant && (refill_cnt == 4'd5)) begin
             if (!bypass_act) data_mem2[refill_index] <= mem_rdata;
             if (refill_offset == 2'b10) bypass_word <= mem_rdata;
         end
@@ -226,7 +227,7 @@ module dcache_controller #(
             if (cpu_wstrb[1]) data_mem3[curr_index][15:8]  <= cpu_wdata[15:8];
             if (cpu_wstrb[2]) data_mem3[curr_index][23:16] <= cpu_wdata[23:16];
             if (cpu_wstrb[3]) data_mem3[curr_index][31:24] <= cpu_wdata[31:24];
-        end else if ((state == STATE_REFILL) && (refill_cnt == 4'd6)) begin
+        end else if ((state == STATE_REFILL) && mem_grant && (refill_cnt == 4'd6)) begin
             if (!bypass_act) data_mem3[refill_index] <= mem_rdata;
             if (refill_offset == 2'b11) bypass_word <= mem_rdata;
         end
@@ -277,20 +278,22 @@ module dcache_controller #(
                 end
 
                 STATE_REFILL: begin
-                    refill_cnt <= refill_cnt + 4'd1;
+                    if (mem_grant) begin
+                        refill_cnt <= refill_cnt + 4'd1;
 
-                    if (refill_cnt == 4'd7) begin
-                        if (bypass_act) begin
-                            // In bypass mode, do not write tag or valid bit
-                            state      <= STATE_BYPASS;
-                            refill_cnt <= 4'd0;
-                        end else begin
-                            // Finalize line: commit tag and set valid bit
-                            tag_array[refill_index]   <= refill_tag;
-                            valid_array[refill_index] <= 1'b1;
-                            state                     <= STATE_IDLE;
-                            refill_cnt                <= 4'd0;
-                            just_refilled             <= 1'b1;
+                        if (refill_cnt == 4'd7) begin
+                            if (bypass_act) begin
+                                // In bypass mode, do not write tag or valid bit
+                                state      <= STATE_BYPASS;
+                                refill_cnt <= 4'd0;
+                            end else begin
+                                // Finalize line: commit tag and set valid bit
+                                tag_array[refill_index]   <= refill_tag;
+                                valid_array[refill_index] <= 1'b1;
+                                state                     <= STATE_IDLE;
+                                refill_cnt                <= 4'd0;
+                                just_refilled             <= 1'b1;
+                            end
                         end
                     end
                 end

@@ -18,6 +18,7 @@ module decode_stage (
 
     // Writeback Interface from WB stage
     input  wire        wb_reg_write_i,
+    input  wire        wb_fp_reg_write_i,
     input  wire [4:0]  wb_dest_reg_i,
     input  wire [31:0] wb_data_i,
 
@@ -56,7 +57,12 @@ module decode_stage (
 
     // Hazard usage indicators to Hazard Unit
     output reg         id_rs1_used_o,
-    output reg         id_rs2_used_o
+    output reg         id_rs2_used_o,
+
+    // FP Register Space Disambiguation Signals
+    output wire        is_fp_dest_o,
+    output wire        rs1_is_fp_o,
+    output wire        rs2_is_fp_o
 );
 
     `include "opcode.vh"
@@ -74,29 +80,62 @@ module decode_stage (
 
     // ------------------------------------------------------------------------
     // General-Purpose Integer Register File (x0..x31, x0 hardwired to 0)
+    // Floating-Point Register File (f0..f31, f0 is a REAL writable register)
     // ------------------------------------------------------------------------
-    reg [31:0] regs [1:31];
-    integer i;
+    reg [31:0] regs  [1:31];
+    reg [31:0] fregs [0:31];
+    integer i, j;
 
-    // Synchronous Write Port
+    // Synchronous Mirrored Write Ports for Integer and Floating-Point Reg Files
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             for (i = 1; i < 32; i = i + 1) begin
-                regs[i] <= 32'h0000_0000;
+                regs[i]  <= (i == 2) ? 32'h0000_FFF0 : 32'h0000_0000;
+                fregs[i] <= (i == 2) ? 32'h0000_FFF0 : 32'h0000_0000;
             end
-        end else if (wb_reg_write_i && (wb_dest_reg_i != 5'd0)) begin
-            regs[wb_dest_reg_i] <= wb_data_i;
+            fregs[0] <= 32'h0000_0000;
+        end else if (wb_reg_write_i) begin
+            if (wb_dest_reg_i != 5'd0)
+                regs[wb_dest_reg_i] <= wb_data_i;
+            fregs[wb_dest_reg_i]    <= wb_data_i;
         end
     end
 
     // Dual Asynchronous Read Ports with Internal Bypass (WB -> ID Forwarding)
-    assign rdata1_o = (rs1_o == 5'd0) ? 32'd0 :
-                      (wb_reg_write_i && (wb_dest_reg_i == rs1_o)) ? wb_data_i :
-                      regs[rs1_o];
+    wire [31:0] int_rdata1 = (rs1_o == 5'd0) ? 32'd0 :
+                             (wb_reg_write_i && (wb_dest_reg_i == rs1_o)) ? wb_data_i :
+                             regs[rs1_o];
+    wire [31:0] int_rdata2 = (rs2_o == 5'd0) ? 32'd0 :
+                             (wb_reg_write_i && (wb_dest_reg_i == rs2_o)) ? wb_data_i :
+                             regs[rs2_o];
 
-    assign rdata2_o = (rs2_o == 5'd0) ? 32'd0 :
-                      (wb_reg_write_i && (wb_dest_reg_i == rs2_o)) ? wb_data_i :
-                      regs[rs2_o];
+    wire [31:0] fp_rdata1  = (wb_reg_write_i && (wb_dest_reg_i == rs1_o)) ? wb_data_i :
+                             fregs[rs1_o];
+    wire [31:0] fp_rdata2  = (wb_reg_write_i && (wb_dest_reg_i == rs2_o)) ? wb_data_i :
+                             fregs[rs2_o];
+
+    // Determine register file space for RS1 and RS2:
+    // RS1 is Float ONLY for OP_FP, except FCVT.S.W and FMV.W.X (which convert/move from Integer X to Float F)
+    // Note: FLW and FSW use an INTEGER base address register in RS1!
+    wire rs1_is_fp = (opcode == OP_FP) && (funct7_o != FUNCT7_FCVT_S_W) && (funct7_o != FUNCT7_FMV_W_X);
+
+    // RS2 is Float for OP_FP (arithmetic/comparisons) and FSW (value to write to memory)
+    wire rs2_is_fp = (opcode == OP_FP) || (opcode == STORE_FP);
+
+    // Destination register is Float for FLW and OP_FP (except FMV.X.W, FCVT.W.S, FEQ/FLT/FLE)
+    wire is_fp_dest = (opcode == LOAD_FP) ||
+                      ((opcode == OP_FP) &&
+                       (funct7_o != FUNCT7_FMV_X_W) &&
+                       (funct7_o != 7'b1100000 /* FCVT.W.S */) &&
+                       (funct7_o != 7'b1010000 /* FEQ/FLT/FLE */) &&
+                       (funct7_o != 7'b1110000 /* FCLASS */));
+
+    assign rs1_is_fp_o  = rs1_is_fp;
+    assign rs2_is_fp_o  = rs2_is_fp;
+    assign is_fp_dest_o = is_fp_dest;
+
+    assign rdata1_o = rs1_is_fp ? fp_rdata1 : int_rdata1;
+    assign rdata2_o = rs2_is_fp ? fp_rdata2 : int_rdata2;
 
     // ------------------------------------------------------------------------
     // Collision-Free Instruction Decoding
@@ -181,6 +220,21 @@ module decode_stage (
                         reg_write_o   = 1'b1;
                         id_rs1_used_o = 1'b1;
                         id_rs2_used_o = 1'b1;
+                    end
+                    FUNCT7_FCVT_S_W: begin
+                        is_fpu_o      = 1'b1;
+                        alu_o         = 1'b0;
+                        reg_write_o   = 1'b1;
+                        id_rs1_used_o = 1'b1;
+                        id_rs2_used_o = 1'b0;
+                    end
+                    FUNCT7_FMV_X_W, FUNCT7_FMV_W_X: begin
+                        alu_o           = 1'b1; // Pass rdata1 straight through ALU (rdata1 + 0)
+                        reg_write_o     = 1'b1;
+                        immediate_sel_o = 1'b1;
+                        imm_o           = 32'd0;
+                        id_rs1_used_o   = 1'b1;
+                        id_rs2_used_o   = 1'b0;
                     end
                     default: illegal_inst_o = 1'b1;
                 endcase

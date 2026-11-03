@@ -28,7 +28,12 @@ module fpu_single_core (
     input  wire [31:0] op_b,          // Float operand B (IEEE 754 single precision)
     output reg  [31:0] fpu_result,    // IEEE 754 float output
     output wire        fpu_busy,      // Multi-cycle stall interlock to Hazard Unit
-    output wire        fpu_done       // High when valid result is ready in EX
+    output wire        fpu_done,      // High when valid result is ready in EX
+    output wire        fpu_exc_nv,    // Invalid Operation (NaN)
+    output wire        fpu_exc_dz,    // Divide-by-Zero (+/- Infinity)
+    output wire        fpu_exc_of,    // Overflow
+    output wire        fpu_exc_uf,    // Underflow
+    output wire        fpu_exc_nx     // Inexact (RNE Round)
 );
 
     `include "opcode.vh"
@@ -176,6 +181,41 @@ module fpu_single_core (
     endfunction
 
     // ------------------------------------------------------------------------
+
+    function [31:0] int_to_float;
+        input [31:0] val;
+        input        is_signed;
+        reg          s;
+        reg [31:0]   mag;
+        integer      lz;
+        integer      k;
+        reg          found;
+        reg [7:0]    exp;
+        reg [22:0]   frac;
+        begin
+            if (val == 32'd0) begin
+                int_to_float = 32'd0;
+            end else begin
+                s   = is_signed && val[31];
+                mag = s ? (-val) : val;
+                lz  = 32;
+                found = 1'b0;
+                for (k = 31; k >= 0; k = k - 1) begin
+                    if (!found && mag[k]) begin
+                        lz = 31 - k;
+                        found = 1'b1;
+                    end
+                end
+                exp = 8'd127 + (8'd31 - lz[7:0]);
+                if (lz <= 8)
+                    frac = (mag >> (8 - lz)) & 23'h7FFFFF;
+                else
+                    frac = (mag << (lz - 8)) & 23'h7FFFFF;
+                int_to_float = {s, exp, frac};
+            end
+        end
+    endfunction
+
     // Scratch Variables for Procedural Always Block
     // ------------------------------------------------------------------------
     reg [22:0] fmul_frac_raw, fmul_frac_final;
@@ -249,6 +289,11 @@ module fpu_single_core (
                         sp_res    <= sp_res_c;
 
                         case (funct7)
+                            FUNCT7_FCVT_S_W: begin
+                                result_reg <= int_to_float(op_a, (funct3 == 3'b000));
+                                state      <= S_DONE;
+                            end
+
                             // ------------------------------------------------
                             // FMUL.S: Exactly 4 Cycles (1 IDLE + 2 CALC + 1 DONE)
                             // ------------------------------------------------
@@ -494,6 +539,7 @@ module fpu_single_core (
                     // Output is valid, return to IDLE on next clock edge
                     if (sp_valid) result_reg <= sp_res;
                     else case (saved_op)
+                        FUNCT7_FCVT_S_W: result_reg <= int_to_float(op_a, (saved_frm == 3'b000));
                         FUNCT7_FMUL: result_reg <= fmul_final_res;
                         FUNCT7_FDIV: result_reg <= fdiv_final_res;
                         default:     result_reg <= fadd_final_res;
@@ -512,6 +558,7 @@ module fpu_single_core (
             fpu_result = sp_res;
         end else if (state == S_DONE) begin
             case (saved_op)
+                FUNCT7_FCVT_S_W: fpu_result = int_to_float(op_a, (saved_frm == 3'b000));
                 FUNCT7_FMUL: fpu_result = fmul_final_res;
                 FUNCT7_FDIV: fpu_result = fdiv_final_res;
                 default:     fpu_result = fadd_final_res;
@@ -525,5 +572,13 @@ module fpu_single_core (
     // fpu_busy is HIGH during multi-cycle computation, drops to LOW on S_DONE
     assign fpu_busy = is_fpu && (state != S_DONE);
     assign fpu_done = is_fpu && (state == S_DONE);
+
+
+    // Microarchitectural Exception Indicators
+    assign fpu_exc_nv = (state == S_DONE) && ((fpu_result[30:23] == 8'hFF && fpu_result[22:0] != 23'd0) || fdiv_nan);
+    assign fpu_exc_dz = (state == S_DONE) && fdiv_div0;
+    assign fpu_exc_of = (state == S_DONE) && (fpu_result[30:23] == 8'hFF && fpu_result[22:0] == 23'd0 && !a_is_inf && !b_is_inf && !fdiv_div0);
+    assign fpu_exc_uf = (state == S_DONE) && (fpu_result[30:23] == 8'd0 && fpu_result[22:0] != 23'd0);
+    assign fpu_exc_nx = (state == S_DONE) && ((saved_op == FUNCT7_FMUL) ? (fmul_prod[21:0] != 22'd0) : (saved_op == FUNCT7_FDIV ? (fdiv_rem != 26'd0) : (fadd_sticky_round || fadd_norm_m[2:0] != 3'd0)));
 
 endmodule

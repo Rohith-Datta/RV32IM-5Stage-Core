@@ -54,6 +54,7 @@ localparam [6:0] FUNCT7_FADD    = 7'b0000000,  // FADD.S (5 cycles)
                  FUNCT7_FSUB    = 7'b0000100,  // FSUB.S (5 cycles)
                  FUNCT7_FMUL    = 7'b0001000,  // FMUL.S (4 cycles)
                  FUNCT7_FDIV    = 7'b0001100,  // FDIV.S (15 cycles)
+                 FUNCT7_FCVT_S_W= 7'b1101000,  // FCVT.S.W / FCVT.S.WU (1 cycle)
                  FUNCT7_FMV_X_W = 7'b1110000,  // FMV.X.W (x[rd] = f[rs1])
                  FUNCT7_FMV_W_X = 7'b1111000;  // FMV.W.X (f[rd] = x[rs1])
 

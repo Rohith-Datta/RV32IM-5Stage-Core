@@ -91,11 +91,12 @@ module mem_bus_arbiter (
         end
     end
 
-    // Combinational Grant Signals
-    // When IDLE and both arrive, D-Cache immediately wins
+    // Combinational Grant Signals with Strict Priority:
+    // When arbiter is in GRANT_ICACHE, I-Cache owns the bus until its 4-word refill completes.
+    // When arbiter is in GRANT_DCACHE, D-Cache owns the bus until its transaction completes.
+    // When GRANT_IDLE: D-Cache gets first priority if active; otherwise I-Cache.
     wire dcache_has_bus = (current_grant == GRANT_DCACHE) ||
                           ((current_grant == GRANT_IDLE) && dcache_active);
-
     wire icache_has_bus = (current_grant == GRANT_ICACHE) ||
                           ((current_grant == GRANT_IDLE) && !dcache_active && icache_active);
 

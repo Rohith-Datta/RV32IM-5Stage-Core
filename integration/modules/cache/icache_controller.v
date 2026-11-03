@@ -55,6 +55,7 @@ module icache_controller #(
     output wire [31:0] mem_addr,         // Burst address to backing memory
     input  wire [31:0] mem_rdata,        // Read word from backing memory
     output wire        mem_req,          // Memory read strobe
+    input  wire        mem_grant,        // Memory bus grant from arbiter
 
     // Diagnostic & performance observation signals
     output wire        cache_hit,
@@ -166,7 +167,7 @@ module icache_controller #(
 
     // Base address aligned to 16 bytes + word offset
     assign mem_addr = {latched_pc[31:4], burst_word_sel, 2'b00};
-    assign mem_req  = (state == STATE_REFILL) && (refill_cnt >= 4'd2 && refill_cnt <= 4'd5);
+    assign mem_req  = (state == STATE_REFILL);
 
     // ------------------------------------------------------------------------
     // FSM State & Storage Sequential Updates
@@ -218,33 +219,35 @@ module icache_controller #(
                 end
 
                 STATE_REFILL: begin
-                    refill_cnt <= refill_cnt + 4'd1;
+                    if (mem_grant) begin
+                        refill_cnt <= refill_cnt + 4'd1;
 
-                    // Latch burst words into cache data banks
-                    if (refill_cnt == 4'd3) begin
-                        if (!bypass_act) data_mem0[refill_index] <= mem_rdata;
-                        if (refill_offset == 2'b00) bypass_word <= mem_rdata;
-                    end else if (refill_cnt == 4'd4) begin
-                        if (!bypass_act) data_mem1[refill_index] <= mem_rdata;
-                        if (refill_offset == 2'b01) bypass_word <= mem_rdata;
-                    end else if (refill_cnt == 4'd5) begin
-                        if (!bypass_act) data_mem2[refill_index] <= mem_rdata;
-                        if (refill_offset == 2'b10) bypass_word <= mem_rdata;
-                    end else if (refill_cnt == 4'd6) begin
-                        if (!bypass_act) data_mem3[refill_index] <= mem_rdata;
-                        if (refill_offset == 2'b11) bypass_word <= mem_rdata;
-                    end else if (refill_cnt == (MISS_PENALTY - 2)) begin
-                        if (bypass_act) begin
-                            // In bypass mode, do not write tag or valid bit
-                            state         <= STATE_BYPASS;
-                            refill_cnt    <= 4'd0;
-                        end else begin
-                            // Finalize line: commit tag and set valid bit
-                            tag_array[refill_index]   <= refill_tag;
-                            valid_array[refill_index] <= 1'b1;
-                            state                     <= STATE_IDLE;
-                            refill_cnt                <= 4'd0;
-                            just_refilled             <= 1'b1;
+                        // Latch burst words into cache data banks
+                        if (refill_cnt == 4'd3) begin
+                            if (!bypass_act) data_mem0[refill_index] <= mem_rdata;
+                            if (refill_offset == 2'b00) bypass_word <= mem_rdata;
+                        end else if (refill_cnt == 4'd4) begin
+                            if (!bypass_act) data_mem1[refill_index] <= mem_rdata;
+                            if (refill_offset == 2'b01) bypass_word <= mem_rdata;
+                        end else if (refill_cnt == 4'd5) begin
+                            if (!bypass_act) data_mem2[refill_index] <= mem_rdata;
+                            if (refill_offset == 2'b10) bypass_word <= mem_rdata;
+                        end else if (refill_cnt == 4'd6) begin
+                            if (!bypass_act) data_mem3[refill_index] <= mem_rdata;
+                            if (refill_offset == 2'b11) bypass_word <= mem_rdata;
+                        end else if (refill_cnt == (MISS_PENALTY - 2)) begin
+                            if (bypass_act) begin
+                                // In bypass mode, do not write tag or valid bit
+                                state         <= STATE_BYPASS;
+                                refill_cnt    <= 4'd0;
+                            end else begin
+                                // Finalize line: commit tag and set valid bit
+                                tag_array[refill_index]   <= refill_tag;
+                                valid_array[refill_index] <= 1'b1;
+                                state                     <= STATE_IDLE;
+                                refill_cnt                <= 4'd0;
+                                just_refilled             <= 1'b1;
+                            end
                         end
                     end
                 end

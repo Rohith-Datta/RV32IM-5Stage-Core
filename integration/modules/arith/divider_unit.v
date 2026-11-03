@@ -26,7 +26,8 @@ module divider_unit (
     input  wire [31:0] op_b,          // Divisor (rs2 forwarded)
     output wire [31:0] div_result,    // Final computation result
     output wire        div_busy,      // Interlock stall signal to hazard unit
-    output wire        div_done       // High when valid result is ready in EX
+    output wire        div_done,      // High when valid result is ready in EX
+    output wire        div_exc_dz     // Divide-by-Zero exception indicator
 );
 
     `include "opcode.vh"
@@ -128,5 +129,7 @@ module divider_unit (
     wire is_last_calc = (state == S_CALC) && (count == 5'd0);
     assign div_busy = (state == S_CALC) ? !is_last_calc : (is_div && !is_corner_case);
     assign div_done = (state == S_CALC) ? is_last_calc  : (is_div && is_corner_case);
+
+    assign div_exc_dz = is_div && (op_b == 32'd0);
 
 endmodule

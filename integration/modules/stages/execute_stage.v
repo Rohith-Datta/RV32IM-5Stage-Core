@@ -65,7 +65,15 @@ module execute_stage (
     output wire        btb_update_en_o,
     output wire        btb_update_taken_o,
     output wire [31:0] btb_update_pc_o,
-    output wire [31:0] btb_update_target_o
+    output wire [31:0] btb_update_target_o,
+
+    // Architectural Status Indicators for Nexys A7
+    output wire        zbb_active_o,
+    output wire        fpu_exc_nv_o,
+    output wire        fpu_exc_dz_o,
+    output wire        fpu_exc_of_o,
+    output wire        fpu_exc_uf_o,
+    output wire        fpu_exc_nx_o
 );
 
     `include "opcode.vh"
@@ -174,6 +182,7 @@ module execute_stage (
     wire        div_busy;
     wire        div_done;
 
+    wire div_exc_dz;
     divider_unit u_divider (
         .clk        (clk),
         .reset_n    (reset_n),
@@ -183,7 +192,8 @@ module execute_stage (
         .op_b       (forwarded_rdata2),
         .div_result (div_result),
         .div_busy   (div_busy),
-        .div_done   (div_done)
+        .div_done   (div_done),
+        .div_exc_dz (div_exc_dz)
     );
 
     assign div_busy_o = div_busy;
@@ -192,6 +202,12 @@ module execute_stage (
     wire [31:0] fpu_result;
     wire        fpu_busy;
     wire        fpu_done;
+
+    wire fpu_exc_nv_wire;
+    wire fpu_exc_dz_wire;
+    wire fpu_exc_of_wire;
+    wire fpu_exc_uf_wire;
+    wire fpu_exc_nx_wire;
 
     fpu_single_core u_fpu (
         .clk        (clk),
@@ -203,8 +219,27 @@ module execute_stage (
         .op_b       (forwarded_rdata2),
         .fpu_result (fpu_result),
         .fpu_busy   (fpu_busy),
-        .fpu_done   (fpu_done)
+        .fpu_done   (fpu_done),
+        .fpu_exc_nv (fpu_exc_nv_wire),
+        .fpu_exc_dz (fpu_exc_dz_wire),
+        .fpu_exc_of (fpu_exc_of_wire),
+        .fpu_exc_uf (fpu_exc_uf_wire),
+        .fpu_exc_nx (fpu_exc_nx_wire)
     );
+
+    assign fpu_exc_nv_o = fpu_exc_nv_wire;
+    assign fpu_exc_dz_o = fpu_exc_dz_wire || div_exc_dz;
+    assign fpu_exc_of_o = fpu_exc_of_wire;
+    assign fpu_exc_uf_o = fpu_exc_uf_wire;
+    assign fpu_exc_nx_o = fpu_exc_nx_wire;
+
+    wire is_zbb_wire = (alu_op_i == 3'b101 && (imm_i[11:0] == 12'h698 || imm_i[11:0] == 12'h287)) ||
+                       (alu_op_i == 3'b001 && (imm_i[11:0] == 12'h600 || imm_i[11:0] == 12'h601 || imm_i[11:0] == 12'h602 || imm_i[11:0] == 12'h604 || imm_i[11:0] == 12'h605)) ||
+                       (funct7_i == 7'b0000101) ||
+                       (funct7_i == 7'b0100000 && arithsubtype_i == 1'b0) ||
+                       (funct7_i == 7'b0110000) ||
+                       (funct7_i == 7'b0000100);
+    assign zbb_active_o = is_zbb_wire && !branch_i && !jal_i && !jalr_i && !mem_read_i && !mem_write_i && !is_mul_i && !is_div_i && !is_fpu_i && !is_csr_i;
 
     assign fpu_busy_o = fpu_busy;
 

@@ -21,6 +21,7 @@ module mem_wb_reg (
     input  wire [2:0]  funct3_i,
     input  wire        mem_to_reg_i,
     input  wire        reg_write_i,
+    input  wire        is_fp_dest_i,
 
     // Outputs to Writeback Stage
     output reg         valid_o,
@@ -30,7 +31,8 @@ module mem_wb_reg (
     output reg  [4:0]  rd_o,
     output reg  [2:0]  funct3_o,
     output reg         mem_to_reg_o,
-    output reg         reg_write_o
+    output reg         reg_write_o,
+    output reg         is_fp_dest_o
 );
 
     always @(posedge clk or negedge reset_n) begin
@@ -43,6 +45,7 @@ module mem_wb_reg (
             funct3_o     <= 3'b0;
             mem_to_reg_o <= 1'b0;
             reg_write_o  <= 1'b0;
+            is_fp_dest_o <= 1'b0;
         end else if (flush) begin
             valid_o      <= 1'b0;
             pc_o         <= 32'h0;
@@ -52,6 +55,7 @@ module mem_wb_reg (
             funct3_o     <= 3'b0;
             mem_to_reg_o <= 1'b0;
             reg_write_o  <= 1'b0;
+            is_fp_dest_o <= 1'b0;
         end else if (!stall) begin
             valid_o      <= valid_i;
             pc_o         <= pc_i;
@@ -61,6 +65,7 @@ module mem_wb_reg (
             funct3_o     <= funct3_i;
             mem_to_reg_o <= mem_to_reg_i;
             reg_write_o  <= reg_write_i;
+            is_fp_dest_o <= is_fp_dest_i;
         end
     end
 

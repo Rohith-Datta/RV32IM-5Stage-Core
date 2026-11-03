@@ -62,7 +62,29 @@ module rv32imf_core #(
     output wire [63:0] instret_count_o,
     output wire [63:0] stall_count_o,
     output wire [63:0] branch_count_o,
-    output wire [63:0] mispredict_count_o
+    output wire [63:0] mispredict_count_o,
+
+    // Memory-Mapped I/O (MMIO) Interface
+    input  wire [15:0] sw_i,
+    input  wire        uart_tx_busy_i,
+    output wire        uart_tx_start_o,
+    output wire [7:0]  uart_tx_data_o,
+    output wire [31:0] seg7_override_o,
+    output wire        demo_complete_o,
+
+    // Architectural Snoop Outputs for Nexys A7 Controller
+    output wire        load_use_hazard_o,
+    output wire        dcache_miss_busy_o,
+    output wire        icache_miss_busy_o,
+    output wire        btb_mispredict_flush_o,
+    output wire        muldiv_busy_o,
+    output wire        wb_reg_commit_o,
+    output wire        fpu_exc_nv_o,
+    output wire        fpu_exc_dz_o,
+    output wire        fpu_exc_of_o,
+    output wire        fpu_exc_uf_o,
+    output wire        fpu_exc_nx_o,
+    output wire        zbb_active_o
 );
 
     pipeline_5stage #(
@@ -106,7 +128,25 @@ module rv32imf_core #(
         .instret_count_o    (instret_count_o),
         .stall_count_o      (stall_count_o),
         .branch_count_o     (branch_count_o),
-        .mispredict_count_o (mispredict_count_o)
+        .mispredict_count_o (mispredict_count_o),
+        .sw_i               (sw_i),
+        .uart_tx_busy_i     (uart_tx_busy_i),
+        .uart_tx_start_o    (uart_tx_start_o),
+        .uart_tx_data_o     (uart_tx_data_o),
+        .seg7_override_o    (seg7_override_o),
+        .demo_complete_o    (demo_complete_o),
+        .load_use_hazard_o  (load_use_hazard_o),
+        .dcache_miss_busy_o (dcache_miss_busy_o),
+        .icache_miss_busy_o (icache_miss_busy_o),
+        .btb_mispredict_flush_o (btb_mispredict_flush_o),
+        .muldiv_busy_o      (muldiv_busy_o),
+        .wb_reg_commit_o    (wb_reg_commit_o),
+        .fpu_exc_nv_o       (fpu_exc_nv_o),
+        .fpu_exc_dz_o       (fpu_exc_dz_o),
+        .fpu_exc_of_o       (fpu_exc_of_o),
+        .fpu_exc_uf_o       (fpu_exc_uf_o),
+        .fpu_exc_nx_o       (fpu_exc_nx_o),
+        .zbb_active_o       (zbb_active_o)
     );
 
 endmodule

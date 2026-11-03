@@ -33,6 +33,15 @@ module hazard_unit (
     input  wire [4:0] mem_wb_rd,
     input  wire       mem_wb_reg_write,
 
+    // FP Register Space Disambiguation Signals
+    input  wire       id_rs1_is_fp,
+    input  wire       id_rs2_is_fp,
+    input  wire       id_ex_is_fp_dest,
+    input  wire       ex_rs1_is_fp,
+    input  wire       ex_rs2_is_fp,
+    input  wire       ex_mem_is_fp_dest,
+    input  wire       mem_wb_is_fp_dest,
+
     // Multi-Cycle Execution Units & Cache Miss Status
     input  wire       div_busy,
     input  wire       fpu_busy,
@@ -56,7 +65,8 @@ module hazard_unit (
     output wire       flush_if_id,
     output wire       flush_id_ex,
     output wire       flush_ex_mem,
-    output wire       flush_mem_wb
+    output wire       flush_mem_wb,
+    output wire       load_use_hazard_o
 );
 
     `include "opcode.vh"
@@ -116,5 +126,6 @@ module hazard_unit (
     assign flush_id_ex  = (load_use_hazard || mispredict) && !math_busy && !dcache_stall;
     assign flush_ex_mem = math_busy && !dcache_stall;
     assign flush_mem_wb = dcache_stall;
+    assign load_use_hazard_o = load_use_hazard;
 
 endmodule

@@ -47,6 +47,11 @@ module id_ex_reg (
     input  wire        pred_taken_i,
     input  wire [31:0] pred_target_i,
 
+    // FP Disambiguation Signals
+    input  wire        is_fp_dest_i,
+    input  wire        rs1_is_fp_i,
+    input  wire        rs2_is_fp_i,
+
     // Outputs to Execute Stage
     output reg         valid_o,
     output reg  [31:0] pc_o,
@@ -78,7 +83,10 @@ module id_ex_reg (
     output reg  [4:0]  rs2_o,
     output reg  [4:0]  rd_o,
     output reg         pred_taken_o,
-    output reg  [31:0] pred_target_o
+    output reg  [31:0] pred_target_o,
+    output reg         is_fp_dest_o,
+    output reg         rs1_is_fp_o,
+    output reg         rs2_is_fp_o
 );
 
     always @(posedge clk or negedge reset_n) begin
@@ -114,6 +122,9 @@ module id_ex_reg (
             rd_o            <= 5'h0;
             pred_taken_o    <= 1'b0;
             pred_target_o   <= 32'h0;
+            is_fp_dest_o    <= 1'b0;
+            rs1_is_fp_o     <= 1'b0;
+            rs2_is_fp_o     <= 1'b0;
         end else if (flush) begin
             valid_o         <= 1'b0;
             pc_o            <= 32'h0;
@@ -146,6 +157,9 @@ module id_ex_reg (
             rd_o            <= 5'h0;
             pred_taken_o    <= 1'b0;
             pred_target_o   <= 32'h0;
+            is_fp_dest_o    <= 1'b0;
+            rs1_is_fp_o     <= 1'b0;
+            rs2_is_fp_o     <= 1'b0;
         end else if (!stall) begin
             valid_o         <= valid_i;
             pc_o            <= pc_i;
@@ -178,6 +192,9 @@ module id_ex_reg (
             rd_o            <= rd_i;
             pred_taken_o    <= pred_taken_i;
             pred_target_o   <= pred_target_i;
+            is_fp_dest_o    <= is_fp_dest_i;
+            rs1_is_fp_o     <= rs1_is_fp_i;
+            rs2_is_fp_o     <= rs2_is_fp_i;
         end
     end
 

@@ -8,6 +8,7 @@
 *.backup.*
 xsim.dir/
 integration/sim_run/
+integration/sim_run_soc/
 .Xil/
 *dfx_runtime.txt
 *.tmp

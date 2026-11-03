@@ -68,7 +68,29 @@ module pipeline_5stage #(
     output wire [63:0] instret_count_o,
     output wire [63:0] stall_count_o,
     output wire [63:0] branch_count_o,
-    output wire [63:0] mispredict_count_o
+    output wire [63:0] mispredict_count_o,
+
+    // Memory-Mapped I/O (MMIO) Interface
+    input  wire [15:0] sw_i,
+    input  wire        uart_tx_busy_i,
+    output reg         uart_tx_start_o,
+    output reg  [7:0]  uart_tx_data_o,
+    output reg  [31:0] seg7_override_o,
+    output reg         demo_complete_o,
+
+    // Architectural Snoop Outputs for Nexys A7 Controller
+    output wire        load_use_hazard_o,
+    output wire        dcache_miss_busy_o,
+    output wire        icache_miss_busy_o,
+    output wire        btb_mispredict_flush_o,
+    output wire        muldiv_busy_o,
+    output wire        wb_reg_commit_o,
+    output wire        fpu_exc_nv_o,
+    output wire        fpu_exc_dz_o,
+    output wire        fpu_exc_of_o,
+    output wire        fpu_exc_uf_o,
+    output wire        fpu_exc_nx_o,
+    output wire        zbb_active_o
 );
 
     `include "opcode.vh"
@@ -171,6 +193,7 @@ module pipeline_5stage #(
         .mem_addr        (icache_mem_addr),
         .mem_rdata       (icache_mem_rdata),
         .mem_req         (icache_mem_req),
+        .mem_grant       (icache_mem_grant),
         .cache_hit       (icache_hit),
         .cache_miss      (icache_miss),
         .miss_pulse_o    (icache_miss_pulse),
@@ -249,6 +272,10 @@ module pipeline_5stage #(
     wire [6:0]  id_funct7;
     wire        id_rs1_used;
     wire        id_rs2_used;
+    wire        id_is_fp_dest;
+    wire        id_rs1_is_fp;
+    wire        id_rs2_is_fp;
+    wire        wb_is_fp_dest;
 
     decode_stage u_decode_stage (
         .clk             (clk),
@@ -256,6 +283,7 @@ module pipeline_5stage #(
         .instruction_i   (id_instruction),
         .pc_i            (id_pc),
         .wb_reg_write_i  (wb_reg_write),
+        .wb_fp_reg_write_i(wb_reg_write && wb_is_fp_dest),
         .wb_dest_reg_i   (wb_dest_reg),
         .wb_data_i       (wb_data),
         .alu_op_o        (id_alu_op),
@@ -286,7 +314,10 @@ module pipeline_5stage #(
         .funct3_o        (id_funct3),
         .funct7_o        (id_funct7),
         .id_rs1_used_o   (id_rs1_used),
-        .id_rs2_used_o   (id_rs2_used)
+        .id_rs2_used_o   (id_rs2_used),
+        .is_fp_dest_o    (id_is_fp_dest),
+        .rs1_is_fp_o     (id_rs1_is_fp),
+        .rs2_is_fp_o     (id_rs2_is_fp)
     );
 
     // ========================================================================
@@ -323,6 +354,9 @@ module pipeline_5stage #(
     wire [4:0]  ex_rd;
     wire        ex_pred_taken;
     wire [31:0] ex_pred_target;
+    wire        ex_is_fp_dest;
+    wire        ex_rs1_is_fp;
+    wire        ex_rs2_is_fp;
 
     id_ex_reg u_id_ex_reg (
         .clk             (clk),
@@ -360,6 +394,9 @@ module pipeline_5stage #(
         .rd_i            (id_rd),
         .pred_taken_i    (id_pred_taken),
         .pred_target_i   (id_pred_target),
+        .is_fp_dest_i    (id_is_fp_dest),
+        .rs1_is_fp_i     (id_rs1_is_fp),
+        .rs2_is_fp_i     (id_rs2_is_fp),
         .valid_o         (ex_valid),
         .pc_o            (ex_pc),
         .pc_plus4_o      (ex_pc_plus4),
@@ -390,7 +427,10 @@ module pipeline_5stage #(
         .rs2_o           (ex_rs2),
         .rd_o            (ex_rd),
         .pred_taken_o    (ex_pred_taken),
-        .pred_target_o   (ex_pred_target)
+        .pred_target_o   (ex_pred_target),
+        .is_fp_dest_o    (ex_is_fp_dest),
+        .rs1_is_fp_o     (ex_rs1_is_fp),
+        .rs2_is_fp_o     (ex_rs2_is_fp)
     );
 
     assign pc_ex = ex_pc;
@@ -406,6 +446,7 @@ module pipeline_5stage #(
     wire [31:0] mem_alu_result;
     wire [31:0] csr_rdata_wire;
 
+    wire [31:0] mem_forward_data;
     execute_stage u_execute_stage (
         .clk                    (clk),
         .reset_n                (reset_n),
@@ -414,7 +455,7 @@ module pipeline_5stage #(
         .rdata1_i               (ex_rdata1),
         .rdata2_i               (ex_rdata2),
         .imm_i                  (ex_imm),
-        .ex_mem_data_i          (mem_alu_result),
+        .ex_mem_data_i          (mem_forward_data),
         .mem_wb_data_i          (wb_data),
         .forward_a_i            (forward_a),
         .forward_b_i            (forward_b),
@@ -449,7 +490,13 @@ module pipeline_5stage #(
         .btb_update_en_o        (ex_btb_update_en),
         .btb_update_taken_o     (ex_btb_update_taken),
         .btb_update_pc_o        (ex_btb_update_pc),
-        .btb_update_target_o    (ex_btb_update_target)
+        .btb_update_target_o    (ex_btb_update_target),
+        .zbb_active_o           (zbb_active_o),
+        .fpu_exc_nv_o           (fpu_exc_nv_o),
+        .fpu_exc_dz_o           (fpu_exc_dz_o),
+        .fpu_exc_of_o           (fpu_exc_of_o),
+        .fpu_exc_uf_o           (fpu_exc_uf_o),
+        .fpu_exc_nx_o           (fpu_exc_nx_o)
     );
 
     wire mem_valid;
@@ -486,6 +533,7 @@ module pipeline_5stage #(
     wire        mem_mem_write;
     wire        mem_mem_to_reg;
     wire        mem_reg_write;
+    wire        mem_is_fp_dest;
 
     ex_mem_reg u_ex_mem_reg (
         .clk          (clk),
@@ -503,6 +551,7 @@ module pipeline_5stage #(
         .mem_write_i  (ex_mem_write),
         .mem_to_reg_i (ex_mem_to_reg),
         .reg_write_i  (ex_reg_write),
+        .is_fp_dest_i (ex_is_fp_dest),
         .valid_o      (mem_valid),
         .pc_o         (mem_pc),
         .pc_plus4_o   (mem_pc_plus4),
@@ -513,7 +562,8 @@ module pipeline_5stage #(
         .mem_read_o   (mem_mem_read),
         .mem_write_o  (mem_mem_write),
         .mem_to_reg_o (mem_mem_to_reg),
-        .reg_write_o  (mem_reg_write)
+        .reg_write_o  (mem_reg_write),
+        .is_fp_dest_o (mem_is_fp_dest)
     );
 
     assign pc_mem = mem_pc;
@@ -540,6 +590,43 @@ module pipeline_5stage #(
         .dmem_re_o    (dmem_stage_re)
     );
 
+    // ------------------------------------------------------------------------
+    // Memory-Mapped I/O (MMIO) Registers & Logic (0x80000000 - 0x8000000C)
+    // ------------------------------------------------------------------------
+    wire is_mmio = dmem_stage_addr[31];
+    reg [31:0] mmio_rdata;
+
+    always @(*) begin
+        case (dmem_stage_addr[3:0])
+            4'h0:    mmio_rdata = {16'h0000, sw_i};
+            4'h4:    mmio_rdata = {uart_tx_busy_i, 31'b0};
+            4'h8:    mmio_rdata = seg7_override_o;
+            4'hC:    mmio_rdata = {31'b0, demo_complete_o};
+            default: mmio_rdata = 32'h0000_0000;
+        endcase
+    end
+
+    always @(posedge clk or negedge reset_n) begin
+        if (!reset_n) begin
+            uart_tx_start_o <= 1'b0;
+            uart_tx_data_o  <= 8'h00;
+            seg7_override_o <= 32'h0000_0000;
+            demo_complete_o <= 1'b0;
+        end else begin
+            uart_tx_start_o <= 1'b0; // 1-cycle strobe
+            if (is_mmio && dmem_stage_we) begin
+                case (dmem_stage_addr[3:0])
+                    4'h4: begin
+                        uart_tx_start_o <= 1'b1;
+                        uart_tx_data_o  <= dmem_stage_wdata[7:0];
+                    end
+                    4'h8: seg7_override_o <= dmem_stage_wdata;
+                    4'hC: demo_complete_o <= dmem_stage_wdata[0];
+                endcase
+            end
+        end
+    end
+
     wire [31:0] dcache_cpu_rdata;
     wire [31:0] dcache_mem_addr;
     wire [31:0] dcache_mem_rdata;
@@ -564,8 +651,8 @@ module pipeline_5stage #(
         .cpu_addr        (dmem_stage_addr),
         .cpu_wdata       (dmem_stage_wdata),
         .cpu_wstrb       (dmem_stage_wstrb),
-        .cpu_we          (dmem_stage_we),
-        .cpu_re          (dmem_stage_re),
+        .cpu_we          (dmem_stage_we && !is_mmio),
+        .cpu_re          (dmem_stage_re && !is_mmio),
         .cpu_rdata       (dcache_cpu_rdata),
         .dcache_stall    (dcache_stall),
         .mem_addr        (dcache_mem_addr),
@@ -574,6 +661,7 @@ module pipeline_5stage #(
         .mem_wstrb       (dcache_mem_wstrb),
         .mem_we          (dcache_mem_we),
         .mem_req         (dcache_mem_req),
+        .mem_grant       (dcache_mem_grant),
         .cache_hit       (dcache_hit),
         .cache_miss      (dcache_miss),
         .miss_pulse_o    (dcache_miss_pulse),
@@ -617,6 +705,43 @@ module pipeline_5stage #(
     wire        wb_mem_to_reg_reg;
     wire        wb_reg_write_reg;
 
+wire [31:0] mem_rdata_to_wb = mem_alu_result[31] ? mmio_rdata : dcache_cpu_rdata;
+
+    reg [31:0] mem_formatted_load_data;
+    always @(*) begin
+        case (mem_funct3)
+            3'b000: begin // LB
+                case (mem_alu_result[1:0])
+                    2'b00:   mem_formatted_load_data = {{24{mem_rdata_to_wb[7]}},  mem_rdata_to_wb[7:0]};
+                    2'b01:   mem_formatted_load_data = {{24{mem_rdata_to_wb[15]}}, mem_rdata_to_wb[15:8]};
+                    2'b10:   mem_formatted_load_data = {{24{mem_rdata_to_wb[23]}}, mem_rdata_to_wb[23:16]};
+                    default: mem_formatted_load_data = {{24{mem_rdata_to_wb[31]}}, mem_rdata_to_wb[31:24]};
+                endcase
+            end
+            3'b001: begin // LH
+                mem_formatted_load_data = mem_alu_result[1] ? {{16{mem_rdata_to_wb[31]}}, mem_rdata_to_wb[31:16]} :
+                                                              {{16{mem_rdata_to_wb[15]}}, mem_rdata_to_wb[15:0]};
+            end
+            3'b010: begin // LW
+                mem_formatted_load_data = mem_rdata_to_wb;
+            end
+            3'b100: begin // LBU
+                case (mem_alu_result[1:0])
+                    2'b00:   mem_formatted_load_data = {24'h0, mem_rdata_to_wb[7:0]};
+                    2'b01:   mem_formatted_load_data = {24'h0, mem_rdata_to_wb[15:8]};
+                    2'b10:   mem_formatted_load_data = {24'h0, mem_rdata_to_wb[23:16]};
+                    default: mem_formatted_load_data = {24'h0, mem_rdata_to_wb[31:24]};
+                endcase
+            end
+            3'b101: begin // LHU
+                mem_formatted_load_data = mem_alu_result[1] ? {16'h0, mem_rdata_to_wb[31:16]} :
+                                                              {16'h0, mem_rdata_to_wb[15:0]};
+            end
+            default: mem_formatted_load_data = mem_rdata_to_wb;
+        endcase
+    end
+
+    assign mem_forward_data = mem_mem_to_reg ? mem_formatted_load_data : mem_alu_result;
     mem_wb_reg u_mem_wb_reg (
         .clk          (clk),
         .reset_n      (reset_n),
@@ -625,11 +750,12 @@ module pipeline_5stage #(
         .valid_i      (mem_valid),
         .pc_i         (mem_pc),
         .alu_result_i (mem_alu_result),
-        .mem_rdata_i  (dcache_cpu_rdata),
+        .mem_rdata_i  (mem_rdata_to_wb),
         .rd_i         (mem_rd),
         .funct3_i     (mem_funct3),
         .mem_to_reg_i (mem_mem_to_reg),
         .reg_write_i  (mem_reg_write),
+        .is_fp_dest_i (mem_is_fp_dest),
         .valid_o      (wb_valid),
         .pc_o         (wb_pc_reg),
         .alu_result_o (wb_alu_result_reg),
@@ -637,7 +763,8 @@ module pipeline_5stage #(
         .rd_o         (wb_rd_reg),
         .funct3_o     (wb_funct3_reg),
         .mem_to_reg_o (wb_mem_to_reg_reg),
-        .reg_write_o  (wb_reg_write_reg)
+        .reg_write_o  (wb_reg_write_reg),
+        .is_fp_dest_o (wb_is_fp_dest)
     );
 
     assign pc_wb = wb_pc_reg;
@@ -674,10 +801,17 @@ module pipeline_5stage #(
         .ex_mem_reg_write (mem_reg_write),
         .mem_wb_rd        (wb_dest_reg),
         .mem_wb_reg_write (wb_reg_write),
+        .id_rs1_is_fp     (id_rs1_is_fp),
+        .id_rs2_is_fp     (id_rs2_is_fp),
+        .id_ex_is_fp_dest (ex_is_fp_dest),
+        .ex_rs1_is_fp     (ex_rs1_is_fp),
+        .ex_rs2_is_fp     (ex_rs2_is_fp),
+        .ex_mem_is_fp_dest(mem_is_fp_dest),
+        .mem_wb_is_fp_dest(wb_is_fp_dest),
         .div_busy         (div_busy_wire),
         .fpu_busy         (fpu_busy_wire),
         .icache_stall     (icache_stall),
-        .dcache_stall     (dcache_stall),
+        .dcache_stall     (dcache_stall || (dcache_mem_we && !dcache_mem_grant)),
         .mispredict       (ex_mispredict),
         .forward_a        (forward_a),
         .forward_b        (forward_b),
@@ -688,7 +822,15 @@ module pipeline_5stage #(
         .flush_if_id      (flush_if_id),
         .flush_id_ex      (flush_id_ex),
         .flush_ex_mem     (flush_ex_mem),
-        .flush_mem_wb     (flush_mem_wb)
+        .flush_mem_wb     (flush_mem_wb),
+        .load_use_hazard_o(load_use_hazard_o)
     );
+
+    // Architectural Status Indicators for Nexys A7
+    assign dcache_miss_busy_o     = dcache_stall;
+    assign icache_miss_busy_o     = icache_stall;
+    assign btb_mispredict_flush_o = ex_mispredict;
+    assign muldiv_busy_o          = div_busy_wire;
+    assign wb_reg_commit_o        = wb_reg_write && (wb_dest_reg != 5'd0);
 
 endmodule
