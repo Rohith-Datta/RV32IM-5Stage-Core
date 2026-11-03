@@ -671,7 +671,7 @@ class AvionicsDashboardApp(ctk.CTk):
         ic_specs = [
             ("Cache Geometry", "Direct Mapped (1024 Sets)"),
             ("Line Size", "4 Words (16 Bytes / Line)"),
-            ("Hit Latency", "0 Clock Cycles (Pipelined)"),
+            ("Hit Latency", "1 Clock Cycle (0 Stalls)"),
             ("Miss Penalty", "10 Clock Cycles Backing Refill"),
             ("Current Hit Ratio", "99.0%"),
             ("Memory Bus Priority", "Secondary (D-Cache Priority)"),
@@ -691,7 +691,7 @@ class AvionicsDashboardApp(ctk.CTk):
             ("Cache Geometry", "Direct Mapped (1024 Sets)"),
             ("Write Policy", "Write-Through, No-Write-Allocate"),
             ("Line Size", "4 Words (16 Bytes / Line)"),
-            ("Hit Latency", "1 Clock Cycle"),
+            ("Hit Latency", "1 Clock Cycle (0 Stalls)"),
             ("Miss Penalty", "10 Clock Cycles Refill FSM"),
             ("Current Hit Ratio", "95.0%"),
         ]
