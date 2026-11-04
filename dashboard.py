@@ -60,7 +60,19 @@ THEME = {
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("dark-blue")
 
-DEFAULT_PORT = "COM3"
+def get_default_port():
+    try:
+        ports = serial.tools.list_ports.comports()
+        for p in ports:
+            if "USB Serial Port" in p.description or "Digilent" in p.description or "FTDI" in p.description:
+                return p.device
+        if ports:
+            return ports[0].device
+    except Exception:
+        pass
+    return "COM4"
+
+DEFAULT_PORT = get_default_port()
 DEFAULT_BAUD = 115200
 
 
