@@ -37,31 +37,31 @@ module multiplier_unit
     wire signed_a = (funct3 == 3'b011) ? 1'b0 : 1'b1;
     wire signed_b = (funct3 == 3'b010 || funct3 == 3'b011) ? 1'b0 : 1'b1;
 
-    wire [63:0] product_dsp;
-    wire [63:0] product_booth;
     wire [63:0] product;
 
     // ------------------------------------------------------------------------
-    // Sub-Module Instantiations
+    // Sub-Module Instantiations (Parameter-Controlled Architecture Selection)
     // ------------------------------------------------------------------------
-    multiplier_dsp u_dsp_mult (
-        .signed_a (signed_a),
-        .signed_b (signed_b),
-        .op_a     (op_a),
-        .op_b     (op_b),
-        .product  (product_dsp)
-    );
+    generate
+        if (USE_DSP) begin : gen_dsp_mult
+            multiplier_dsp u_dsp_mult (
+                .signed_a (signed_a),
+                .signed_b (signed_b),
+                .op_a     (op_a),
+                .op_b     (op_b),
+                .product  (product)
+            );
+        end else begin : gen_booth_mult
+            booth_radix4_multiplier u_booth_mult (
+                .signed_a (signed_a),
+                .signed_b (signed_b),
+                .op_a     (op_a),
+                .op_b     (op_b),
+                .product  (product)
+            );
+        end
+    endgenerate
 
-    booth_radix4_multiplier u_booth_mult (
-        .signed_a (signed_a),
-        .signed_b (signed_b),
-        .op_a     (op_a),
-        .op_b     (op_b),
-        .product  (product_booth)
-    );
-
-    // Dynamic runtime or static parameter selection
-    assign product  = (use_dsp_sel) ? product_dsp : product_booth;
     assign mul_busy = 1'b0; // Single-cycle latency in EX stage
 
     // ------------------------------------------------------------------------

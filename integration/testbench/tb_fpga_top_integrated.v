@@ -3,7 +3,7 @@
 // Module: tb_fpga_top_integrated
 // Description: Full SoC Level Testbench for Pipelined RV32IMF+Zbb Processor
 // Verifies:
-//   - Clock divider (100 MHz -> 50 MHz)
+//   - Clock divider (100 MHz -> 40 MHz)
 //   - 64 KB Block RAM firmware loading & execution of avionics_demo.c
 //   - 8-digit 7-segment display PC multiplexing
 //   - 16 discrete status LEDs & 20ms pulse-stretchers
@@ -35,7 +35,7 @@ module tb_fpga_top_integrated;
     // Device Under Test (DUT) Instantiation
     // ------------------------------------------------------------------------
     fpga_top_integrated #(
-        .CLK_FREQ   (50_000_000),
+        .CLK_FREQ   (40_000_000),
         .BAUD_RATE  (2_500_000),
         .RAM_WORDS  (16384),
         .HEX_FILE   ("avionics_demo.hex")
@@ -54,7 +54,7 @@ module tb_fpga_top_integrated;
 
     // ------------------------------------------------------------------------
     // Virtual UART Receiver Task (2.5 MBaud in simulation, 8N1)
-    // 1 bit period = 1 / 2,500,000 s = 400 ns (20 cycles of 50 MHz clock)
+    // 1 bit period = 1 / 2,500,000 s = 400 ns (20 cycles of 40 MHz clock)
     // (Hardware synthesizes to 115,200 baud by default)
     // ------------------------------------------------------------------------
     localparam BIT_PERIOD_NS = 400;
@@ -106,7 +106,7 @@ module tb_fpga_top_integrated;
         // SW[15:14]=00 (Flight Telemetry Mode)
         // SW[13]=1    (L1 Caches Active)
         // SW[12]=0    (Hybrid CSV + Trace Mode)
-        // SW[11]=0    (50 MHz full speed)
+        // SW[11]=0    (40 MHz full speed)
         // SW[9]=1     (Simulation Fast Loop Pacing)
         // SW[7:0]=0x32 (Dynamic EMA gain alpha = 50 / 255.0 = 0.196)
         sw         = 16'h2232;
@@ -115,7 +115,7 @@ module tb_fpga_top_integrated;
         $display("[RAM CHECK] ram[0]=0x%08h ram[959]=0x%08h ram[960]=0x%08h", dut.ram[0], dut.ram[959], dut.ram[960]);
         #100;
         cpu_resetn = 1'b1;
-        $display("[INFO] FPGA Reset released. System clock running at 50 MHz.");
+        $display("[INFO] FPGA Reset released. System clock running at 40 MHz.");
 
         // Allow processor to boot, emit initial trace, and stream telemetry packets
         wait (csv_count >= 1);
@@ -124,7 +124,7 @@ module tb_fpga_top_integrated;
         $display("");
         $display("==================================================================");
         $display("   FPGA TOP-LEVEL SOC & FIRMWARE VERIFICATION SUCCESSFUL!         ");
-        $display("   - 50 MHz Core Clock & Reset Synchronization: PASS              ");
+        $display("   - 40 MHz Core Clock & Reset Synchronization: PASS              ");
         $display("   - 64 KB Block RAM Instruction Fetch: PASS                      ");
         $display("   - MMIO Peripherals & UART Serial Transmission: PASS            ");
         $display("   - 7-Segment Multiplexer & 16 Status LEDs: PASS                 ");

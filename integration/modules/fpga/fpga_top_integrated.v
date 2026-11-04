@@ -16,7 +16,7 @@
 `timescale 1ns/1ps
 
 module fpga_top_integrated #(
-    parameter CLK_FREQ   = 50_000_000,
+    parameter CLK_FREQ   = 40_000_000,
     parameter BAUD_RATE  = 115_200,
     parameter RAM_WORDS  = 16384, // 64 KB Unified RAM (16K x 32-bit words)
     parameter HEX_FILE   = "avionics_demo.hex"
@@ -34,22 +34,68 @@ module fpga_top_integrated #(
 );
 
     // ------------------------------------------------------------------------
-    // 1. Clock Generation: 50 MHz Derived Core Clock
+    // 1. Clock Generation: 40 MHz Derived Core Clock
     // ------------------------------------------------------------------------
-    reg clk_50mhz_reg = 1'b0;
-    always @(posedge clk_100mhz) begin
-        clk_50mhz_reg <= ~clk_50mhz_reg;
+`ifdef SIMULATION
+    reg clk_40mhz_sim = 1'b0;
+    initial begin
+        clk_40mhz_sim = 1'b0;
+        forever #12.5 clk_40mhz_sim = ~clk_40mhz_sim;
     end
-    wire clk_50mhz = clk_50mhz_reg;
+    wire clk_40mhz = clk_40mhz_sim;
+    wire mmcm_locked = 1'b1;
+`else
+    wire clk_40mhz_unbuf;
+    wire clkfb;
+    wire mmcm_locked;
+
+    MMCME2_BASE #(
+        .BANDWIDTH          ("OPTIMIZED"),
+        .CLKFBOUT_MULT_F    (10.000),      // VCO = 100 MHz * 10 = 1000 MHz (Valid: 600 - 1200 MHz)
+        .CLKFBOUT_PHASE     (0.0),
+        .CLKIN1_PERIOD      (10.000),      // 100 MHz onboard oscillator (10.000 ns)
+        .CLKOUT0_DIVIDE_F   (25.000),      // 1000 MHz / 25 = 40.000 MHz (25.000 ns period)
+        .CLKOUT0_DUTY_CYCLE (0.5),
+        .CLKOUT0_PHASE      (0.0),
+        .DIVCLK_DIVIDE      (1),
+        .REF_JITTER1        (0.010),
+        .STARTUP_WAIT       ("FALSE")
+    ) u_mmcm_clk40 (
+        .CLKOUT0            (clk_40mhz_unbuf),
+        .CLKOUT0B           (),
+        .CLKOUT1            (),
+        .CLKOUT1B           (),
+        .CLKOUT2            (),
+        .CLKOUT2B           (),
+        .CLKOUT3            (),
+        .CLKOUT3B           (),
+        .CLKOUT4            (),
+        .CLKOUT5            (),
+        .CLKOUT6            (),
+        .CLKFBOUT           (clkfb),
+        .CLKFBOUTB          (),
+        .LOCKED             (mmcm_locked),
+        .CLKIN1             (clk_100mhz),
+        .PWRDWN             (1'b0),
+        .RST                (~cpu_resetn),
+        .CLKFBIN            (clkfb)
+    );
+
+    wire clk_40mhz;
+    BUFG u_bufg_clk40 (
+        .I (clk_40mhz_unbuf),
+        .O (clk_40mhz)
+    );
+`endif
 
     // ------------------------------------------------------------------------
-    // 2. Synchronous Reset De-assertion in 50 MHz Domain
+    // 2. Synchronous Reset De-assertion in 40 MHz Domain
     // ------------------------------------------------------------------------
     reg [2:0] rst_sync;
-    always @(posedge clk_50mhz or negedge cpu_resetn) begin
+    always @(posedge clk_40mhz or negedge cpu_resetn) begin
         if (!cpu_resetn)
             rst_sync <= 3'b000;
-        else
+        else if (mmcm_locked)
             rst_sync <= {rst_sync[1:0], 1'b1};
     end
     wire sys_reset_n = rst_sync[2];
@@ -60,9 +106,9 @@ module fpga_top_integrated #(
     // When SW[11] is ON, generate a 10 Hz step pulse to freeze the pipeline via stall_ext
     reg [22:0] slow_cnt;
     wire slow_mode = sw[11];
-    wire step_pulse = (slow_cnt == 23'd5_000_000);
+    wire step_pulse = (slow_cnt == 23'd4_000_000);
 
-    always @(posedge clk_50mhz or negedge sys_reset_n) begin
+    always @(posedge clk_40mhz or negedge sys_reset_n) begin
         if (!sys_reset_n) begin
             slow_cnt <= 23'd0;
         end else if (slow_mode) begin
@@ -94,7 +140,7 @@ module fpga_top_integrated #(
         $readmemh(HEX_FILE, ram);
     end
 
-    always @(posedge clk_50mhz) begin
+    always @(posedge clk_40mhz) begin
         if (main_mem_req) begin
             if (main_mem_we) begin
                 if (main_mem_wstrb[0]) ram[word_idx][7:0]   <= main_mem_wdata[7:0];
@@ -119,7 +165,7 @@ module fpga_top_integrated #(
         .CLK_FREQ  (CLK_FREQ),
         .BAUD_RATE (BAUD_RATE)
     ) u_uart_tx (
-        .clk       (clk_50mhz),
+        .clk       (clk_40mhz),
         .reset_n   (sys_reset_n),
         .tx_start  (uart_tx_start),
         .tx_data   (uart_tx_data),
@@ -159,7 +205,7 @@ module fpga_top_integrated #(
     rv32imf_core #(
         .RESET_PC (32'h0000_0000)
     ) u_core (
-        .clk                    (clk_50mhz),
+        .clk                    (clk_40mhz),
         .reset_n                (sys_reset_n),
         .stall_ext              (core_stall_ext),
         .use_dsp_i              (1'b1),
@@ -222,7 +268,7 @@ module fpga_top_integrated #(
     // 7. Nexys A7 8-Digit 7-Segment Display & 16-LED Controller
     // ------------------------------------------------------------------------
     nexys_a7_io_controller u_io_ctrl (
-        .clk_100mhz             (clk_100mhz),
+        .clk_40mhz              (clk_40mhz),
         .rst_n                  (sys_reset_n),
         .current_pc             (pc_wb),
         .wb_write_data          (wb_data),

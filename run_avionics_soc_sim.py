@@ -29,7 +29,7 @@ inc_dir = os.path.join(ROOT_DIR, "integration", "modules")
 print(f"Collected {len(v_files)} Verilog files.")
 
 # Step 1: xvlog
-xvlog_cmd = ["xvlog", "-i", inc_dir] + v_files
+xvlog_cmd = ["xvlog", "-i", inc_dir, "-d", "SIMULATION"] + v_files
 print("Running xvlog...")
 res = subprocess.run(xvlog_cmd, cwd=SIM_DIR, capture_output=True, text=True, shell=True)
 if res.returncode != 0:

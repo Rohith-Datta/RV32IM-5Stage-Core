@@ -4,10 +4,22 @@
 ## Project: RV32IMF + Zbb + BTB + Caches + CSR Full-System Processor SoC
 ## ============================================================================
 
-## Clock signal (100 MHz onboard oscillator & 50 MHz Derived Core Clock)
+## Clock signal (100 MHz onboard oscillator & 40 MHz Derived Core Clock)
 set_property -dict { PACKAGE_PIN E3    IOSTANDARD LVCMOS33 } [get_ports { clk_100mhz }];
 create_clock -add -name sys_clk_pin -period 10.00 -waveform {0 5} [get_ports { clk_100mhz }];
-create_generated_clock -name clk_50mhz -source [get_ports clk_100mhz] -divide_by 2 [get_pins -hier -filter {NAME =~ *clk_50mhz_reg*/Q}]
+
+## Clock Domain Decoupling (100 MHz oscillator vs 40 MHz core)
+# Note: MMCME2_BASE automatically creates a 40 MHz generated clock (period 25.0 ns) on u_bufg_clk40/O
+set_clock_groups -asynchronous -group [get_clocks sys_clk_pin] -group [get_clocks -of_objects [get_pins u_bufg_clk40/O]]
+
+## Asynchronous User I/O False Paths (Human Interaction Pins)
+set_false_path -from [get_ports {sw[*] btnc cpu_resetn uart_rx}]
+set_false_path -to   [get_ports {led[*] seg[*] an[*] dp uart_tx}]
+
+## Multicycle Path for D-Cache to EX Stage Forwarding
+# The Hazard Unit injects a 1-cycle stall bubble on Load-Use data hazards, so D-cache reads are never consumed in EX in the same cycle.
+set_multicycle_path 2 -setup -from [get_cells -hier -filter {NAME =~ *u_dcache/*tag_array* || NAME =~ *u_dcache/*data_mem* || NAME =~ *u_ex_mem_reg/alu_result_o_reg*}] -to [get_cells -hier -filter {NAME =~ *u_ex_mem_reg/* || NAME =~ *u_fpu/*}]
+set_multicycle_path 1 -hold  -from [get_cells -hier -filter {NAME =~ *u_dcache/*tag_array* || NAME =~ *u_dcache/*data_mem* || NAME =~ *u_ex_mem_reg/alu_result_o_reg*}] -to [get_cells -hier -filter {NAME =~ *u_ex_mem_reg/* || NAME =~ *u_fpu/*}]
 
 ## CPU Reset Button (Active-low red pushbutton, Pin C12)
 set_property -dict { PACKAGE_PIN C12   IOSTANDARD LVCMOS33 } [get_ports { cpu_resetn }];
@@ -23,7 +35,7 @@ set_property -dict { PACKAGE_PIN U11   IOSTANDARD LVCMOS33 } [get_ports { sw[14]
 set_property -dict { PACKAGE_PIN U12   IOSTANDARD LVCMOS33 } [get_ports { sw[13] }];
 ## sw[12]    = Verbose Cycle-by-Cycle Trace Mode (1=Pure Trace, 0=Hybrid CSV+Trace)
 set_property -dict { PACKAGE_PIN H6    IOSTANDARD LVCMOS33 } [get_ports { sw[12] }];
-## sw[11]    = Execution Clock Throttle (0=50 MHz full speed, 1=10 Hz human step rate)
+## sw[11]    = Execution Clock Throttle (0=40 MHz full speed, 1=10 Hz human step rate)
 set_property -dict { PACKAGE_PIN T13   IOSTANDARD LVCMOS33 } [get_ports { sw[11] }];
 ## sw[10]    = 7-Segment Display Select (0=Live PC, 1=Committed WB Data)
 set_property -dict { PACKAGE_PIN R16   IOSTANDARD LVCMOS33 } [get_ports { sw[10] }];

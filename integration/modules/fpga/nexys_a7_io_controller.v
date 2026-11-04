@@ -11,7 +11,7 @@
 `timescale 1ns / 1ps
 
 module nexys_a7_io_controller (
-    input  wire        clk_100mhz,
+    input  wire        clk_40mhz,
     input  wire        rst_n,
     // Pipeline & Architectural Snoop Signals
     input  wire [31:0] current_pc,
@@ -61,19 +61,23 @@ module nexys_a7_io_controller (
         zbb_active            // [0]  -> LED[2]
     };
 
+    // Stage 1 Input Register: Isolates CPU pipeline events from 21-bit counter timing
+    reg [13:0] raw_events_q;
     reg [20:0] stretch_cnt [0:13];
     reg [13:0] stretched_leds;
     integer i;
 
-    always @(posedge clk_100mhz or negedge rst_n) begin
+    always @(posedge clk_40mhz or negedge rst_n) begin
         if (!rst_n) begin
+            raw_events_q   <= 14'b0;
             stretched_leds <= 14'b0;
             for (i = 0; i < 14; i = i + 1) stretch_cnt[i] <= 21'd0;
         end else begin
+            raw_events_q <= raw_events;
             for (i = 0; i < 14; i = i + 1) begin
-                if (raw_events[i]) begin
+                if (raw_events_q[i]) begin
                     stretched_leds[i] <= 1'b1;
-                    stretch_cnt[i]    <= 21'd2000000; // 20 ms hold at 100MHz
+                    stretch_cnt[i]    <= 21'd800000; // 20 ms hold at 40MHz
                 end else if (stretch_cnt[i] > 21'd0) begin
                     stretch_cnt[i]    <= stretch_cnt[i] - 1'b1;
                     stretched_leds[i] <= 1'b1;
@@ -92,13 +96,17 @@ module nexys_a7_io_controller (
     // 2. 8-Digit 7-Segment Display Controller (32-bit Hex PC / WB Data)
     // -------------------------------------------------------------------------
     reg [19:0] refresh_counter;
-    always @(posedge clk_100mhz or negedge rst_n) begin
+    always @(posedge clk_40mhz or negedge rst_n) begin
         if (!rst_n) refresh_counter <= 20'd0;
         else        refresh_counter <= refresh_counter + 1'b1;
     end
 
-    wire [2:0]  digit_sel   = refresh_counter[19:17]; // ~760 Hz refresh per digit
-    wire [31:0] display_val = sw_show_wb_on_seg7 ? wb_write_data : current_pc;
+    wire [2:0]  digit_sel   = refresh_counter[18:16]; // ~610 Hz refresh per digit at 40MHz
+    reg  [31:0] display_val;
+    always @(posedge clk_40mhz or negedge rst_n) begin
+        if (!rst_n) display_val <= 32'd0;
+        else        display_val <= sw_show_wb_on_seg7 ? wb_write_data : current_pc;
+    end
     reg  [3:0]  hex_nibble;
 
     always @(*) begin

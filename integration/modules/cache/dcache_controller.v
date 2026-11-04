@@ -190,7 +190,6 @@ module dcache_controller #(
             if (cpu_wstrb[3]) data_mem0[curr_index][31:24] <= cpu_wdata[31:24];
         end else if ((state == STATE_REFILL) && mem_grant && (refill_cnt == 4'd3)) begin
             if (!bypass_act) data_mem0[refill_index] <= mem_rdata;
-            if (refill_offset == 2'b00) bypass_word <= mem_rdata;
         end
     end
 
@@ -203,7 +202,6 @@ module dcache_controller #(
             if (cpu_wstrb[3]) data_mem1[curr_index][31:24] <= cpu_wdata[31:24];
         end else if ((state == STATE_REFILL) && mem_grant && (refill_cnt == 4'd4)) begin
             if (!bypass_act) data_mem1[refill_index] <= mem_rdata;
-            if (refill_offset == 2'b01) bypass_word <= mem_rdata;
         end
     end
 
@@ -216,7 +214,6 @@ module dcache_controller #(
             if (cpu_wstrb[3]) data_mem2[curr_index][31:24] <= cpu_wdata[31:24];
         end else if ((state == STATE_REFILL) && mem_grant && (refill_cnt == 4'd5)) begin
             if (!bypass_act) data_mem2[refill_index] <= mem_rdata;
-            if (refill_offset == 2'b10) bypass_word <= mem_rdata;
         end
     end
 
@@ -229,7 +226,6 @@ module dcache_controller #(
             if (cpu_wstrb[3]) data_mem3[curr_index][31:24] <= cpu_wdata[31:24];
         end else if ((state == STATE_REFILL) && mem_grant && (refill_cnt == 4'd6)) begin
             if (!bypass_act) data_mem3[refill_index] <= mem_rdata;
-            if (refill_offset == 2'b11) bypass_word <= mem_rdata;
         end
     end
 
@@ -280,6 +276,11 @@ module dcache_controller #(
                 STATE_REFILL: begin
                     if (mem_grant) begin
                         refill_cnt <= refill_cnt + 4'd1;
+
+                        if (refill_cnt == 4'd3 && refill_offset == 2'b00) bypass_word <= mem_rdata;
+                        else if (refill_cnt == 4'd4 && refill_offset == 2'b01) bypass_word <= mem_rdata;
+                        else if (refill_cnt == 4'd5 && refill_offset == 2'b10) bypass_word <= mem_rdata;
+                        else if (refill_cnt == 4'd6 && refill_offset == 2'b11) bypass_word <= mem_rdata;
 
                         if (refill_cnt == 4'd7) begin
                             if (bypass_act) begin
