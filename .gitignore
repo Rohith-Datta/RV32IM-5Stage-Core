@@ -40,6 +40,12 @@ vivado_project/*.hw/
 vivado_project/*.ip_user_files/
 vivado_project/*.runs/
 vivado_project/*.sim/
+integration/vivado_project/*.cache/
+integration/vivado_project/*.hw/
+integration/vivado_project/*.ip_user_files/
+integration/vivado_project/*.runs/
+integration/vivado_project/*.sim/
+integration/vivado_project/*.srcs/
 feature_1/vivado_project/*.cache/
 feature_1/vivado_project/*.hw/
 feature_1/vivado_project/*.ip_user_files/
