@@ -487,8 +487,8 @@ class AvionicsDashboardApp(ctk.CTk):
         for spine in self.ax.spines.values():
             spine.set_color(THEME["card_border"])
 
-        self.line_raw,  = self.ax.plot([], [], color=THEME["neon_cyan"], linewidth=1.5, label="Raw Sensor (Noisy)")
-        self.line_filt, = self.ax.plot([], [], color=THEME["neon_green"], linewidth=2.4, label="Filtered (EMA, α = 0.10)")
+        self.line_raw,  = self.ax.plot([], [], color=THEME["neon_cyan"], linewidth=1.5, zorder=3, label="Raw Sensor (Noisy)")
+        self.line_filt, = self.ax.plot([], [], color="#00FF66", linewidth=2.8, zorder=5, label="Filtered (EMA, α = 0.10)")
 
         self.legend = self.ax.legend(loc="lower left", facecolor="#0B111E", edgecolor=THEME["card_border"], labelcolor=THEME["header_sub"], fontsize=9, framealpha=0.9)
         self.canvas_plot = FigureCanvasTkAgg(self.fig, master=plot_container)
@@ -1081,11 +1081,11 @@ class AvionicsDashboardApp(ctk.CTk):
                     noise = random.gauss(0, 0.035)
                     raw_sample = base_wave + noise
 
-                    if len(self.filt_hist) == 0:
+                    if not hasattr(self, "_sim_prev_filt") or self._sim_prev_filt is None:
                         filt_sample = raw_sample
                     else:
-                        prev_filt = self.filt_hist[-1]
-                        filt_sample = (self.ema_alpha * raw_sample) + ((1.0 - self.ema_alpha) * prev_filt)
+                        filt_sample = (self.ema_alpha * raw_sample) + ((1.0 - self.ema_alpha) * self._sim_prev_filt)
+                    self._sim_prev_filt = filt_sample
 
                     sim_cycle_acc += random.randint(18, 26)
                     sim_inst_acc  += random.randint(34, 46)
@@ -1137,6 +1137,14 @@ class AvionicsDashboardApp(ctk.CTk):
                         self.ax.set_xlim(t_min, t_max)
                         self.line_raw.set_data(self.time_hist, self.raw_hist)
                         self.line_filt.set_data(self.time_hist, self.filt_hist)
+
+                        # Dynamic Y-Axis Autoscale: Guarantees green line is always in visible range
+                        valid_vals = [v for v in (self.raw_hist + self.filt_hist) if not math.isnan(v) and not math.isinf(v)]
+                        if valid_vals:
+                            ymin, ymax = min(valid_vals), max(valid_vals)
+                            margin = max(0.15, (ymax - ymin) * 0.15)
+                            self.ax.set_ylim(ymin - margin, ymax + margin)
+
                         self.canvas_plot.draw_idle()
 
                     # Floating Stat Overlay
