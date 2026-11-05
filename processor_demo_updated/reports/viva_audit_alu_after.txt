@@ -1,0 +1,2 @@
+ALU AUDIT cases=1920 failures=0
+audit_notes/audit_alu.v:1922: $finish called at 1920000 (1ps)

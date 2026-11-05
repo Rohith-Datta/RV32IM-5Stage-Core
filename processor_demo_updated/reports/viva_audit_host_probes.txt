@@ -1,0 +1,5 @@
+Completion with 100 packets / ZERO checks: {'text': ' RTL: 100/100 packets; 0 checks; 0 failures ', 'fg_color': '#1B5E20', 'text_color': '#FFFFFF'}
+Wrong normal-mode integer result: failures= 0
+Wrong self-test expected supplied by sender: failures= 0
+Flight -> diagnostic negative zero -> flight: host= 3F800000 firmware EMA expectation= 3E48C8C9
+These probes deliberately expose validation gaps; they are NOT passing hardware tests.

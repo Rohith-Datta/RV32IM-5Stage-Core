@@ -1,0 +1,1174 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2 (win64) Build 6299465 Fri Nov 14 19:35:11 GMT 2025
+| Date         : Thu Nov  5 18:30:36 2026
+| Host         : SPSB2928 running 64-bit major release  (build 9200)
+| Command      : report_timing -delay_type min -max_paths 20 -file build/reports_40mhz/worst_hold_paths.rpt
+| Design       : nexys_a7_top
+| Device       : 7a100t-csg324
+| Speed File   : -1  PRODUCTION 1.23 2018-06-13
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Report
+
+Slack (MET) :             0.020ns  (arrival time - required time)
+  Source:                 core/u_pipeline/u_dcache/hit_count_reg[20]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_dhit_reg[20]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.309ns  (logic 0.141ns (45.591%)  route 0.168ns (54.409%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.217ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.768ns
+    Source Clock Delay      (SCD):    -0.476ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.632    -0.476    core/u_pipeline/u_dcache/core_clk
+    SLICE_X47Y171        FDCE                                         r  core/u_pipeline/u_dcache/hit_count_reg[20]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X47Y171        FDCE (Prop_fdce_C_Q)         0.141    -0.335 r  core/u_pipeline/u_dcache/hit_count_reg[20]/Q
+                         net (fo=3, routed)           0.168    -0.166    transport/saved_dhit_reg[31]_0[20]
+    SLICE_X49Y171        FDCE                                         r  transport/saved_dhit_reg[20]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.905    -0.768    transport/clock50
+    SLICE_X49Y171        FDCE                                         r  transport/saved_dhit_reg[20]/C
+                         clock pessimism              0.509    -0.259    
+    SLICE_X49Y171        FDCE (Hold_fdce_C_D)         0.072    -0.187    transport/saved_dhit_reg[20]
+  -------------------------------------------------------------------
+                         required time                          0.187    
+                         arrival time                          -0.166    
+  -------------------------------------------------------------------
+                         slack                                  0.020    
+
+Slack (MET) :             0.022ns  (arrival time - required time)
+  Source:                 core/u_pipeline/u_mem_wb_reg/pc_o_reg[5]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_pc_reg[5]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.247ns  (logic 0.128ns (51.736%)  route 0.119ns (48.264%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.219ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.747ns
+    Source Clock Delay      (SCD):    -0.457ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.651    -0.457    core/u_pipeline/u_mem_wb_reg/core_clk
+    SLICE_X13Y156        FDCE                                         r  core/u_pipeline/u_mem_wb_reg/pc_o_reg[5]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X13Y156        FDCE (Prop_fdce_C_Q)         0.128    -0.329 r  core/u_pipeline/u_mem_wb_reg/pc_o_reg[5]/Q
+                         net (fo=1, routed)           0.119    -0.209    transport/saved_pc_reg[31]_0[5]
+    SLICE_X12Y156        FDCE                                         r  transport/saved_pc_reg[5]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.926    -0.747    transport/clock50
+    SLICE_X12Y156        FDCE                                         r  transport/saved_pc_reg[5]/C
+                         clock pessimism              0.509    -0.238    
+    SLICE_X12Y156        FDCE (Hold_fdce_C_D)         0.006    -0.232    transport/saved_pc_reg[5]
+  -------------------------------------------------------------------
+                         required time                          0.232    
+                         arrival time                          -0.209    
+  -------------------------------------------------------------------
+                         slack                                  0.022    
+
+Slack (MET) :             0.025ns  (arrival time - required time)
+  Source:                 core/u_pipeline/wb_instruction_trace_reg[26]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_inst_reg[26]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.310ns  (logic 0.141ns (45.417%)  route 0.169ns (54.583%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.216ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.839ns
+    Source Clock Delay      (SCD):    -0.546ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.562    -0.546    core/u_pipeline/core_clk
+    SLICE_X68Y145        FDCE                                         r  core/u_pipeline/wb_instruction_trace_reg[26]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X68Y145        FDCE (Prop_fdce_C_Q)         0.141    -0.405 r  core/u_pipeline/wb_instruction_trace_reg[26]/Q
+                         net (fo=1, routed)           0.169    -0.236    transport/saved_inst_reg[31]_0[26]
+    SLICE_X69Y143        FDCE                                         r  transport/saved_inst_reg[26]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.834    -0.839    transport/clock50
+    SLICE_X69Y143        FDCE                                         r  transport/saved_inst_reg[26]/C
+                         clock pessimism              0.509    -0.330    
+    SLICE_X69Y143        FDCE (Hold_fdce_C_D)         0.070    -0.260    transport/saved_inst_reg[26]
+  -------------------------------------------------------------------
+                         required time                          0.260    
+                         arrival time                          -0.236    
+  -------------------------------------------------------------------
+                         slack                                  0.025    
+
+Slack (MET) :             0.026ns  (arrival time - required time)
+  Source:                 core/u_pipeline/u_dcache/hit_count_reg[8]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_dhit_reg[8]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.308ns  (logic 0.141ns (45.777%)  route 0.167ns (54.223%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.216ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.766ns
+    Source Clock Delay      (SCD):    -0.473ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.635    -0.473    core/u_pipeline/u_dcache/core_clk
+    SLICE_X47Y168        FDCE                                         r  core/u_pipeline/u_dcache/hit_count_reg[8]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X47Y168        FDCE (Prop_fdce_C_Q)         0.141    -0.332 r  core/u_pipeline/u_dcache/hit_count_reg[8]/Q
+                         net (fo=3, routed)           0.167    -0.165    transport/saved_dhit_reg[31]_0[8]
+    SLICE_X48Y169        FDCE                                         r  transport/saved_dhit_reg[8]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.907    -0.766    transport/clock50
+    SLICE_X48Y169        FDCE                                         r  transport/saved_dhit_reg[8]/C
+                         clock pessimism              0.509    -0.257    
+    SLICE_X48Y169        FDCE (Hold_fdce_C_D)         0.066    -0.191    transport/saved_dhit_reg[8]
+  -------------------------------------------------------------------
+                         required time                          0.191    
+                         arrival time                          -0.165    
+  -------------------------------------------------------------------
+                         slack                                  0.026    
+
+Slack (MET) :             0.029ns  (arrival time - required time)
+  Source:                 core/u_pipeline/u_mem_wb_reg/pc_o_reg[7]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_pc_reg[7]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.267ns  (logic 0.148ns (55.508%)  route 0.119ns (44.492%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.219ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.747ns
+    Source Clock Delay      (SCD):    -0.457ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.651    -0.457    core/u_pipeline/u_mem_wb_reg/core_clk
+    SLICE_X10Y155        FDCE                                         r  core/u_pipeline/u_mem_wb_reg/pc_o_reg[7]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X10Y155        FDCE (Prop_fdce_C_Q)         0.148    -0.309 r  core/u_pipeline/u_mem_wb_reg/pc_o_reg[7]/Q
+                         net (fo=1, routed)           0.119    -0.190    transport/saved_pc_reg[31]_0[7]
+    SLICE_X9Y155         FDCE                                         r  transport/saved_pc_reg[7]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.926    -0.747    transport/clock50
+    SLICE_X9Y155         FDCE                                         r  transport/saved_pc_reg[7]/C
+                         clock pessimism              0.509    -0.238    
+    SLICE_X9Y155         FDCE (Hold_fdce_C_D)         0.019    -0.219    transport/saved_pc_reg[7]
+  -------------------------------------------------------------------
+                         required time                          0.219    
+                         arrival time                          -0.190    
+  -------------------------------------------------------------------
+                         slack                                  0.029    
+
+Slack (MET) :             0.031ns  (arrival time - required time)
+  Source:                 core/u_pipeline/u_mem_wb_reg/pc_o_reg[15]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_pc_reg[15]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.262ns  (logic 0.148ns (56.487%)  route 0.114ns (43.513%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.219ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.748ns
+    Source Clock Delay      (SCD):    -0.458ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.650    -0.458    core/u_pipeline/u_mem_wb_reg/core_clk
+    SLICE_X8Y157         FDCE                                         r  core/u_pipeline/u_mem_wb_reg/pc_o_reg[15]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X8Y157         FDCE (Prop_fdce_C_Q)         0.148    -0.310 r  core/u_pipeline/u_mem_wb_reg/pc_o_reg[15]/Q
+                         net (fo=1, routed)           0.114    -0.196    transport/saved_pc_reg[31]_0[15]
+    SLICE_X9Y158         FDCE                                         r  transport/saved_pc_reg[15]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.925    -0.748    transport/clock50
+    SLICE_X9Y158         FDCE                                         r  transport/saved_pc_reg[15]/C
+                         clock pessimism              0.509    -0.239    
+    SLICE_X9Y158         FDCE (Hold_fdce_C_D)         0.012    -0.227    transport/saved_pc_reg[15]
+  -------------------------------------------------------------------
+                         required time                          0.227    
+                         arrival time                          -0.196    
+  -------------------------------------------------------------------
+                         slack                                  0.031    
+
+Slack (MET) :             0.031ns  (arrival time - required time)
+  Source:                 display/stretched_leds_reg[9]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_leds_reg[11]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.369ns  (logic 0.141ns (38.190%)  route 0.228ns (61.810%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.268ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.843ns
+    Source Clock Delay      (SCD):    -0.607ns
+    Clock Pessimism Removal (CPR):    -0.504ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.557    -0.607    display/clock50
+    SLICE_X52Y142        FDCE                                         r  display/stretched_leds_reg[9]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X52Y142        FDCE (Prop_fdce_C_Q)         0.141    -0.466 r  display/stretched_leds_reg[9]/Q
+                         net (fo=1, routed)           0.228    -0.238    transport/LED_OBUF[10]
+    SLICE_X47Y142        FDCE                                         r  transport/saved_leds_reg[11]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.830    -0.843    transport/clock50
+    SLICE_X47Y142        FDCE                                         r  transport/saved_leds_reg[11]/C
+                         clock pessimism              0.504    -0.339    
+    SLICE_X47Y142        FDCE (Hold_fdce_C_D)         0.070    -0.269    transport/saved_leds_reg[11]
+  -------------------------------------------------------------------
+                         required time                          0.269    
+                         arrival time                          -0.238    
+  -------------------------------------------------------------------
+                         slack                                  0.031    
+
+Slack (MET) :             0.032ns  (arrival time - required time)
+  Source:                 core/u_pipeline/wb_instruction_trace_reg[25]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_inst_reg[25]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.264ns  (logic 0.148ns (55.987%)  route 0.116ns (44.013%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.216ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.839ns
+    Source Clock Delay      (SCD):    -0.546ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.562    -0.546    core/u_pipeline/core_clk
+    SLICE_X66Y144        FDCE                                         r  core/u_pipeline/wb_instruction_trace_reg[25]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X66Y144        FDCE (Prop_fdce_C_Q)         0.148    -0.398 r  core/u_pipeline/wb_instruction_trace_reg[25]/Q
+                         net (fo=1, routed)           0.116    -0.282    transport/saved_inst_reg[31]_0[25]
+    SLICE_X68Y143        FDCE                                         r  transport/saved_inst_reg[25]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.834    -0.839    transport/clock50
+    SLICE_X68Y143        FDCE                                         r  transport/saved_inst_reg[25]/C
+                         clock pessimism              0.509    -0.330    
+    SLICE_X68Y143        FDCE (Hold_fdce_C_D)         0.017    -0.313    transport/saved_inst_reg[25]
+  -------------------------------------------------------------------
+                         required time                          0.313    
+                         arrival time                          -0.282    
+  -------------------------------------------------------------------
+                         slack                                  0.032    
+
+Slack (MET) :             0.033ns  (arrival time - required time)
+  Source:                 core/u_pipeline/u_mem_wb_reg/pc_o_reg[3]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_pc_reg[3]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.268ns  (logic 0.148ns (55.321%)  route 0.120ns (44.679%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.219ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.747ns
+    Source Clock Delay      (SCD):    -0.457ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.651    -0.457    core/u_pipeline/u_mem_wb_reg/core_clk
+    SLICE_X10Y155        FDCE                                         r  core/u_pipeline/u_mem_wb_reg/pc_o_reg[3]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X10Y155        FDCE (Prop_fdce_C_Q)         0.148    -0.309 r  core/u_pipeline/u_mem_wb_reg/pc_o_reg[3]/Q
+                         net (fo=1, routed)           0.120    -0.189    transport/saved_pc_reg[31]_0[3]
+    SLICE_X9Y155         FDCE                                         r  transport/saved_pc_reg[3]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.926    -0.747    transport/clock50
+    SLICE_X9Y155         FDCE                                         r  transport/saved_pc_reg[3]/C
+                         clock pessimism              0.509    -0.238    
+    SLICE_X9Y155         FDCE (Hold_fdce_C_D)         0.016    -0.222    transport/saved_pc_reg[3]
+  -------------------------------------------------------------------
+                         required time                          0.222    
+                         arrival time                          -0.189    
+  -------------------------------------------------------------------
+                         slack                                  0.033    
+
+Slack (MET) :             0.036ns  (arrival time - required time)
+  Source:                 core/u_pipeline/u_dcache/hit_count_reg[12]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_dhit_reg[12]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.317ns  (logic 0.141ns (44.428%)  route 0.176ns (55.572%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.215ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.768ns
+    Source Clock Delay      (SCD):    -0.474ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.634    -0.474    core/u_pipeline/u_dcache/core_clk
+    SLICE_X47Y169        FDCE                                         r  core/u_pipeline/u_dcache/hit_count_reg[12]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X47Y169        FDCE (Prop_fdce_C_Q)         0.141    -0.333 r  core/u_pipeline/u_dcache/hit_count_reg[12]/Q
+                         net (fo=3, routed)           0.176    -0.156    transport/saved_dhit_reg[31]_0[12]
+    SLICE_X49Y171        FDCE                                         r  transport/saved_dhit_reg[12]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.905    -0.768    transport/clock50
+    SLICE_X49Y171        FDCE                                         r  transport/saved_dhit_reg[12]/C
+                         clock pessimism              0.509    -0.259    
+    SLICE_X49Y171        FDCE (Hold_fdce_C_D)         0.066    -0.193    transport/saved_dhit_reg[12]
+  -------------------------------------------------------------------
+                         required time                          0.193    
+                         arrival time                          -0.156    
+  -------------------------------------------------------------------
+                         slack                                  0.036    
+
+Slack (MET) :             0.040ns  (arrival time - required time)
+  Source:                 core/u_pipeline/u_icache/miss_count_reg[18]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_imiss_reg[18]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.305ns  (logic 0.141ns (46.271%)  route 0.164ns (53.729%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.218ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.729ns
+    Source Clock Delay      (SCD):    -0.438ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.670    -0.438    core/u_pipeline/u_icache/core_clk
+    SLICE_X0Y178         FDCE                                         r  core/u_pipeline/u_icache/miss_count_reg[18]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X0Y178         FDCE (Prop_fdce_C_Q)         0.141    -0.297 r  core/u_pipeline/u_icache/miss_count_reg[18]/Q
+                         net (fo=2, routed)           0.164    -0.133    transport/saved_imiss_reg[31]_0[18]
+    SLICE_X3Y177         FDCE                                         r  transport/saved_imiss_reg[18]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.944    -0.729    transport/clock50
+    SLICE_X3Y177         FDCE                                         r  transport/saved_imiss_reg[18]/C
+                         clock pessimism              0.509    -0.220    
+    SLICE_X3Y177         FDCE (Hold_fdce_C_D)         0.047    -0.173    transport/saved_imiss_reg[18]
+  -------------------------------------------------------------------
+                         required time                          0.173    
+                         arrival time                          -0.133    
+  -------------------------------------------------------------------
+                         slack                                  0.040    
+
+Slack (MET) :             0.041ns  (arrival time - required time)
+  Source:                 core/u_pipeline/u_icache/miss_count_reg[22]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_imiss_reg[22]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.307ns  (logic 0.141ns (45.882%)  route 0.166ns (54.118%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.219ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.727ns
+    Source Clock Delay      (SCD):    -0.437ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.671    -0.437    core/u_pipeline/u_icache/core_clk
+    SLICE_X0Y179         FDCE                                         r  core/u_pipeline/u_icache/miss_count_reg[22]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X0Y179         FDCE (Prop_fdce_C_Q)         0.141    -0.296 r  core/u_pipeline/u_icache/miss_count_reg[22]/Q
+                         net (fo=2, routed)           0.166    -0.129    transport/saved_imiss_reg[31]_0[22]
+    SLICE_X1Y179         FDCE                                         r  transport/saved_imiss_reg[22]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.946    -0.727    transport/clock50
+    SLICE_X1Y179         FDCE                                         r  transport/saved_imiss_reg[22]/C
+                         clock pessimism              0.509    -0.218    
+    SLICE_X1Y179         FDCE (Hold_fdce_C_D)         0.047    -0.171    transport/saved_imiss_reg[22]
+  -------------------------------------------------------------------
+                         required time                          0.171    
+                         arrival time                          -0.129    
+  -------------------------------------------------------------------
+                         slack                                  0.041    
+
+Slack (MET) :             0.043ns  (arrival time - required time)
+  Source:                 core/u_pipeline/u_dcache/miss_count_reg[8]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_dmiss_reg[8]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.342ns  (logic 0.164ns (47.987%)  route 0.178ns (52.013%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.221ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.730ns
+    Source Clock Delay      (SCD):    -0.442ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.666    -0.442    core/u_pipeline/u_dcache/core_clk
+    SLICE_X6Y175         FDCE                                         r  core/u_pipeline/u_dcache/miss_count_reg[8]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X6Y175         FDCE (Prop_fdce_C_Q)         0.164    -0.278 r  core/u_pipeline/u_dcache/miss_count_reg[8]/Q
+                         net (fo=2, routed)           0.178    -0.100    transport/saved_dmiss_reg[31]_0[8]
+    SLICE_X7Y177         FDCE                                         r  transport/saved_dmiss_reg[8]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.943    -0.730    transport/clock50
+    SLICE_X7Y177         FDCE                                         r  transport/saved_dmiss_reg[8]/C
+                         clock pessimism              0.509    -0.221    
+    SLICE_X7Y177         FDCE (Hold_fdce_C_D)         0.078    -0.143    transport/saved_dmiss_reg[8]
+  -------------------------------------------------------------------
+                         required time                          0.143    
+                         arrival time                          -0.100    
+  -------------------------------------------------------------------
+                         slack                                  0.043    
+
+Slack (MET) :             0.043ns  (arrival time - required time)
+  Source:                 core/u_pipeline/u_mem_wb_reg/pc_o_reg[11]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_pc_reg[11]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.261ns  (logic 0.148ns (56.607%)  route 0.113ns (43.393%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.219ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.748ns
+    Source Clock Delay      (SCD):    -0.458ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.650    -0.458    core/u_pipeline/u_mem_wb_reg/core_clk
+    SLICE_X8Y157         FDCE                                         r  core/u_pipeline/u_mem_wb_reg/pc_o_reg[11]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X8Y157         FDCE (Prop_fdce_C_Q)         0.148    -0.310 r  core/u_pipeline/u_mem_wb_reg/pc_o_reg[11]/Q
+                         net (fo=1, routed)           0.113    -0.196    transport/saved_pc_reg[31]_0[11]
+    SLICE_X8Y158         FDCE                                         r  transport/saved_pc_reg[11]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.925    -0.748    transport/clock50
+    SLICE_X8Y158         FDCE                                         r  transport/saved_pc_reg[11]/C
+                         clock pessimism              0.509    -0.239    
+    SLICE_X8Y158         FDCE (Hold_fdce_C_D)        -0.001    -0.240    transport/saved_pc_reg[11]
+  -------------------------------------------------------------------
+                         required time                          0.240    
+                         arrival time                          -0.196    
+  -------------------------------------------------------------------
+                         slack                                  0.043    
+
+Slack (MET) :             0.047ns  (arrival time - required time)
+  Source:                 core/u_pipeline/u_dcache/hit_count_reg[22]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_dhit_reg[22]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.312ns  (logic 0.141ns (45.237%)  route 0.171ns (54.763%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.218ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.767ns
+    Source Clock Delay      (SCD):    -0.476ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.632    -0.476    core/u_pipeline/u_dcache/core_clk
+    SLICE_X47Y172        FDCE                                         r  core/u_pipeline/u_dcache/hit_count_reg[22]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X47Y172        FDCE (Prop_fdce_C_Q)         0.141    -0.335 r  core/u_pipeline/u_dcache/hit_count_reg[22]/Q
+                         net (fo=3, routed)           0.171    -0.164    transport/saved_dhit_reg[31]_0[22]
+    SLICE_X49Y170        FDCE                                         r  transport/saved_dhit_reg[22]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.906    -0.767    transport/clock50
+    SLICE_X49Y170        FDCE                                         r  transport/saved_dhit_reg[22]/C
+                         clock pessimism              0.509    -0.258    
+    SLICE_X49Y170        FDCE (Hold_fdce_C_D)         0.047    -0.211    transport/saved_dhit_reg[22]
+  -------------------------------------------------------------------
+                         required time                          0.211    
+                         arrival time                          -0.164    
+  -------------------------------------------------------------------
+                         slack                                  0.047    
+
+Slack (MET) :             0.047ns  (arrival time - required time)
+  Source:                 core/u_pipeline/u_dcache/hit_count_reg[25]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_dhit_reg[25]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.334ns  (logic 0.141ns (42.205%)  route 0.193ns (57.795%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.221ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.766ns
+    Source Clock Delay      (SCD):    -0.478ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.630    -0.478    core/u_pipeline/u_dcache/core_clk
+    SLICE_X47Y173        FDCE                                         r  core/u_pipeline/u_dcache/hit_count_reg[25]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X47Y173        FDCE (Prop_fdce_C_Q)         0.141    -0.337 r  core/u_pipeline/u_dcache/hit_count_reg[25]/Q
+                         net (fo=3, routed)           0.193    -0.144    transport/saved_dhit_reg[31]_0[25]
+    SLICE_X45Y171        FDCE                                         r  transport/saved_dhit_reg[25]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.907    -0.766    transport/clock50
+    SLICE_X45Y171        FDCE                                         r  transport/saved_dhit_reg[25]/C
+                         clock pessimism              0.509    -0.257    
+    SLICE_X45Y171        FDCE (Hold_fdce_C_D)         0.066    -0.191    transport/saved_dhit_reg[25]
+  -------------------------------------------------------------------
+                         required time                          0.191    
+                         arrival time                          -0.144    
+  -------------------------------------------------------------------
+                         slack                                  0.047    
+
+Slack (MET) :             0.049ns  (arrival time - required time)
+  Source:                 core/u_pipeline/u_dcache/miss_count_reg[9]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_dmiss_reg[9]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.348ns  (logic 0.164ns (47.094%)  route 0.184ns (52.906%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.221ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.729ns
+    Source Clock Delay      (SCD):    -0.441ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.667    -0.441    core/u_pipeline/u_dcache/core_clk
+    SLICE_X6Y176         FDCE                                         r  core/u_pipeline/u_dcache/miss_count_reg[9]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X6Y176         FDCE (Prop_fdce_C_Q)         0.164    -0.277 r  core/u_pipeline/u_dcache/miss_count_reg[9]/Q
+                         net (fo=2, routed)           0.184    -0.093    transport/saved_dmiss_reg[31]_0[9]
+    SLICE_X7Y178         FDCE                                         r  transport/saved_dmiss_reg[9]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.944    -0.729    transport/clock50
+    SLICE_X7Y178         FDCE                                         r  transport/saved_dmiss_reg[9]/C
+                         clock pessimism              0.509    -0.220    
+    SLICE_X7Y178         FDCE (Hold_fdce_C_D)         0.078    -0.142    transport/saved_dmiss_reg[9]
+  -------------------------------------------------------------------
+                         required time                          0.142    
+                         arrival time                          -0.093    
+  -------------------------------------------------------------------
+                         slack                                  0.049    
+
+Slack (MET) :             0.050ns  (arrival time - required time)
+  Source:                 core/u_pipeline/u_dcache/hit_count_reg[16]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_dhit_reg[16]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.313ns  (logic 0.141ns (45.002%)  route 0.172ns (54.998%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.216ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.768ns
+    Source Clock Delay      (SCD):    -0.475ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.633    -0.475    core/u_pipeline/u_dcache/core_clk
+    SLICE_X47Y170        FDCE                                         r  core/u_pipeline/u_dcache/hit_count_reg[16]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X47Y170        FDCE (Prop_fdce_C_Q)         0.141    -0.334 r  core/u_pipeline/u_dcache/hit_count_reg[16]/Q
+                         net (fo=3, routed)           0.172    -0.161    transport/saved_dhit_reg[31]_0[16]
+    SLICE_X49Y171        FDCE                                         r  transport/saved_dhit_reg[16]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.905    -0.768    transport/clock50
+    SLICE_X49Y171        FDCE                                         r  transport/saved_dhit_reg[16]/C
+                         clock pessimism              0.509    -0.259    
+    SLICE_X49Y171        FDCE (Hold_fdce_C_D)         0.047    -0.212    transport/saved_dhit_reg[16]
+  -------------------------------------------------------------------
+                         required time                          0.212    
+                         arrival time                          -0.161    
+  -------------------------------------------------------------------
+                         slack                                  0.050    
+
+Slack (MET) :             0.051ns  (arrival time - required time)
+  Source:                 core/u_pipeline/wb_instruction_trace_reg[16]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_inst_reg[16]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.336ns  (logic 0.164ns (48.751%)  route 0.172ns (51.249%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.216ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.839ns
+    Source Clock Delay      (SCD):    -0.546ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.562    -0.546    core/u_pipeline/core_clk
+    SLICE_X66Y144        FDCE                                         r  core/u_pipeline/wb_instruction_trace_reg[16]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X66Y144        FDCE (Prop_fdce_C_Q)         0.164    -0.382 r  core/u_pipeline/wb_instruction_trace_reg[16]/Q
+                         net (fo=1, routed)           0.172    -0.210    transport/saved_inst_reg[31]_0[16]
+    SLICE_X67Y143        FDCE                                         r  transport/saved_inst_reg[16]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.834    -0.839    transport/clock50
+    SLICE_X67Y143        FDCE                                         r  transport/saved_inst_reg[16]/C
+                         clock pessimism              0.509    -0.330    
+    SLICE_X67Y143        FDCE (Hold_fdce_C_D)         0.070    -0.260    transport/saved_inst_reg[16]
+  -------------------------------------------------------------------
+                         required time                          0.260    
+                         arrival time                          -0.210    
+  -------------------------------------------------------------------
+                         slack                                  0.051    
+
+Slack (MET) :             0.051ns  (arrival time - required time)
+  Source:                 core/u_pipeline/wb_instruction_trace_reg[21]/C
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Destination:            transport/saved_inst_reg[21]/D
+                            (rising edge-triggered cell FDCE clocked by pll_clock50  {rise@0.000ns fall@12.500ns period=25.000ns})
+  Path Group:             pll_clock50
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (pll_clock50 rise@0.000ns - pll_clock50 rise@0.000ns)
+  Data Path Delay:        0.260ns  (logic 0.148ns (56.820%)  route 0.112ns (43.180%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.216ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.840ns
+    Source Clock Delay      (SCD):    -0.547ns
+    Clock Pessimism Removal (CPR):    -0.509ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.440     0.690    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.030    -1.134    clock50
+    BUFGCTRL_X0Y16       BUFGCTRL (Prop_bufgctrl_I0_O)
+                                                      0.026    -1.108 r  core_clock_buffer/O
+                         net (fo=12813, routed)       0.561    -0.547    core/u_pipeline/core_clk
+    SLICE_X66Y142        FDCE                                         r  core/u_pipeline/wb_instruction_trace_reg[21]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X66Y142        FDCE (Prop_fdce_C_Q)         0.148    -0.399 r  core/u_pipeline/wb_instruction_trace_reg[21]/Q
+                         net (fo=1, routed)           0.112    -0.287    transport/saved_inst_reg[31]_0[21]
+    SLICE_X67Y142        FDCE                                         r  transport/saved_inst_reg[21]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock pll_clock50 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  CLK100MHZ (IN)
+                         net (fo=0)                   0.000     0.000    CLK100MHZ
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  CLK100MHZ_IBUF_inst/O
+                         net (fo=1, routed)           0.480     0.918    CLK100MHZ_IBUF
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  pll/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    pll_clock50
+    BUFGCTRL_X0Y17       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  main_clock_buffer/O
+                         net (fo=1904, routed)        0.833    -0.840    transport/clock50
+    SLICE_X67Y142        FDCE                                         r  transport/saved_inst_reg[21]/C
+                         clock pessimism              0.509    -0.331    
+    SLICE_X67Y142        FDCE (Hold_fdce_C_D)        -0.006    -0.337    transport/saved_inst_reg[21]
+  -------------------------------------------------------------------
+                         required time                          0.337    
+                         arrival time                          -0.287    
+  -------------------------------------------------------------------
+                         slack                                  0.051    
+
+
+
+

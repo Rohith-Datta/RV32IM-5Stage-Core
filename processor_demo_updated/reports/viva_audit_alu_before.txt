@@ -1,0 +1,9 @@
+FAIL sra a=f10d27c8 b=94a53fde got=00000003 expected=ffffffff
+FAIL sra a=a8a2b7ad b=9fddde2e got=0002a28a expected=fffea28a
+FAIL sra a=b87b6384 b=e6e987ca got=002e1ed8 expected=ffee1ed8
+FAIL sra a=9aea622f b=566e3cbe got=00000002 expected=fffffffe
+FAIL sra a=d7b00bdc b=ec86a890 got=0000d7b0 expected=ffffd7b0
+FAIL sra a=90494583 b=0a8bb5b4 got=00000904 expected=fffff904
+FAIL sra a=d342af08 b=dd20c3bf got=00000001 expected=ffffffff
+ALU AUDIT cases=1920 failures=85
+audit_notes/audit_alu.v:1922: $finish called at 1920000 (1ps)

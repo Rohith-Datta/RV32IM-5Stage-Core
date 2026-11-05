@@ -1,0 +1,645 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2 (win64) Build 6299465 Fri Nov 14 19:35:11 GMT 2025
+| Date         : Thu Nov  5 18:19:47 2026
+| Host         : SPSB2928 running 64-bit major release  (build 9200)
+| Command      : report_control_sets -verbose -file nexys_a7_top_control_sets_placed.rpt
+| Design       : nexys_a7_top
+| Device       : xc7a100t
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Control Set Information
+
+Table of Contents
+-----------------
+1. Summary
+2. Histogram
+3. Flip-Flop Distribution
+4. Detailed Control Set Information
+
+1. Summary
+----------
+
++----------------------------------------------------------+-------+
+|                          Status                          | Count |
++----------------------------------------------------------+-------+
+| Total control sets                                       |   567 |
+|    Minimum number of control sets                        |   567 |
+|    Addition due to synthesis replication                 |     0 |
+|    Addition due to physical synthesis replication        |     0 |
+| Unused register locations in slices containing registers |  1181 |
++----------------------------------------------------------+-------+
+* Control sets can be merged at opt_design using control_set_merge or merge_equivalent_drivers
+** Run report_qor_suggestions for automated merging and remapping suggestions
+
+
+2. Histogram
+------------
+
++--------------------+-------+
+|       Fanout       | Count |
++--------------------+-------+
+| Total control sets |   567 |
+| >= 0 to < 4        |     2 |
+| >= 4 to < 6        |    11 |
+| >= 6 to < 8        |     0 |
+| >= 8 to < 10       |   130 |
+| >= 10 to < 12      |     0 |
+| >= 12 to < 14      |     1 |
+| >= 14 to < 16      |     0 |
+| >= 16              |   423 |
++--------------------+-------+
+* Control sets can be remapped at either synth_design or opt_design
+
+
+3. Flip-Flop Distribution
+-------------------------
+
++--------------+-----------------------+------------------------+-----------------+--------------+
+| Clock Enable | Synchronous Set/Reset | Asynchronous Set/Reset | Total Registers | Total Slices |
++--------------+-----------------------+------------------------+-----------------+--------------+
+| No           | No                    | No                     |               0 |            0 |
+| No           | No                    | Yes                    |             638 |          233 |
+| No           | Yes                   | No                     |               0 |            0 |
+| Yes          | No                    | No                     |            1024 |          347 |
+| Yes          | No                    | Yes                    |           11965 |         5350 |
+| Yes          | Yes                   | No                     |               0 |            0 |
++--------------+-----------------------+------------------------+-----------------+--------------+
+
+
+4. Detailed Control Set Information
+-----------------------------------
+
++--------------+---------------------------------------------------------------------+-------------------------------------------------+------------------+----------------+--------------+
+| Clock Signal |                            Enable Signal                            |                 Set/Reset Signal                | Slice Load Count | Bel Load Count | Bels / Slice |
++--------------+---------------------------------------------------------------------+-------------------------------------------------+------------------+----------------+--------------+
+|  clock50     | transport/transmitter/tx_i_1_n_0                                    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                1 |              1 |         1.00 |
+|  clock50     |                                                                     | rst_pipe[1]_i_1_n_0                             |                1 |              2 |         2.00 |
+|  core_clk    | core/u_pipeline/u_execute_stage/u_fpu/count[3]_i_1__1_n_0           | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                2 |              4 |         2.00 |
+|  clock50     | transport/cycle_bcd[27]_i_1_n_0                                     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                2 |              4 |         2.00 |
+|  clock50     | transport/cycle_bcd[23]_i_1_n_0                                     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                2 |              4 |         2.00 |
+|  clock50     | transport/cycle_bcd[19]_i_1_n_0                                     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                1 |              4 |         4.00 |
+|  clock50     | transport/cycle_bcd[39]_i_1_n_0                                     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                2 |              4 |         2.00 |
+|  clock50     | transport/cycle_bcd[7]_i_1_n_0                                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                2 |              4 |         2.00 |
+|  clock50     | transport/cycle_bcd[35]_i_1_n_0                                     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                2 |              4 |         2.00 |
+|  clock50     | transport/cycle_bcd[31]_i_1_n_0                                     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                1 |              4 |         4.00 |
+|  clock50     | transport/cycle_bcd[15]_i_1_n_0                                     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                1 |              4 |         4.00 |
+|  clock50     | transport/cycle_bcd[11]_i_1_n_0                                     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                2 |              4 |         2.00 |
+|  clock50     | transport/line_length124_out                                        | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                1 |              4 |         4.00 |
+|  clock50     | transport/line_buffer[39][7]_i_1_n_0                                |                                                 |                4 |              8 |         2.00 |
+|  clock50     | transport/line_buffer[56][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[60][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[5][7]_i_1_n_0                                 |                                                 |                5 |              8 |         1.60 |
+|  clock50     | transport/line_buffer[4][7]_i_1_n_0                                 |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[45][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[105][7]_i_1_n_0                               |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[30][7]_i_1_n_0                                |                                                 |                6 |              8 |         1.33 |
+|  clock50     | transport/line_buffer[2][7]_i_1_n_0                                 |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[27][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[119][7]_i_1_n_0                               |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[26][7]_i_1_n_0                                |                                                 |                4 |              8 |         2.00 |
+|  clock50     | transport/line_buffer[24][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[104][7]_i_1_n_0                               |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[22][7]_i_1_n_0                                |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[21][7]_i_1_n_0                                |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[126][7]_i_1_n_0                               |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[121][7]_i_1_n_0                               |                                                 |                4 |              8 |         2.00 |
+|  clock50     | transport/line_buffer[110][7]_i_1_n_0                               |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[106][7]_i_1_n_0                               |                                                 |                5 |              8 |         1.60 |
+|  clock50     | transport/line_buffer[120][7]_i_1_n_0                               |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[117][7]_i_1_n_0                               |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[113][7]_i_1_n_0                               |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[124][7]_i_1_n_0                               |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[29][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[33][7]_i_1_n_0                                |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[15][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[28][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[25][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[19][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[20][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[1][7]_i_1_n_0                                 |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[17][7]_i_1_n_0                                |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[127][7]_i_1_n_0                               |                                                 |                5 |              8 |         1.60 |
+|  clock50     | transport/line_buffer[123][7]_i_1_n_0                               |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[122][7]_i_1_n_0                               |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[109][7]_i_1_n_0                               |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[112][7]_i_1_n_0                               |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[107][7]_i_1_n_0                               |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[10][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[116][7]_i_1_n_0                               |                                                 |                4 |              8 |         2.00 |
+|  clock50     | transport/line_buffer[115][7]_i_1_n_0                               |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[118][7]_i_1_n_0                               |                                                 |                4 |              8 |         2.00 |
+|  clock50     | transport/line_buffer[23][7]_i_1_n_0                                |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[108][7]_i_1_n_0                               |                                                 |                4 |              8 |         2.00 |
+|  clock50     | transport/line_buffer[18][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[111][7]_i_1_n_0                               |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[16][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[125][7]_i_1_n_0                               |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[11][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[32][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[31][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[14][7]_i_1_n_0                                |                                                 |                4 |              8 |         2.00 |
+|  clock50     | transport/line_buffer[114][7]_i_1_n_0                               |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[101][7]_i_1_n_0                               |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[0][7]_i_1_n_0                                 |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[103][7]_i_1_n_0                               |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[102][7]_i_1_n_0                               |                                                 |                5 |              8 |         1.60 |
+|  clock50     | transport/line_buffer[100][7]_i_1_n_0                               |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[63][7]_i_1_n_0                                |                                                 |                5 |              8 |         1.60 |
+|  clock50     | transport/line_buffer[13][7]_i_1_n_0                                |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[43][7]_i_1_n_0                                |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[12][7]_i_1_n_0                                |                                                 |                5 |              8 |         1.60 |
+|  clock50     | transport/transmitter/finishing_reg_0[0]                            | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |              8 |         1.33 |
+|  clock50     | transport/transmitter/E[0]                                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[46][7]_i_1_n_0                                |                                                 |                6 |              8 |         1.33 |
+|  clock50     | transport/line_buffer[62][7]_i_1_n_0                                |                                                 |                5 |              8 |         1.60 |
+|  clock50     | transport/line_buffer[64][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[3][7]_i_1_n_0                                 |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[50][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[65][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[68][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[69][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[6][7]_i_1_n_0                                 |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[51][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[41][7]_i_1_n_0                                |                                                 |                4 |              8 |         2.00 |
+|  clock50     | transport/line_buffer[49][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[59][7]_i_1_n_0                                |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[70][7]_i_1_n_0                                |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[36][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[44][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[71][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[73][7]_i_1_n_0                                |                                                 |                4 |              8 |         2.00 |
+|  clock50     | transport/line_buffer[74][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[72][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[61][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[54][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[57][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[58][7]_i_1_n_0                                |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[66][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[35][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[55][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[67][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[40][7]_i_1_n_0                                |                                                 |                5 |              8 |         1.60 |
+|  clock50     | transport/line_buffer[47][7]_i_1_n_0                                |                                                 |                5 |              8 |         1.60 |
+|  clock50     | transport/line_buffer[38][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[34][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[48][7]_i_1_n_0                                |                                                 |                5 |              8 |         1.60 |
+|  clock50     | transport/line_buffer[52][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[53][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[37][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[86][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[98][7]_i_1_n_0                                |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[80][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[79][7]_i_1_n_0                                |                                                 |                4 |              8 |         2.00 |
+|  clock50     | transport/line_buffer[90][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[93][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[7][7]_i_1_n_0                                 |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[77][7]_i_1_n_0                                |                                                 |                6 |              8 |         1.33 |
+|  clock50     | transport/line_buffer[76][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[82][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[42][7]_i_1_n_0                                |                                                 |                5 |              8 |         1.60 |
+|  clock50     | transport/line_buffer[9][7]_i_1_n_0                                 |                                                 |                4 |              8 |         2.00 |
+|  clock50     | transport/line_buffer[97][7]_i_1_n_0                                |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[81][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[85][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[92][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[8][7]_i_1_n_0                                 |                                                 |                4 |              8 |         2.00 |
+|  clock50     | transport/line_buffer[75][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[96][7]_i_1_n_0                                |                                                 |                5 |              8 |         1.60 |
+|  clock50     | transport/line_buffer[78][7]_i_1_n_0                                |                                                 |                6 |              8 |         1.33 |
+|  clock50     | transport/line_buffer[88][7]_i_1_n_0                                |                                                 |                5 |              8 |         1.60 |
+|  clock50     | transport/line_buffer[94][7]_i_1_n_0                                |                                                 |                1 |              8 |         8.00 |
+|  clock50     | transport/line_buffer[83][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[95][7]_i_1_n_0                                |                                                 |                6 |              8 |         1.33 |
+|  clock50     | transport/line_buffer[99][7]_i_1_n_0                                |                                                 |                5 |              8 |         1.60 |
+|  clock50     | transport/line_buffer[84][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/line_buffer[89][7]_i_1_n_0                                |                                                 |                5 |              8 |         1.60 |
+|  clock50     | transport/line_buffer[91][7]_i_1_n_0                                |                                                 |                3 |              8 |         2.67 |
+|  clock50     | transport/line_buffer[87][7]_i_1_n_0                                |                                                 |                2 |              8 |         4.00 |
+|  clock50     | transport/transmitter/shift[0]                                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                3 |             12 |         4.00 |
+|  core_clk    | core/u_pipeline/u_id_ex_reg/FSM_onehot_state_reg[0]_1               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             17 |         2.43 |
+|  core_clk    | core/u_pipeline/u_execute_stage/u_fpu/count_reg[3]_0[0]             | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                5 |             18 |         3.60 |
+|  clock50     | transport/transmitter/finishing_reg                                 | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             18 |         2.25 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[34][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[1][20]_i_1__0_n_0                | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[52][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             21 |         1.75 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[4][20]_i_1__0_n_0                | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[53][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[62][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             21 |         1.75 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[67][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             21 |         1.75 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[6][20]_i_1__0_n_0                | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[57][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             21 |         1.75 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[75][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[5][20]_i_1__0_n_0                | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[64][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[77][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[70][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             21 |         1.75 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[74][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[78][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[63][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             21 |         1.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[72][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[47][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[68][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[69][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             21 |         1.75 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[79][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[61][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[7][20]_i_1__0_n_0                | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[48][20]_i_1_n_0                  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[55][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[59][20]_i_1_n_0                  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[50][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[71][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             21 |         1.75 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[49][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[65][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[80][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[76][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[51][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[81][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             21 |         1.75 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[66][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[54][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             21 |         1.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[73][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[46][20]_i_1_n_0                  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[56][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[58][20]_i_1_n_0                  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[60][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[45][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[87][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[99][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               14 |             21 |         1.50 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[83][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[9][20]_i_1__0_n_0                | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[95][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[85][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[84][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[86][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[8][20]_i_1__0_n_0                | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[93][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             21 |         1.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[90][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[82][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[91][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[92][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[94][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[96][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[89][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[97][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[98][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/tag_array[19][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_icache/tag_array[13][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/tag_array[115][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                5 |             21 |         4.20 |
+|  core_clk    | core/u_pipeline/u_icache/tag_array[14][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/tag_array[15][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             21 |         1.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array124_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array149_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array154_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/tag_array[58][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_icache/tag_array[9][20]_i_1_n_0                   | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             21 |         1.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array159_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array164_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             21 |         1.75 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array119_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                5 |             21 |         4.20 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array169_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/tag_array[46][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/tag_array[48][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/tag_array[59][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/tag_array[26][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                4 |             21 |         5.25 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array129_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_icache/tag_array[21][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_icache/tag_array[20][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/tag_array[47][20]_i_1_n_0                  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             21 |         1.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array144_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array134_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array14_out                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array474_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array479_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array484_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               14 |             21 |         1.50 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array199_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                5 |             21 |         4.20 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array179_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array309_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array34_out                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array394_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array404_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array424_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array24_out                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             21 |         1.75 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array429_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array324_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               15 |             21 |         1.40 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array184_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array289_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array274_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array349_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array339_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array374_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array224_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array344_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array409_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array399_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array319_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array414_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array189_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array229_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array419_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array234_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array204_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array434_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                5 |             21 |         4.20 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array294_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array444_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array29_out                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array209_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array44_out                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array459_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array464_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array19_out                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             21 |         1.75 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array219_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array264_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array269_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array314_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array329_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array279_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array254_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                5 |             21 |         4.20 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array334_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array359_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array364_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[88][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array354_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array174_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array194_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array284_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array384_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array389_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array39_out                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             21 |         1.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array439_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array379_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array214_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array449_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array259_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array454_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array469_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array639_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array8_out                           | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             21 |         1.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array644_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array594_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                4 |             21 |         5.25 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array49_out                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               15 |             21 |         1.40 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array574_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array589_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                4 |             21 |         5.25 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array499_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array619_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                3 |             21 |         7.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array599_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array524_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array69_out                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array609_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array99_out                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array534_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array504_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               16 |             21 |         1.31 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array554_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array569_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                5 |             21 |         4.20 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array64_out                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array624_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array519_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array539_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array579_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array614_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array489_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array529_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array564_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             21 |         1.75 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array559_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array494_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array59_out                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array94_out                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array549_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array604_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array629_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                5 |             21 |         4.20 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array634_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array514_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array89_out                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array509_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array544_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  clock50     | display/p_28_out[2]                                                 | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                5 |             21 |         4.20 |
+|  clock50     | display/p_28_out[1]                                                 | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                5 |             21 |         4.20 |
+|  clock50     | display/p_28_out[6]                                                 | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                4 |             21 |         5.25 |
+|  clock50     | display/p_28_out[9]                                                 | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                4 |             21 |         5.25 |
+|  clock50     | display/p_28_out[7]                                                 | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                5 |             21 |         4.20 |
+|  clock50     | display/p_28_out[12]                                                | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                4 |             21 |         5.25 |
+|  clock50     | display/p_28_out[11]                                                | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                4 |             21 |         5.25 |
+|  clock50     | display/p_28_out[8]                                                 | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                4 |             21 |         5.25 |
+|  clock50     | display/p_28_out[4]                                                 | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  clock50     | display/p_28_out[0]                                                 | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                5 |             21 |         4.20 |
+|  clock50     | display/p_28_out[5]                                                 | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                4 |             21 |         5.25 |
+|  clock50     | display/p_28_out[10]                                                | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                4 |             21 |         5.25 |
+|  clock50     | display/p_28_out[13]                                                | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                5 |             21 |         4.20 |
+|  clock50     | display/p_28_out[3]                                                 | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                4 |             21 |         5.25 |
+|  core_clk    | core/u_pipeline/u_icache/valid_array369_out                         | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[43][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[0]                               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[108][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[104][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[115][20]_i_1_n_0                 | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[117][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[106][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             21 |         1.75 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[118][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[119][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[102][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[11][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[100][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[113][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                5 |             21 |         4.20 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[101][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[116][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[120][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[121][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[122][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[114][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                4 |             21 |         5.25 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[103][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             21 |         1.75 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[105][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[10][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[109][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[111][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             21 |         1.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[107][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[110][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[112][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                5 |             21 |         4.20 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[20][20]_i_1_n_0                  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[36][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[126][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             21 |         1.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[28][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[14][20]_i_1_n_0                  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[35][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[123][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[18][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[26][20]_i_1_n_0                  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[37][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             21 |         2.10 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[127][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               14 |             21 |         1.50 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[38][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[3][20]_i_1__0_n_0                | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[25][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[27][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[124][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[125][20]_i_1__0_n_0              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[21][20]_i_1_n_0                  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[39][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             21 |         1.75 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[41][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[42][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             21 |         1.75 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[44][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[24][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[33][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[40][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[13][20]_i_1_n_0                  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[31][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[2][20]_i_1__0_n_0                | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             21 |         1.91 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[12][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[15][20]_i_1_n_0                  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[16][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                6 |             21 |         3.50 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[19][20]_i_1_n_0                  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[22][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             21 |         3.00 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[23][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[30][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[17][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                5 |             21 |         4.20 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[29][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             21 |         2.62 |
+|  core_clk    | core/u_pipeline/u_dcache/tag_array[32][20]_i_1__0_n_0               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             21 |         2.33 |
+|  core_clk    | core/u_pipeline/u_execute_stage/u_fpu/fadd_sum[0]                   | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             29 |         3.62 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[0]_11[0]                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               18 |             32 |         1.78 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[0]_3[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               17 |             32 |         1.88 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[0]_4[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               24 |             32 |         1.33 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[0]_5[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               15 |             32 |         2.13 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[0]_6[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               18 |             32 |         1.78 |
+|  clock50     | transport/transmitter/count[31]_i_1_n_0                             | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             32 |         2.46 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[0]_10[0]                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               20 |             32 |         1.60 |
+|  core_clk    | core/u_pipeline/u_icache/hit_count[31]_i_1__0_n_0                   | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             32 |         3.56 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[0]_13[0]                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               21 |             32 |         1.52 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[5]_7[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               16 |             32 |         2.00 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[4]_8[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               16 |             32 |         2.00 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/reg_write_o_reg_4[0]                   | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               22 |             32 |         1.45 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/reg_write_o_reg_2[0]                   | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             32 |         2.46 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[4]_5[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               17 |             32 |         1.88 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[4]_12[0]                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               16 |             32 |         2.00 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[0]_8[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               14 |             32 |         2.29 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[1]_1[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             32 |         2.91 |
+|  core_clk    | core/u_pipeline/u_icache/bypass_word[31]_i_1_n_0                    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             32 |         2.46 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[2]_7[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               24 |             32 |         1.33 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[2]_1[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               21 |             32 |         1.52 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[4]_3[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               19 |             32 |         1.68 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[5]_3[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               14 |             32 |         2.29 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[3]_4[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               15 |             32 |         2.13 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[3]_6[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               15 |             32 |         2.13 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[4]_1[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                8 |             32 |         4.00 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[3]_3[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               15 |             32 |         2.13 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[4]_7[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               23 |             32 |         1.39 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[4]_10[0]                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               20 |             32 |         1.60 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[4]_11[0]                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             32 |         3.56 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[4]_4[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               16 |             32 |         2.00 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[2]_9[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               14 |             32 |         2.29 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[5]_5[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               17 |             32 |         1.88 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/reg_write_o_reg_1[0]                   | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               20 |             32 |         1.60 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[2]_4[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             32 |         2.46 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[4]_9[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               22 |             32 |         1.45 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/reg_write_o_reg_3[0]                   | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             32 |         3.20 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/reg_write_o_reg_0[0]                   | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               22 |             32 |         1.45 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/reg_write_o_reg_5[0]                   | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               23 |             32 |         1.39 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/reg_write_o_reg_6[0]                   | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               18 |             32 |         1.78 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[0]_9[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             32 |         2.67 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[2]_10[0]                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               21 |             32 |         1.52 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[2]_2[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               19 |             32 |         1.68 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[2]_6[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               14 |             32 |         2.29 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[3]_2[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               24 |             32 |         1.33 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[3]_5[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               14 |             32 |         2.29 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[5]_2[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             32 |         4.57 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[0]_7[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               17 |             32 |         1.88 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[1]_3[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             32 |         2.67 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[2]_11[0]                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               14 |             32 |         2.29 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[1]_2[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             32 |         2.67 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[2]_3[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             32 |         3.56 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[2]_5[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             32 |         2.67 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[2]_8[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                7 |             32 |         4.57 |
+|  core_clk    | core/u_pipeline/u_execute_stage/u_fpu/fmul_final_res[0]             | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             32 |         2.46 |
+|  core_clk    | core/u_pipeline/u_execute_stage/u_fpu/fdiv_final_res[0]             | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               11 |             32 |         2.91 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[4]_2[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               15 |             32 |         2.13 |
+|  core_clk    | core/u_pipeline/u_execute_stage/u_fpu/fadd_final_res[0]             | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               15 |             32 |         2.13 |
+|  core_clk    | core/u_pipeline/u_execute_stage/u_fpu/FSM_onehot_state_reg[2]_7[0]  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               26 |             32 |         1.23 |
+|  core_clk    | core/u_pipeline/u_execute_stage/u_fpu/FSM_onehot_state_reg[2]_5[0]  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               23 |             32 |         1.39 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[5]_0[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               18 |             32 |         1.78 |
+|  core_clk    | core/u_pipeline/u_execute_stage/u_fpu/FSM_onehot_state_reg[2]_2[0]  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             32 |         3.20 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[5]_4[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               14 |             32 |         2.29 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[5]_6[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               24 |             32 |         1.33 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[4]_6[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               17 |             32 |         1.88 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/valid_o_reg_4[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               14 |             32 |         2.29 |
+|  core_clk    | core/u_pipeline/u_dcache/bypass_word0                               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             32 |         3.20 |
+|  core_clk    | core/u_pipeline/u_dcache/miss_count[31]_i_1__0_n_0                  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             32 |         3.56 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/E[0]                                   | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               12 |             32 |         2.67 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[0]_12[0]                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               18 |             32 |         1.78 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[0]_15[0]                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               19 |             32 |         1.68 |
+|  core_clk    | core/u_pipeline/u_ex_mem_reg/rst_pipe_reg[1]_0[0]                   | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             32 |         3.20 |
+|  core_clk    | core/u_pipeline/u_ex_mem_reg/valid_o_reg_1[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |                9 |             32 |         3.56 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[0]_16[0]                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               19 |             32 |         1.68 |
+|  core_clk    | core/u_pipeline/u_ex_mem_reg/E[0]                                   | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               10 |             32 |         3.20 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[3]_1[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               17 |             32 |         1.88 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[0]_14[0]                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               21 |             32 |         1.52 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[0]_17[0]                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               20 |             32 |         1.60 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/rd_o_reg[0]_0[0]                       | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               22 |             32 |         1.45 |
+|  core_clk    | core/u_pipeline/u_execute_stage/u_divider/divisor[0]                | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               15 |             35 |         2.33 |
+|  core_clk    | core/u_pipeline/u_execute_stage/u_fpu/fadd_norm_m[0]                | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               24 |             36 |         1.50 |
+|  core_clk    | core/u_pipeline/u_ex_mem_reg/held_store_data[0]                     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               14 |             36 |         2.57 |
+|  core_clk    | core/u_pipeline/u_id_ex_reg/FSM_onehot_state_reg[0]_0[0]            | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             38 |         2.92 |
+|  core_clk    | core/u_pipeline/u_icache/data_mem1_reg_0_63_0_2_i_1_n_0             |                                                 |               11 |             44 |         4.00 |
+|  core_clk    | core/u_pipeline/u_icache/data_mem0_reg_64_127_0_2_i_1_n_0           |                                                 |               11 |             44 |         4.00 |
+|  core_clk    | core/u_pipeline/u_icache/data_mem2_reg_0_63_0_2_i_1_n_0             |                                                 |               11 |             44 |         4.00 |
+|  core_clk    | core/u_pipeline/u_icache/data_mem1_reg_64_127_0_2_i_1_n_0           |                                                 |               11 |             44 |         4.00 |
+|  core_clk    | core/u_pipeline/u_icache/data_mem0_reg_0_63_0_2_i_1_n_0             |                                                 |               11 |             44 |         4.00 |
+|  core_clk    | core/u_pipeline/u_icache/data_mem3_reg_64_127_0_2_i_1_n_0           |                                                 |               11 |             44 |         4.00 |
+|  core_clk    | core/u_pipeline/u_icache/data_mem2_reg_64_127_0_2_i_1_n_0           |                                                 |               11 |             44 |         4.00 |
+|  core_clk    | core/u_pipeline/u_icache/data_mem3_reg_0_63_0_2_i_1_n_0             |                                                 |               11 |             44 |         4.00 |
+|  core_clk    | core/u_pipeline/u_execute_stage/u_fpu/fdiv_rem[25]_i_1_n_0          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               27 |             50 |         1.85 |
+|  core_clk    | core/u_pipeline/u_dcache/latched_addr[0]                            | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               20 |             52 |         2.60 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[29][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               33 |             57 |         1.73 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[28][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               27 |             57 |         2.11 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[3][24]_i_1_n_0     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               34 |             57 |         1.68 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[6][24]_i_1_n_0     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               31 |             57 |         1.84 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[2][24]_i_1_n_0     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               31 |             57 |         1.84 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[9][24]_i_1_n_0     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               44 |             57 |         1.30 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[26][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               32 |             57 |         1.78 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[31][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               39 |             57 |         1.46 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[7][24]_i_1_n_0     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               32 |             57 |         1.78 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[14][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               30 |             57 |         1.90 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[12][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               33 |             57 |         1.73 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[24][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               29 |             57 |         1.97 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[1][24]_i_1_n_0     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               33 |             57 |         1.73 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[16][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               33 |             57 |         1.73 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[18][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               35 |             57 |         1.63 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[17][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               36 |             57 |         1.58 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[10][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               30 |             57 |         1.90 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[15][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               33 |             57 |         1.73 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[0][24]_i_1_n_0     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               30 |             57 |         1.90 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[25][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               30 |             57 |         1.90 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[23][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               35 |             57 |         1.63 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[22][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               31 |             57 |         1.84 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[21][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               27 |             57 |         2.11 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[20][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               33 |             57 |         1.73 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[19][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               33 |             57 |         1.73 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[13][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               32 |             57 |         1.78 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[11][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               33 |             57 |         1.73 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[30][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               33 |             57 |         1.73 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[27][24]_i_1_n_0    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               28 |             57 |         2.04 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[5][24]_i_1_n_0     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               29 |             57 |         1.97 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[8][24]_i_1_n_0     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               35 |             57 |         1.63 |
+|  core_clk    | core/u_pipeline/u_fetch_stage/u_btb/i_/tag_array[4][24]_i_1_n_0     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               33 |             57 |         1.73 |
+|  core_clk    | core/u_pipeline/u_id_ex_reg/FSM_onehot_state_reg[0][0]              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               13 |             59 |         4.54 |
+|  core_clk    | core/u_pipeline/u_id_ex_reg/E[0]                                    | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               21 |             62 |         2.95 |
+|  core_clk    | core/u_pipeline/u_dcache/dcache_miss_pulse                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               16 |             64 |         4.00 |
+|  core_clk    | core/u_pipeline/u_id_ex_reg/pred_taken_o_reg_1                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               16 |             64 |         4.00 |
+|  core_clk    | core/u_pipeline/u_id_ex_reg/btb_update_en0                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               16 |             64 |         4.00 |
+|  core_clk    | core/u_pipeline/u_icache/FSM_onehot_state_reg[1]_6[0]               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               16 |             64 |         4.00 |
+|  core_clk    | core/u_pipeline/u_icache/icache_miss_pulse                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               16 |             64 |         4.00 |
+|  core_clk    | core/u_pipeline/u_mem_wb_reg/valid_o_reg_0                          | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               16 |             64 |         4.00 |
+|  core_clk    | core/u_pipeline/u_execute_stage/u_divider/E[0]                      | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               36 |             69 |         1.92 |
+|  core_clk    | core/u_pipeline/u_icache/latched_pc[31]_i_1_n_0                     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               21 |             71 |         3.38 |
+|  core_clk    | core/u_pipeline/u_icache/FSM_onehot_state_reg[1]_5                  | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               35 |             78 |         2.23 |
+|  core_clk    | core/u_pipeline/u_ex_mem_reg/latched_addr_reg[10]_rep_1             |                                                 |               22 |             88 |         4.00 |
+|  core_clk    | core/u_pipeline/u_ex_mem_reg/latched_addr_reg[10]_rep_0             |                                                 |               22 |             88 |         4.00 |
+|  core_clk    | core/u_pipeline/u_ex_mem_reg/alu_result_o_reg[10]_2                 |                                                 |               22 |             88 |         4.00 |
+|  core_clk    | core/u_pipeline/u_ex_mem_reg/alu_result_o_reg[10]_5                 |                                                 |               22 |             88 |         4.00 |
+|  core_clk    | core/u_pipeline/u_ex_mem_reg/latched_addr_reg[10]_rep_2             |                                                 |               22 |             88 |         4.00 |
+|  core_clk    | core/u_pipeline/u_ex_mem_reg/alu_result_o_reg[10]_4                 |                                                 |               22 |             88 |         4.00 |
+|  core_clk    | core/u_pipeline/u_ex_mem_reg/alu_result_o_reg[10]_3                 |                                                 |               22 |             88 |         4.00 |
+|  core_clk    | core/u_pipeline/u_ex_mem_reg/latched_addr_reg[10]_rep               |                                                 |               22 |             88 |         4.00 |
+|  clock50     |                                                                     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               43 |            107 |         2.49 |
+|  core_clk    | core/u_pipeline/u_execute_stage/u_fpu/FSM_onehot_state_reg[2]_0     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               67 |            138 |         2.06 |
+|  core_clk    | core/u_pipeline/u_id_ex_reg/FSM_onehot_state_reg[2]_1               | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               50 |            139 |         2.78 |
+|  core_clk    | core/u_pipeline/u_execute_stage/u_fpu/FSM_onehot_state_reg[2]_41[0] | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |               70 |            216 |         3.09 |
+|  clock50     | transport/saved_bcd[0]                                              | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |              108 |            357 |         3.31 |
+|  core_clk    |                                                                     | core/u_pipeline/u_execute_stage/rst_pipe_reg[1] |              189 |            529 |         2.80 |
++--------------+---------------------------------------------------------------------+-------------------------------------------------+------------------+----------------+--------------+
+
+

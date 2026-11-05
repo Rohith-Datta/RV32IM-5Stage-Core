@@ -1,0 +1,579 @@
+--- a/DEMO_START_HERE.md
++++ b/DEMO_START_HERE.md
+@@ -1,3 +1,5 @@
++> Latest update: see [REQUESTED_CHANGES.md](REQUESTED_CHANGES.md) for final profiler timing, IF-PC terminal display, SW9 prediction bypass, and the comparison demo.
++
+ # Clear demo revision: read this first
+ 
+ This revision supersedes the older guide's hybrid-trace and dashboard descriptions.
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,5 @@
++> Latest update: see [REQUESTED_CHANGES.md](REQUESTED_CHANGES.md) for final profiler timing, IF-PC terminal display, SW9 prediction bypass, and the comparison demo.
++
+ > Start with **DEMO_START_HERE.md** for the updated bounded cycle window, proof log and switch sequence. Older hybrid-trace descriptions below are historical.
+ 
+ > **Audit revision, 4 November 2026:** A newly found SRA/SRAI signedness bug is fixed and covered by 1,920 additional ALU cases. Fresh functional regressions pass. The earlier successful 40 MHz Vivado run used the pre-fix RTL; rebuild this revision at 40 MHz and recheck timing before generating its bitstream. See `reports/VIVA_AUDIT_REVISION.md` and `docs/Processor_Architecture_Audit_and_Viva_Guide.pdf`. Dashboard validation, Zbb observation and trace labeling are also corrected and regression-tested. The Nexys A7 UART TX output is constrained to D4 (the FPGA-to-USB-UART path); rebuild the bitstream after this board-pin correction. Remaining ISA and observation limitations are explicitly documented. Earlier status notes below are historical.
+@@ -32,6 +34,8 @@
+ | SW12 = 1 | Every active processor cycle is captured and sent over UART |
+ | SW11 = 1 | Whole processor/memory clock gated to at most ten ticks/s; UART and display remain running |
+ | SW10 = 1 | Display the software MMIO override; otherwise show IF PC |
++| SW9 = 1 | Branch prediction bypass; SW9 = 0 preserves prediction ON |
++| SW8 | Reserved |
+ | SW7:0 | Per-packet alpha or diagnostic seed |
+ 
+ All modes first execute **57 hardware self-checks** spanning the nine feature groups, then process exactly 100 telemetry packets, send `DEMO_COMPLETE`, and assert LED0. Diagnostic seeds are not needed to exercise the startup corner-case matrix. The processor clock stops after the completion flag is set.
+--- /dev/null
++++ b/REQUESTED_CHANGES.md
+@@ -0,0 +1,78 @@
++# Profiler, fetch PC and branch-prediction switch update
++
++## Use the updated project
++
++Use this folder as the Vivado source project and run the included dashboard.py.
++The firmware memory image must match these sources. Rebuild and program the FPGA:
++changing Python alone does not enable SW9 or the new end-of-run records.
++
++1. Start the dashboard and connect before resetting the board.
++2. Keep SW12 (verbose) and SW11 (10 Hz stepping) OFF for a practical demo.
++3. Set `0x6032` for profiler mode, caches ON, prediction ON; reset the board.
++4. After packet 99, six measured timing records appear, followed by the final
++   profiler timing summary and run totals. The host retains earlier timing
++   records too, so old compatible logs also get a summary at completion.
++5. For the comparison, clear the dashboard, turn SW9 ON (`0x6232`), and reset
++   the board. Keep every other switch unchanged. The second completion shows
++   both cycle counts, both IPC values, extra cycles with bypass, and IPC gain.
++   Either run order works. Keep the same dashboard process and input source;
++   Clear preserves the comparison pair while clearing the current run.
++
++| Switch / setting | Meaning |
++| --- | --- |
++| SW9 OFF | Branch prediction ON; original behavior |
++| SW9 ON | Branch prediction BYPASS; fetch PC+4 until EX resolves a branch/jump |
++| SW8 | Still reserved |
++| `0x2032` / `0x2232` | Flight mode with prediction ON / BYPASS |
++| `0x6032` / `0x6232` | Profiler mode with prediction ON / BYPASS |
++
++Set switches before resetting and leave them unchanged for comparable runs.
++The firmware detects configuration changes observed during packet polling and
++at the final sample; do not flick switches between polls. Hardware prediction
++metadata is captured with each instruction, and EX recovery remains active in
++both modes. The BTB continues training during bypass; reset gives each measured
++run the same cold starting state.
++
++## What changed
++
++- Profiler measurements are collected on the first packet executed in profiler
++  mode (including entering that mode after packet zero), buffered, and sent
++  after all 100 packets. The dashboard also repeats them at completion.
++- Terminal trace rows use **IF PC** from the same hardware snapshot. Instruction
++  decoding is explicitly labelled **WB instruction**, since it belongs to a
++  different pipeline stage. Legacy traces without IFPC show "unavailable";
++  the dashboard never substitutes WB PC as an IF address. The existing raw
++  UART format remains compatible: raw `PC:` is WB; `IFPC=` is fetch.
++- SW9 is wired through the board, core and pipeline to fetch. Bypass masks both
++  the predicted next PC and prediction metadata while preserving redirects.
++- Firmware emits `RUN_STATS,SW,CYCLES,INSTRET,CHANGED` (eight-digit hex fields).
++  Cycles and retired instructions are sampled immediately before final reports.
++  These are active-core totals from reset, including startup checks, workload,
++  and software UART overhead. Hardware UART clock-gating pauses do not count.
++  IPC is measured retired instructions divided by measured cycles. It is not
++  wall-clock throughput or a claim that every program benefits equally.
++- The dashboard compares only complete, passing runs with the same source and
++  switch word except SW9. Measurements are shown as received, not forced to
++  indicate an improvement. A fresh process starts a fresh comparison history.
++
++## Build and validate
++
++```sh
++make -C firmware
++python tools/run_tests.py
++REPORT_PREFIX=reports/requested_changes python tests/run_modes.py vvp 2032 2232 6032 6232 0032 0232 a032 a232 e203
++python tests/check_profiles.py reports/requested_changes/uart_6032.log
++vvp reports/firmware.vvp +SW=2032 +SW_CYCLE=120000 +SW_LATER=6032 +LOG=reports/requested_changes/late_profiler_uart.log
++python tools/run_requested_validation.py
++python tools/verify_requested_results.py
++```
++
++`run_requested_validation.py` executes full board/UART simulations for the two
++profiler switch settings and validates actual received records and final order.
++All new validation evidence is under `reports/requested_changes/`; older reports
++and architecture documents are retained as historical reference.
++
++In Vivado, use `board/nexys_a7_top.v` as top and include the rebuilt
++`avionics_demo.mem`. The existing `board/build_vivado.tcl` performs synthesis,
++routing and timing checks. Generate and program the bitstream after successful
++timing/DRC review. Simulation does not establish physical-board timing closure.
+--- a/board/nexys_a7_top.v
++++ b/board/nexys_a7_top.v
+@@ -107,7 +107,7 @@
+  .software_write(mmreq && mmwe && mmstrb[0] && mmaddr[3:2]==1),.software_byte(mmdata[7:0]),
+  .core_hold(trace_hold),.software_busy(busy),.tx_busy(uart_busy),.tx(UART_TXD_IN));
+  rv32imf_core core(.clk(core_clk),.reset_n(reset_n),.stall_ext(1'b0),.use_dsp_i(1'b1),
+- .icache_bypass_i(!sw_sync[13]),.dcache_bypass_i(!sw_sync[13]),
++ .icache_bypass_i(!sw_sync[13]),.bp_bypass_i(sw_sync[9]),.dcache_bypass_i(!sw_sync[13]),
+  .main_mem_req(req),.main_mem_we(we),.main_mem_addr(addr),.main_mem_wdata(wdata),.main_mem_wstrb(strb),.main_mem_rdata(rdata),
+  .mmio_req(mmreq),.mmio_we(mmwe),.mmio_addr(mmaddr),.mmio_wdata(mmdata),.mmio_wstrb(mmstrb),.mmio_rdata(mmread),
+  .ihit_o(ihits),.imiss_o(imisses),.dhit_o(dhits),.dmiss_o(dmisses),.cycle_count_o(cycles),.dcache_refill_o(refill_progress),.pc_if(pc),.pc_wb(wbpc),.wb_reg_write(wbwe),.wb_dest_reg(rd),.wb_data(wbdata),
+--- a/dashboard.py
++++ b/dashboard.py
+@@ -435,6 +435,7 @@
+             for bit,label in labels: label.configure(fg_color="#333333")
+ 
+     def _clear_dashboard(self):
++        self.profile_records={}; self.run_stats=None; self.last_switches=None
+         self.trace_previous=-1; self.trace_rows=0; self.trace_gap=False; self.trace_finished=False
+         self.input_generation += 1
+         while True:
+@@ -521,6 +522,7 @@
+         # 1. Check for Bounded Run Completion Sentinel
+         if line == "DEMO_COMPLETE":
+             self._finish_trace_window()
++            self._show_final_summary()
+             checks=self.__dict__.get("check_results",{})
+             synthetic=self.source.startswith("SYNTHETIC")
+             verified=(self.received==set(range(100)) and self.failures==0
+@@ -560,6 +562,7 @@
+             try:
+                 iter_idx   = int(parts[1], 16)
+                 sw_val     = int(parts[2], 16)
++                self.last_switches=sw_val
+                 raw_hex    = parts[3].upper()
+                 filt_hex   = parts[4].upper()
+                 zbb_val    = int(parts[5], 16)
+@@ -634,7 +637,7 @@
+                 status_str = "EXACT BIT MATCH (PASS)" if is_match else "FAIL: BIT MISMATCH"
+ 
+                 self.lbl_mode.configure(
+-                    text=f"MODE: {({0: 'FLIGHT', 1: 'PROFILER', 2: 'STRESS', 3: 'DIAGNOSTIC'}[(sw_val>>14)&3])} | {desc} | SW[15:0]: 0x{sw_val:04X} | "+(f"IF PC: 0x{self.hardware_status[2]:08X}" if getattr(self,"hardware_status",None) else "Awaiting hardware trace status")
++                    text=f"MODE: {({0: 'FLIGHT', 1: 'PROFILER', 2: 'STRESS', 3: 'DIAGNOSTIC'}[(sw_val>>14)&3])} | {desc} | BP: {'BYPASS' if sw_val & 0x200 else 'ON'} | SW[15:0]: 0x{sw_val:04X} | "+(f"IF PC: 0x{self.hardware_status[2]:08X}" if getattr(self,"hardware_status",None) else "Awaiting hardware trace status")
+                 )
+                 self.lbl_fpga_vs_host.configure(
+                     text=f"FPGA Computed : 0x{filt_hex} ({filt_f:10.5f})  |  Host Expected : 0x{exp_hex} ({exp_f:10.5f})\n"
+@@ -651,13 +654,27 @@
+                 self._append_terminal(f"[PARSE ERROR] {exc} -> {line}", "fault")
+             return
+ 
++        if line.startswith("RUN_STATS,"):
++            fields=line.split(",")
++            if len(fields)!=5 or any(not re.fullmatch(r"[0-9A-Fa-f]{8}",v) for v in fields[1:]):
++                self.failures+=1
++                self._append_terminal("[RUN STATS ERROR] "+line,"fault")
++            else:
++                self.run_stats=tuple(int(v,16) for v in fields[1:])
++            return
++
+         if line.startswith("PROFILE,"):
+             fields=line.split(",")
+             expected={"REV8_WINDOW":1,"DCACHE_MISS_PENALTY":9,"DCACHE_HIT_SERVICE":1,"FMUL_WINDOW":4,"FDIV_WINDOW":15,"DIV_WINDOW":32}
+             try:
++                if len(fields)!=3 or fields[1] not in expected or not re.fullmatch(r"[0-9A-Fa-f]{8}",fields[2]):
++                    raise ValueError("Invalid timing record")
+                 name=fields[1]; value=int(fields[2],16)
++                self.__dict__.setdefault("profile_records",{})[name]=value
+                 status=self.__dict__.get("hardware_status")
+-                eligible=status is not None and (status[0]&0xE000)==0x6000
++                sw=self.__dict__.get("last_switches")
++                if sw is None and status is not None:sw=status[0]
++                eligible=sw is not None and (sw&0xE000)==0x6000
+                 reference=expected.get(name) if eligible else None
+                 match=value==reference if reference is not None else None
+                 if match is False:self.failures+=1
+@@ -689,7 +706,7 @@
+                 self.trace_gap = True
+                 self._append_terminal(f"[TRACE GAP] expected CC {previous+1}, received {cc}", "fault")
+             if previous == -1:
+-                self._append_terminal("[TRACE] 256 active cycles from reset. PC/instruction are WB stage; stall flags describe concurrent pipeline activity.", "verify")
++                self._append_terminal("[TRACE] 256 active cycles from reset. IF PC is the current fetch address; WB instruction is decoded separately. Stall flags describe concurrent pipeline activity.", "verify")
+             self.trace_previous = cc
+             self.trace_rows = self.__dict__.get("trace_rows",0)+1
+             event = re.search(r"EVENT: ([0-9A-Fa-f]{4})",line)
+@@ -702,10 +719,44 @@
+             else: note = "RUN"
+             if bits & 0x0800: note += " | branch redirect"
+             decoded = disassemble(inst) if "[VALID=1]" in line else "bubble (no valid WB instruction)"
+-            self._append_terminal(f"CC {cc:06d} | PC {pc} | {decoded} | {note}", "stall" if bits & 0x8000 else "inst")
++            fetch_pc=metadata[3].upper() if metadata else "unavailable (legacy trace)"
++            self._append_terminal(f"CC {cc:06d} | IF PC {fetch_pc} | WB instruction: {decoded} | {note}", "stall" if bits & 0x8000 else "inst")
+             if cc == 255: self._finish_trace_window()
+             return
+         self._append_terminal(line, "inst")
++
++    def _show_final_summary(self):
++        profiles=self.__dict__.get("profile_records",{})
++        if profiles:
++            self._append_terminal("[PROFILER FINAL TIMING WINDOWS]", "verify")
++            for name,value in profiles.items():
++                self._append_terminal(f"  {name}: {value} cycles", "verify")
++            if len(profiles)!=6:
++                self.failures+=1
++                self._append_terminal("[PROFILER] Incomplete: expected six timing records.", "fault")
++        elif ((self.__dict__.get("last_switches") or 0)>>14)&3==1:
++            self.failures+=1
++            self._append_terminal("[PROFILER] No timing records received. Rebuild firmware/bitstream and reset in profiler mode.","fault")
++        stats=self.__dict__.get("run_stats")
++        if stats is None:return
++        sw,cycles,instret,changed=stats
++        ipc=instret/cycles if cycles else 0
++        mode="BYPASS" if sw&0x200 else "ON"
++        self._append_terminal(f"[RUN TOTAL] BP {mode} | active core cycles={cycles} | retired={instret} | IPC={ipc:.4f} (before final report)", "verify")
++        if changed or self.source.startswith("SYNTHETIC") or self.failures or self.received!=set(range(100)) or set(self.__dict__.get("check_results",{}))!=set(SELFTEST_EXPECTED):
++            self._append_terminal("[BP COMPARISON] Run excluded: require a complete, passing run with unchanged switches.","fault")
++            return
++        history=self.__dict__.setdefault("bp_runs",{})
++        key=(self.source,self.__dict__.get("port_name",""),sw&~0x200)
++        pair=history.setdefault(key,{})
++        pair[bool(sw&0x200)]=(cycles,instret)
++        if len(pair)==2:
++            on,off=pair[False],pair[True]
++            on_ipc=on[1]/on[0] if on[0] else 0
++            off_ipc=off[1]/off[0] if off[0] else 0
++            self._append_terminal(f"[BP COMPARISON] ON: {on[0]} cycles, IPC {on_ipc:.4f} | BYPASS: {off[0]} cycles, IPC {off_ipc:.4f} | bypass extra cycles={off[0]-on[0]:+d} | IPC gain={on_ipc-off_ipc:+.4f}","verify")
++        else:
++            self._append_terminal("[BP COMPARISON] Keep other switches unchanged; clear host, toggle SW9 and reset board for the second run.","verify")
+ 
+     def _finish_trace_window(self):
+         if self.__dict__.get("trace_finished",False): return
+--- a/firmware/avionics_demo.c
++++ b/firmware/avionics_demo.c
+@@ -186,9 +186,12 @@
+     __asm__ volatile(".balign 16\ncsrr %0,cycle\ncsrr %1,cycle":"=&r"(t_base0),"=&r"(t_base1)::"memory");
+     uint32_t csr_overhead = t_base1 - t_base0;
+ 
++    uint32_t profile_values[6];
++    uint32_t profile_done=0, run_config_changed=0;
+     for (uint32_t iter = 0; iter < 100; iter++) {
+         // Poll switches live on every packet so user can flip switches mid-run
+         uint32_t sw_live = MMIO_SWITCHES & 0xFFFFu;
++        if (sw_live != sw_initial) run_config_changed=1;
+         mode         = (sw_live >> 14) & 0x3u;
+         cache_en     = (sw_live >> 13) & 0x1u;
+         verbose_mode = (sw_live >> 12) & 0x1u;
+@@ -315,29 +318,30 @@
+             static volatile uint32_t thrash[1024] __attribute__((aligned(2048)));
+             for(uint32_t j=0;j<16;j++) { uint32_t index=(j&1u)*512u; thrash[index]=iter+j; int_div_out ^= thrash[index]; }
+         }
+-        if (mode == 1u && iter == 0) {
++        if (mode == 1u && !profile_done) {
+             static volatile uint32_t profile_memory[1024] __attribute__((aligned(2048)));
+             uint32_t begin,end,result,miss_window,hit_window;
+             float fp_result;
+             profile_memory[0]=0x3f800000;
+             profile_memory[512]=0x40000000;
+             result=profile_memory[512];
+-#define PROFILE_PRINT(label) do { uart_puts("PROFILE," label ","); uart_put_hex32(end-begin-csr_overhead); uart_putc('\n'); } while(0)
++#define PROFILE_SAVE(index) profile_values[index]=end-begin-csr_overhead
+             __asm__ volatile(".balign 16\ncsrr %0,cycle\nrev8 %2,%3\ncsrr %1,cycle" : "=&r"(begin),"=&r"(end),"=&r"(result):"r"(input_val.i):"memory");
+-            PROFILE_PRINT("REV8_WINDOW");
++            PROFILE_SAVE(0);
+             __asm__ volatile(".balign 16\ncsrr %0,cycle\nlw %2,0(%3)\nadd %2,%2,zero\ncsrr %1,cycle" : "=&r"(begin),"=&r"(end),"=&r"(result):"r"(&profile_memory[0]):"memory");
+             miss_window=end-begin-csr_overhead;
+             __asm__ volatile(".balign 16\ncsrr %0,cycle\nlw %2,0(%3)\nadd %2,%2,zero\ncsrr %1,cycle" : "=&r"(begin),"=&r"(end),"=&r"(result):"r"(&profile_memory[0]):"memory");
+             hit_window=end-begin-csr_overhead;
+-            uart_puts("PROFILE,DCACHE_MISS_PENALTY,");uart_put_hex32(miss_window-hit_window);uart_putc('\n');
+-            uart_puts("PROFILE,DCACHE_HIT_SERVICE,");uart_put_hex32(hit_window-2u);uart_putc('\n');
++            profile_values[1]=miss_window>=hit_window ? miss_window-hit_window : 0;
++            profile_values[2]=hit_window>=2u ? hit_window-2u : 0;
+             __asm__ volatile(".balign 16\ncsrr %0,cycle\nfmul.s %2,%3,%4,rne\ncsrr %1,cycle" : "=&r"(begin),"=&r"(end),"=&f"(fp_result):"f"(input_val.f),"f"(alpha.f):"memory");
+-            PROFILE_PRINT("FMUL_WINDOW");
++            PROFILE_SAVE(3);
+             __asm__ volatile(".balign 16\ncsrr %0,cycle\nfdiv.s %2,%3,%4,rne\ncsrr %1,cycle" : "=&r"(begin),"=&r"(end),"=&f"(fp_result):"f"(input_val.f),"f"(alpha.f):"memory");
+-            PROFILE_PRINT("FDIV_WINDOW");
++            PROFILE_SAVE(4);
+             __asm__ volatile(".balign 16\ncsrr %0,cycle\ndiv %2,%3,%4\ncsrr %1,cycle" : "=&r"(begin),"=&r"(end),"=&r"(result):"r"(12345678),"r"(13):"memory");
+-            PROFILE_PRINT("DIV_WINDOW");
+-#undef PROFILE_PRINT
++            PROFILE_SAVE(5);
++#undef PROFILE_SAVE
++            profile_done=1;
+         }
+         // Write latest WB result to MMIO override register in case SW[10] is flipped
+         MMIO_SEG7_OVRD = wb_commit;
+@@ -373,6 +377,20 @@
+         for (volatile uint32_t d = 0; d < delay_loops; d++);
+     }
+ 
++    // Freeze active-core counter totals before serializing the final summaries.
++    uint32_t total_cycles=READ_CSR(cycle);
++    uint32_t total_instret=READ_CSR(instret);
++    if ((MMIO_SWITCHES & 0xffffu) != sw_initial) run_config_changed=1;
++    uart_puts("RUN_STATS,");uart_put_hex32(sw_initial);uart_putc(',');
++    uart_put_hex32(total_cycles);uart_putc(',');uart_put_hex32(total_instret);uart_putc(',');
++    uart_put_hex32(run_config_changed);uart_putc('\n');
++    if (profile_done) {
++        const char *names[6]={"REV8_WINDOW","DCACHE_MISS_PENALTY","DCACHE_HIT_SERVICE","FMUL_WINDOW","FDIV_WINDOW","DIV_WINDOW"};
++        for(uint32_t n=0;n<6;n++) {
++            uart_puts("PROFILE,");uart_puts(names[n]);uart_putc(',');
++            uart_put_hex32(profile_values[n]);uart_putc('\n');
++        }
++    }
+     // Assert DEMO_COMPLETE LED[0] and transmit completion sentinel
+     uart_puts("DEMO_COMPLETE\n");
+     while (MMIO_UART_TX & 0x80000000u) {}
+--- a/integration/modules/core/pipeline_5stage.v
++++ b/integration/modules/core/pipeline_5stage.v
+@@ -37,6 +37,7 @@
+     output wire [31:0] wb_instruction_o,
+     // Cache Bypass Controls
+     input  wire        icache_bypass_i,  // 0 = Normal L1 I-Cache, 1 = Bypass
++    input  wire        bp_bypass_i,      // 1: sequential fetch; EX recovery remains active
+     input  wire        dcache_bypass_i,  // 0 = Normal L1 D-Cache, 1 = Bypass
+ 
+     // Unified Backing Main Memory Interface (from Memory Bus Arbiter)
+@@ -143,6 +144,7 @@
+     wire        icache_mem_grant;
+ 
+     fetch_stage u_fetch_stage (
++        .bp_bypass_i       (bp_bypass_i),
+         .clk               (clk),
+         .reset_n           (reset_n),
+         .stall_if          (stall_if || stall_ext),
+--- a/integration/modules/core/rv32imf_core.v
++++ b/integration/modules/core/rv32imf_core.v
+@@ -35,6 +35,7 @@
+     // Performance & Diagnostic Configuration Switches
+     input  wire        use_dsp_i,        // 1: Hardware DSP multiplier, 0: Booth Radix-4
+     input  wire        icache_bypass_i,  // 0: L1 I-Cache Active, 1: Bypass
++    input  wire        bp_bypass_i,      // 1: sequential fetch; EX recovery remains active
+     input  wire        dcache_bypass_i,  // 0: L1 D-Cache Active, 1: Bypass
+ 
+     // Backing Unified Main Memory Interface (to Unified RAM model)
+@@ -97,6 +98,7 @@
+         .use_dsp_i          (use_dsp_i),
+         .icache_bypass_i    (icache_bypass_i),
+         .dcache_bypass_i    (dcache_bypass_i),
++        .bp_bypass_i        (bp_bypass_i),
+         .main_mem_req       (main_mem_req),
+         .main_mem_addr      (main_mem_addr),
+         .main_mem_we        (main_mem_we),
+--- a/integration/modules/stages/fetch_stage.v
++++ b/integration/modules/stages/fetch_stage.v
+@@ -15,6 +15,7 @@
+     input  wire        clk,
+     input  wire        reset_n,
+     input  wire        stall_if,
++    input  wire        bp_bypass_i,
+ 
+     // Resolution & Recovery Interface from Execute Stage
+     input  wire        ex_mispredict,
+@@ -63,9 +64,9 @@
+         .update_taken  (btb_update_taken)
+     );
+ 
+-    assign pred_hit_o    = btb_pred_hit && !stall_if;
+-    assign pred_taken_o  = btb_pred_taken && !stall_if;
+-    assign pred_target_o = btb_pred_target;
++    assign pred_hit_o    = btb_pred_hit && !stall_if && !bp_bypass_i;
++    assign pred_taken_o  = btb_pred_taken && !stall_if && !bp_bypass_i;
++    assign pred_target_o = bp_bypass_i ? pc_plus4_o : btb_pred_target;
+ 
+     // ------------------------------------------------------------------------
+     // Prioritized Next-PC Multiplexer
+@@ -76,7 +77,7 @@
+         if (ex_mispredict) begin
+             // Highest priority: flush recovery to calculated target or pc+4
+             pc_next = ex_redirect_pc;
+-        end else if (btb_pred_hit && btb_pred_taken) begin
++        end else if (!bp_bypass_i && btb_pred_hit && btb_pred_taken) begin
+             // Zero-bubble speculative branch redirection from BTB
+             pc_next = btb_pred_target;
+         end else begin
+--- a/integration/testbench/tb_integrated_core.v
++++ b/integration/testbench/tb_integrated_core.v
+@@ -70,6 +70,7 @@
+         .stall_ext          (stall_ext),
+         .use_dsp_i          (1'b1),
+         .icache_bypass_i    (1'b0), // L1 I-Cache Active
++        .bp_bypass_i        (1'b0),
+         .dcache_bypass_i    (1'b0), // L1 D-Cache Active
+         .main_mem_req       (main_mem_req),
+         .main_mem_addr      (main_mem_addr),
+--- a/tests/tb_board_full.v
++++ b/tests/tb_board_full.v
+@@ -2,11 +2,12 @@
+ module tb_board_full #(parameter SYS_HZ=50000000);
+  localparam real BIT_NS=1000000000.0/SYS_HZ;
+  reg clk=0,rst=0;always #5 clk=~clk;
+- wire tx;wire [15:0]led;
+- nexys_a7_top #(.SYSTEM_CLOCK_HZ(SYS_HZ),.UART_DIV_CLOCK(115200)) dut(.CLK100MHZ(clk),.CPU_RESETN(rst),.SW(16'h2032),.LED(led),.UART_TXD_IN(tx));
++ wire tx;wire [15:0]led;reg [15:0] switches;
++ nexys_a7_top #(.SYSTEM_CLOCK_HZ(SYS_HZ),.UART_DIV_CLOCK(115200)) dut(.CLK100MHZ(clk),.CPU_RESETN(rst),.SW(switches),.LED(led),.UART_TXD_IN(tx));
+  reg [7:0] value,line[0:511];integer i,length=0,traces=0,checks=0,packets=0,out;
+  reg [1023:0] logpath;
+  initial begin
++ if(!$value$plusargs("SW=%h",switches))switches=16'h2032;
+  if(!$value$plusargs("LOG=%s",logpath))logpath="reports/board_full_uart.log";
+  out=$fopen(logpath,"w");#110 rst=1;end
+  initial begin
+--- /dev/null
++++ b/tests/tb_bp_bypass.v
+@@ -0,0 +1,23 @@
++`timescale 1ns/1ps
++module tb_bp_bypass;
++ reg clk=0,rst=0,stall=0,bypass=0,redirect=0,update=0;
++ always #5 clk=~clk;
++ wire [31:0] pc,target;wire hit,taken;
++ fetch_stage dut(.clk(clk),.reset_n(rst),.stall_if(stall),.bp_bypass_i(bypass),
++ .ex_mispredict(redirect),.ex_redirect_pc(32'h0),
++ .btb_update_en(update),.btb_update_pc(32'h0),.btb_update_target(32'h40),.btb_update_taken(1'b1),
++ .icache_rdata(32'h13),.pc_o(pc),.pred_hit_o(hit),.pred_taken_o(taken),.pred_target_o(target));
++ initial begin
++ #2;rst=0;#10;rst=1;stall=1;update=1;
++ @(negedge clk);update=0;stall=0;#1;
++ if(!hit || !taken || target!=64)$fatal(1,"Trained BTB not predicting");
++ @(negedge clk);if(pc!=64)$fatal(1,"Enabled fetch did not use target");
++ redirect=1;@(negedge clk);redirect=0;bypass=1;#1;
++ if(hit || taken || target!=4)$fatal(1,"Bypass leaked prediction metadata");
++ @(negedge clk);if(pc!=4)$fatal(1,"Bypass did not fetch sequentially");
++ stall=1;redirect=1;@(negedge clk);redirect=0;#1;
++ if(pc!=0)$fatal(1,"Recovery must work during bypass and stall");
++ bypass=0;stall=0;#1;if(!taken)$fatal(1,"Re-enable failed");
++ $display("BP BYPASS PASS: prediction, sequential fetch, metadata and stalled recovery");$finish;
++ end
++endmodule
+--- a/tests/tb_firmware.v
++++ b/tests/tb_firmware.v
+@@ -4,7 +4,8 @@
+  always #10 clk=~clk;
+  wire req,we; wire [31:0] addr,wdata; wire [3:0] strb; reg [31:0] rdata;
+  wire mreq,mwe; wire [31:0] ma,md; wire [3:0] ms;
+- reg [15:0] switches;
++ reg [15:0] switches, later_switches;
++ integer switch_cycle=0;
+  wire [31:0] mr=ma[3:2]==0 ? {16'b0,switches} : 0;
+  reg [31:0] ram[0:16383];
+  wire [31:0] pc,wbpc,wd,wi; wire [5:0] rd; wire retire,ww,stall;
+@@ -12,7 +13,7 @@
+  integer c=0,b,out,trace;
+  reg full_trace;
+  rv32imf_core dut(.clk(clk),.reset_n(reset_n),.stall_ext(1'b0),.use_dsp_i(1'b1),
+- .icache_bypass_i(!switches[13]),.dcache_bypass_i(!switches[13]),
++ .icache_bypass_i(!switches[13]),.bp_bypass_i(switches[9]),.dcache_bypass_i(!switches[13]),
+  .main_mem_req(req),.main_mem_addr(addr),.main_mem_we(we),.main_mem_wdata(wdata),.main_mem_wstrb(strb),.main_mem_rdata(rdata),
+  .mmio_req(mreq),.mmio_we(mwe),.mmio_addr(ma),.mmio_wdata(md),.mmio_wstrb(ms),.mmio_rdata(mr),
+  .pc_if(pc),.pc_wb(wbpc),.wb_data(wd),.wb_dest_reg(rd),.wb_reg_write(ww),.wb_instruction_o(wi),.retire_o(retire),.hazard_stall(stall));
+@@ -23,6 +24,7 @@
+   end else rdata<=0;
+   if(reset_n) begin
+    c=c+1;
++   if(switch_cycle!=0 && c==switch_cycle) switches=later_switches;
+    if((full_trace || c<5000) && retire) $fdisplay(trace,"[CC=%8d] PC: 0x%08x | INST: 0x%08x | WB: bank=%0d reg=%0d <= 0x%08x [WE=%0d]",c,wbpc,wi,rd[5],rd[4:0],wd,ww);
+    if((full_trace || c<5000) && stall) begin
+     if(dut.u_pipeline.dcache_stall) $fdisplay(trace,"[CC=%8d] ---------stall--------- <-- [D-CACHE: state=%0d refill_counter=%0d grant=%0d]",c,dut.u_pipeline.u_dcache.state,dut.u_pipeline.u_dcache.refill_cnt,dut.u_pipeline.dcache_mem_grant);
+@@ -37,6 +39,8 @@
+  end
+  initial begin
+   full_trace=$test$plusargs("TRACE");
++  if(!$value$plusargs("SW_CYCLE=%d",switch_cycle))switch_cycle=0;
++  if(!$value$plusargs("SW_LATER=%h",later_switches))later_switches=16'h6032;
+   if(!$value$plusargs("SW=%h",switches)) switches=16'h2032;
+   $readmemh("avionics_demo.mem",ram);
+   if(!$value$plusargs("LOG=%s",log_name)) log_name="reports/firmware_uart.log";
+--- a/tests/tb_zbb_observer.v
++++ b/tests/tb_zbb_observer.v
+@@ -3,7 +3,7 @@
+  reg clk=0;always #5 clk=~clk;
+  reg [31:0] instruction;reg active=1,held=0;
+  wire event_z;
+- pipeline_5stage dut(.clk(clk),.reset_n(1'b0),.stall_ext(1'b0),.zbb_active_o(event_z));
++ pipeline_5stage dut(.clk(clk),.reset_n(1'b0),.stall_ext(1'b0),.bp_bypass_i(1'b0),.zbb_active_o(event_z));
+  integer n=0;
+  task check;
+  input [31:0] word;input expected;
+--- a/tests/test_dashboard.py
++++ b/tests/test_dashboard.py
+@@ -94,4 +94,23 @@
+   self.assertIsNone(a.gauge_ipc.value);self.assertIn('Awaiting',a.lbl_mode.value['text'])
+  def test_float_overflow(self):
+   self.assertEqual(HostGoldenModel.float_to_hex(HostGoldenModel.f32(1e50)),'7F800000')
++ def test_if_pc_not_wb_pc(self):
++  a=self.model();a._handle_uart_line('[CC=0000000000] PC: 0x00000010 | INST: 0x00000013 | [VALID=1] SW=2032 LED=0000 IFPC=00000024 I_HIT=00000000 I_MISS=00000000 D_HIT=00000000 D_MISS=00000000')
++  self.assertIn('IF PC 00000024',a.logs[-1][0]);self.assertIn('WB instruction:',a.logs[-1][0])
++ def test_profile_summary_at_end(self):
++  a=self.model();a._handle_uart_line('PROFILE,FMUL_WINDOW,00000004')
++  a.logs.clear();a._handle_uart_line('DEMO_COMPLETE')
++  self.assertTrue(any('FMUL_WINDOW: 4 cycles' in x[0] for x in a.logs))
++ def test_branch_comparison(self):
++  a=self.model();a.received=set(range(100));a.check_results=dict.fromkeys(SELFTEST_EXPECTED,0)
++  a._handle_uart_line('RUN_STATS,00002032,00000100,00000080,00000000');a._show_final_summary()
++  a._handle_uart_line('RUN_STATS,00002232,00000200,00000080,00000000');a._show_final_summary()
++  self.assertIn('bypass extra cycles=+256',a.logs[-1][0])
++  self.assertIn('IPC gain=+0.2500',a.logs[-1][0])
++ def test_changed_run_excluded(self):
++  a=self.model();a.received=set(range(100));a.check_results=dict.fromkeys(SELFTEST_EXPECTED,0)
++  a._handle_uart_line('RUN_STATS,00002032,00000100,00000080,00000001');a._show_final_summary()
++  self.assertNotIn('bp_runs',a.__dict__)
++ def test_bad_stats(self):
++  a=self.model();a._handle_uart_line('RUN_STATS,garbage');self.assertEqual(a.failures,1)
+ if __name__=='__main__':unittest.main()
+--- /dev/null
++++ b/tools/run_requested_validation.py
+@@ -0,0 +1,35 @@
++"""Validate the two profiler settings through the complete physical-UART model."""
++from pathlib import Path
++import os,sys,subprocess,importlib.util
++root=Path(__file__).resolve().parents[1];os.chdir(root)
++spec=importlib.util.spec_from_file_location('dashboard_tests',root/'tests/test_dashboard.py')
++module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
++iv=os.environ.get('IVERILOG','iverilog');vvp=os.environ.get('VVP','vvp')
++flags=['-g2012','-Iintegration/modules/csr']
++if os.environ.get('IVERILOG_BASE'):flags+=['-B',os.environ['IVERILOG_BASE']]
++out=root/'reports/requested_changes';out.mkdir(exist_ok=True)
++files=list(map(str,Path('integration/modules').rglob('*.v')))+list(map(str,Path('board').glob('*.v')))
++exe=str(out/'board.vvp')
++subprocess.run([iv,*flags,'-s','tb_board_full','-o',exe,*files,'tests/tb_board_full.v'],check=True)
++history={};counts={}
++for sw in (0x6032,0x6232):
++ log=out/f'board_{sw:04x}_uart.log'
++ if "--reuse" not in sys.argv or not log.exists():
++  run=subprocess.run([vvp,exe,f'+SW={sw:04x}',f'+LOG={log}'],check=True,capture_output=True,text=True,timeout=360)
++  (out/f'board_{sw:04x}.log').write_text(run.stdout+run.stderr)
++ lines=log.read_text().splitlines()
++ a=module.DashboardTest().model();a.bp_runs=history
++ for line in lines:a._handle_uart_line(line)
++ assert a.received==set(range(100)) and a.check_count==57 and a.failures==0,(sw,a.failures,a.logs[-20:])
++ assert a.trace_rows==256 and not a.__dict__.get("trace_gap",False)
++ assert len(a.profile_records)==6
++ assert lines.index(next(x for x in lines if x.startswith('PROFILE,')))>max(i for i,x in enumerate(lines) if x.startswith('CSV,'))
++ subprocess.run([sys.executable,'tests/check_profiles.py',str(log)],check=True)
++ assert sum('IF PC ' in x[0] and 'WB instruction:' in x[0] for x in a.logs)==256
++ assert a.run_stats[0]==sw and a.run_stats[3]==0
++ counts[sw]=a.run_stats[1:3]
++ (out/f'dashboard_{sw:04x}.log').write_text('\n'.join(x[0] for x in a.logs)+'\n')
++ print(f'{sw:04X}: 100 packets, 57 checks, six final timing windows, 256 IF-PC trace rows; cycles={counts[sw][0]}, retired={counts[sw][1]}, IPC={counts[sw][1]/counts[sw][0]:.6f}',flush=True)
++assert counts[0x6232][0]>counts[0x6032][0],counts
++assert any('[BP COMPARISON] ON:' in x[0] for x in a.logs)
++print('Full board/UART comparison PASS')
+--- a/tools/run_tests.py
++++ b/tools/run_tests.py
+@@ -7,6 +7,7 @@
+ if os.environ.get('IVERILOG_BASE'):flags+=['-B',os.environ['IVERILOG_BASE']]
+ core=list(map(str,Path('integration/modules').rglob('*.v')))
+ for name,files,cwd in [
++ ('tb_bp_bypass',['integration/modules/stages/fetch_stage.v','integration/modules/branch/btb_branch_pred.v','tests/tb_bp_bypass.v'],'.'),
+  ('tb_integrated_core',core+['integration/testbench/memory_model.v','integration/testbench/tb_integrated_core.v'],'integration/testbench'),
+  ('tb_fpu_edges',['integration/modules/arith/fpu_single_core.v','tests/tb_fpu_edges.v'],'.'),
+  ('tb_fpu_vectors',['integration/modules/arith/fpu_single_core.v','tests/tb_fpu_vectors.v'],'.'),
+--- /dev/null
++++ b/tools/verify_requested_results.py
+@@ -0,0 +1,20 @@
++"""Strict host validation of completed firmware logs for this revision."""
++from pathlib import Path
++import os,importlib.util
++root=Path(__file__).resolve().parents[1];os.chdir(root)
++spec=importlib.util.spec_from_file_location('dashboard_tests',root/'tests/test_dashboard.py')
++m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
++folder=Path('reports/requested_changes')
++for name in ['uart_'+sw+'.log' for sw in ['2032','2232','6032','6232','0032','0232','a032','a232','e203']]+['late_profiler_uart.log']:
++ a=m.DashboardTest().model();lines=(folder/name).read_text().splitlines()
++ for line in lines:a._handle_uart_line(line)
++ assert lines[-1]=='DEMO_COMPLETE',name
++ assert a.failures==0 and a.check_count==57 and a.received==set(range(100)),(name,a.failures)
++ if '6032' in name or '6232' in name or name.startswith('late_'):
++  assert len(a.profile_records)==6,name
++  assert max(i for i,x in enumerate(lines) if x.startswith('CSV,'))<min(i for i,x in enumerate(lines) if x.startswith('PROFILE,')),name
++ if name.startswith('late_'):
++  assert a.run_stats[3]==1 and a.last_switches==0x6032
++  assert not a.__dict__.get('bp_runs'), 'Changed configuration must not enter comparison history'
++ sw,cycles,instret,changed=a.run_stats
++ print(f'{name}: PASS all 100 independent packet checks, 57 self-tests; cycles={cycles}, retired={instret}, IPC={instret/cycles:.6f}, changed={changed}')

@@ -1,0 +1,1639 @@
+diff -ru baseline_source/integration/modules/arith/alu_zbb.v work/integration/modules/arith/alu_zbb.v
+--- baseline_source/integration/modules/arith/alu_zbb.v	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/modules/arith/alu_zbb.v	2026-11-04 07:05:03.710390559 +0000
+@@ -37,6 +37,10 @@
+     wire [63:0] ror_shifted = ror_double >> alu_in2[4:0];
+     wire [31:0] ror_result  = ror_shifted[31:0];
+ 
++    // Resolve signed shift before the unsigned result-selection expression.
++    // A mixed-signedness ternary can otherwise turn >>> into zero filling.
++    wire [31:0] arithmetic_shift_result = $signed(alu_in1) >>> alu_in2[4:0];
++
+     // 2. Byte Reverse (REV8)
+     wire [31:0] rev8_result = {alu_in1[7:0], alu_in1[15:8], alu_in1[23:16], alu_in1[31:24]};
+ 
+@@ -154,7 +158,7 @@
+                 end else if (!immediate_sel_i && (funct7_i == FUNCT7_ZBB_MINMAX)) begin
+                     alu_result_o = sub_unsigned[32] ? alu_in1 : alu_in2; // MINU
+                 end else begin
+-                    alu_result_o = arithsubtype_i ? ($signed(alu_in1) >>> alu_in2[4:0]) : (alu_in1 >> alu_in2[4:0]);
++                    alu_result_o = arithsubtype_i ? arithmetic_shift_result : (alu_in1 >> alu_in2[4:0]);
+                 end
+             end
+ 
+diff -ru baseline_source/integration/modules/arith/fpu_single_core.v work/integration/modules/arith/fpu_single_core.v
+--- baseline_source/integration/modules/arith/fpu_single_core.v	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/modules/arith/fpu_single_core.v	2026-11-04 02:56:10.452355090 +0000
+@@ -28,6 +28,7 @@
+     input  wire [31:0] op_b,          // Float operand B (IEEE 754 single precision)
+     output reg  [31:0] fpu_result,    // IEEE 754 float output
+     output wire        fpu_busy,      // Multi-cycle stall interlock to Hazard Unit
++    output wire [4:0] flags_o,
+     output wire        fpu_done       // High when valid result is ready in EX
+ );
+ 
+@@ -98,12 +99,14 @@
+     wire b_is_nan  = (exp_b == 8'hFF) && (frac_b != 23'd0);
+     wire b_is_inf  = (exp_b == 8'hFF) && (frac_b == 23'd0);
+ 
+-    wire [23:0] mant_a = a_is_zero ? 24'd0 : {1'b1, frac_a};
+-    wire [23:0] mant_b = b_is_zero ? 24'd0 : {1'b1, frac_b};
++    wire [23:0] mant_a = a_is_zero ? 24'd0 : {exp_a!=0, frac_a};
++    wire [23:0] mant_b = b_is_zero ? 24'd0 : {exp_b!=0, frac_b};
+ 
++    wire [7:0] effective_a = exp_a==0 ? 8'd1 : exp_a;
++    wire [7:0] effective_b = exp_b==0 ? 8'd1 : exp_b;
+     // Magnitude comparison for Addition/Subtraction
+-    wire a_greater = (exp_a > exp_b) || ((exp_a == exp_b) && (mant_a >= mant_b));
+-    wire [7:0] exp_diff_in = a_greater ? (exp_a - exp_b) : (exp_b - exp_a);
++    wire a_greater = (effective_a > effective_b) || ((effective_a == effective_b) && (mant_a >= mant_b));
++    wire [7:0] exp_diff_in = a_greater ? (effective_a - effective_b) : (effective_b - effective_a);
+     wire [23:0] m_large_in = a_greater ? mant_a : mant_b;
+     wire [23:0] m_small_in = a_greater ? mant_b : mant_a;
+     wire sign_large_in     = a_greater ? sign_a : sign_b;
+@@ -158,6 +161,66 @@
+         end
+     endfunction
+ 
++    // Bounded exponent math, logarithmic MSB search and a 25-bit rounding adder.
++    // The former integer/64-bit path inferred long priority and carry chains.
++    function [36:0] pack_rne;
++        input sign_bit;
++        input [63:0] magnitude;
++        input signed [11:0] scale;
++        input extra_sticky;
++        reg [5:0] top;
++        reg signed [12:0] e, shift;
++        reg [63:0] probe, shifted, discarded;
++        reg found,g,sticky,nx,uf,of;
++        reg [24:0] rounded;
++        reg [31:0] packed_value;
++        begin
++            top=0;probe=magnitude;found=|magnitude;
++            if(|probe[63:32]) begin top=top+32;probe=probe>>32;end
++            if(|probe[31:16]) begin top=top+16;probe=probe>>16;end
++            if(|probe[15:8]) begin top=top+8;probe=probe>>8;end
++            if(|probe[7:4]) begin top=top+4;probe=probe>>4;end
++            if(|probe[3:2]) begin top=top+2;probe=probe>>2;end
++            if(probe[1]) top=top+1;
++            g=0;sticky=extra_sticky;nx=0;uf=0;of=0;discarded=0;shifted=0;
++            e=$signed({7'b0,top})+scale+13'sd127;
++            shift=e>0 ? $signed({7'b0,top})-13'sd23 : -13'sd149-scale;
++            if(shift>0) begin
++                shifted=shift>=64 ? 64'b0 : magnitude>>shift[5:0];
++                if(shift<=64) begin
++                    g=(magnitude>>(shift-1))&1'b1;
++                    // Bits strictly below the guard bit, reduced in parallel.
++                    discarded=magnitude & (64'hffffffffffffffff >> (13'sd65-shift));
++                end else discarded=magnitude;
++                sticky=extra_sticky | (|discarded);
++                rounded=shifted[24:0];nx=g|sticky;
++                if(g && (sticky || rounded[0])) rounded=rounded+25'd1;
++            end else begin
++                shifted=magnitude<<(-shift);rounded=shifted[24:0];nx=extra_sticky;
++            end
++            if(!found) packed_value={sign_bit,31'b0};
++            else if(e<=0) begin
++                if(rounded[23]) packed_value={sign_bit,8'h01,23'b0};
++                else begin packed_value={sign_bit,8'b0,rounded[22:0]};uf=nx;end
++            end else begin
++                if(rounded[24]) begin rounded=rounded>>1;e=e+13'sd1;end
++                if(e>=255) begin packed_value={sign_bit,8'hff,23'b0};of=1;nx=1;end
++                else packed_value={sign_bit,e[7:0],rounded[22:0]};
++            end
++            pack_rne={2'b00,of,uf,nx,packed_value};
++        end
++    endfunction
++    function [4:0] clz24;
++        input [23:0] value;
++        integer k;reg found;
++        begin clz24=24;found=0;for(k=23;k>=0;k=k-1) if(value[k]&&!found) begin clz24=23-k;found=1;end end
++    endfunction
++    wire [4:0] shift_a=clz24(mant_a),shift_b=clz24(mant_b);
++    wire [23:0] normal_a=mant_a<<shift_a,normal_b=mant_b<<shift_b;
++    wire signed [10:0] normal_ea=$signed({3'b0,effective_a})-$signed({6'b0,shift_a});
++    wire signed [10:0] normal_eb=$signed({3'b0,effective_b})-$signed({6'b0,shift_b});
++    reg [36:0] packed_result;
++    reg [2:0] arithmetic_flags;
+     // Leading Zero Counter Function for FADD Normalization (27 bits)
+     function [4:0] clz27;
+         input [26:0] val;
+@@ -206,6 +269,7 @@
+             result_reg   <= 32'd0;
+             sp_valid     <= 1'b0;
+             sp_res       <= 32'd0;
++            arithmetic_flags <= 0;
+ 
+             // FADD
+             fadd_sign_large       <= 1'b0;
+@@ -255,7 +319,7 @@
+                             FUNCT7_FMUL: begin
+                                 count         <= 4'd1; // 2 CALC cycles: count=1, count=0
+                                 fmul_sign_res <= op_a[31] ^ op_b[31];
+-                                fmul_raw_exp  <= {2'b00, exp_a} + {2'b00, exp_b} - 10'd127;
++                                fmul_raw_exp  <= {2'b00,effective_a} + {2'b00,effective_b} - 10'd127;
+                                 fmul_mant_a   <= mant_a;
+                                 fmul_mant_b   <= mant_b;
+                                 fmul_zero_res <= a_is_zero || b_is_zero;
+@@ -268,18 +332,18 @@
+                             FUNCT7_FDIV: begin
+                                 count         <= 4'd12; // 13 CALC cycles: count=12 down to 0
+                                 fdiv_sign_res <= op_a[31] ^ op_b[31];
+-                                fdiv_denom    <= mant_b;
++                                fdiv_denom    <= normal_b;
+                                 fdiv_quot     <= 26'd0;
+                                 fdiv_div0     <= ((b_is_zero || a_is_inf) && !a_is_zero && !b_is_inf && !a_is_nan && !b_is_nan);
+                                 fdiv_nan      <= (a_is_nan || b_is_nan || (b_is_zero && a_is_zero) || (a_is_inf && b_is_inf));
+                                 fdiv_zero_res <= ((a_is_zero || b_is_inf) && !b_is_zero && !a_is_inf && !a_is_nan && !b_is_nan);
+ 
+-                                if (mant_a >= mant_b) begin
+-                                    fdiv_rem     <= {2'b00, mant_a};
+-                                    fdiv_exp_res <= {2'b00, exp_a} - {2'b00, exp_b} + 10'd127;
++                                if (normal_a >= normal_b) begin
++                                    fdiv_rem     <= {2'b00, normal_a};
++                                    fdiv_exp_res <= normal_ea - normal_eb + 127;
+                                 end else begin
+-                                    fdiv_rem     <= {1'b0, mant_a, 1'b0};
+-                                    fdiv_exp_res <= {2'b00, exp_a} - {2'b00, exp_b} + 10'd126; // 127 - 1
++                                    fdiv_rem     <= {1'b0, normal_a, 1'b0};
++                                    fdiv_exp_res <= normal_ea - normal_eb + 126; // 127 - 1
+                                 end
+                                 state <= S_CALC;
+                             end
+@@ -290,7 +354,7 @@
+                             default: begin // FUNCT7_FADD, FUNCT7_FSUB
+                                 count                <= 4'd2; // 3 CALC cycles: count=2, count=1, count=0
+                                 fadd_sign_large      <= sign_large_in;
+-                                fadd_exp_large       <= {1'b0, (a_greater ? exp_a : exp_b)};
++                                fadd_exp_large       <= {1'b0, (a_greater ? effective_a : effective_b)};
+                                 fadd_m_large_ext     <= m_large_aligned;
+                                 fadd_m_small_aligned <= m_small_aligned;
+                                 fadd_eff_sub         <= sign_large_in ^ sign_small_in;
+@@ -341,13 +405,9 @@
+                                     fmul_final_e    = fmul_norm_e;
+                                 end
+ 
+-                                if (fmul_zero_res || $signed(fmul_final_e) <= 0) begin
+-                                    fmul_final_res <= {fmul_sign_res, 31'd0};
+-                                end else if ($signed(fmul_final_e) >= 255) begin
+-                                    fmul_final_res <= {fmul_sign_res, 8'hFF, 23'd0};
+-                                end else begin
+-                                    fmul_final_res <= {fmul_sign_res, fmul_final_e[7:0], fmul_frac_final};
+-                                end
++                                packed_result=pack_rne(fmul_sign_res,{16'b0,fmul_prod},$signed(fmul_raw_exp)-173,1'b0);
++                                fmul_final_res<=packed_result[31:0];
++                                arithmetic_flags<=packed_result[34:32];
+ 
+                                 state <= S_DONE;
+                             end
+@@ -406,17 +466,12 @@
+                                     fdiv_frac_final = fdiv_frac_raw;
+                                 end
+ 
+-                                if (fdiv_nan) begin
+-                                    fdiv_final_res <= 32'h7FC0_0000; // NaN
+-                                end else if (fdiv_div0) begin
+-                                    fdiv_final_res <= {fdiv_sign_res, 8'hFF, 23'd0}; // +/- Infinity
+-                                end else if (fdiv_zero_res || $signed(fdiv_final_exp) <= 0) begin
+-                                    fdiv_final_res <= {fdiv_sign_res, 31'd0};
+-                                end else if ($signed(fdiv_final_exp) >= 255) begin
+-                                    fdiv_final_res <= {fdiv_sign_res, 8'hFF, 23'd0};
+-                                end else begin
+-                                    fdiv_final_res <= {fdiv_sign_res, fdiv_final_exp[7:0], fdiv_frac_final};
+-                                end
++                                packed_result=pack_rne(fdiv_sign_res,{38'b0,fdiv_quot_comb},$signed(fdiv_exp_res)-152,|fdiv_rem_cur);
++                                arithmetic_flags<=packed_result[34:32];
++                                if (fdiv_nan) fdiv_final_res<=32'h7fc00000;
++                                else if(fdiv_div0) fdiv_final_res<={fdiv_sign_res,8'hff,23'b0};
++                                else if(fdiv_zero_res) fdiv_final_res<={fdiv_sign_res,31'b0};
++                                else fdiv_final_res<=packed_result[31:0];
+ 
+                                 state <= S_DONE;
+                             end
+@@ -475,14 +530,17 @@
+                                     fadd_final_e    = fadd_norm_e;
+                                 end
+ 
+-                                if (fadd_is_zero_res || fadd_sum == 29'd0 || $signed(fadd_final_e) <= 0) begin
++                                if (fadd_is_zero_res || fadd_sum == 29'd0) begin
+                                     fadd_final_res <= 32'h0000_0000;
+-                                end else if ($signed(fadd_final_e) >= 255) begin
++                                end else if (fadd_final_e >= 255) begin
+                                     fadd_final_res <= {fadd_sign_large, 8'hFF, 23'd0};
+                                 end else begin
+                                     fadd_final_res <= {fadd_sign_large, fadd_final_e[7:0], fadd_frac_final};
+                                 end
+ 
++                                arithmetic_flags <= {fadd_final_e>=255,
++                                    fadd_final_e==0 && (fadd_g|fadd_r|fadd_s),
++                                    fadd_final_e>=255 || fadd_g|fadd_r|fadd_s};
+                                 state <= S_DONE;
+                             end
+                         end
+@@ -521,6 +579,23 @@
+         end
+     end
+ 
++    reg saved_nv, saved_dz, saved_finite_nonzero;
++    wire snan_a = a_is_nan && !op_a[22];
++    wire snan_b = b_is_nan && !op_b[22];
++    always @(posedge clk or negedge reset_n) begin
++        if(!reset_n) begin saved_nv<=0; saved_dz<=0; saved_finite_nonzero<=0; end
++        else if(state==S_IDLE && is_fpu) begin
++            saved_nv <= snan_a || snan_b ||
++                (funct7==FUNCT7_FDIV && ((a_is_zero && b_is_zero) || (a_is_inf && b_is_inf))) ||
++                (funct7==FUNCT7_FMUL && ((a_is_zero && b_is_inf) || (a_is_inf && b_is_zero))) ||
++                ((funct7==FUNCT7_FADD || funct7==FUNCT7_FSUB) && a_is_inf && b_is_inf && sign_a!=sign_b);
++            saved_dz <= funct7==FUNCT7_FDIV && !a_is_zero && !a_is_inf && !a_is_nan && b_is_zero;
++            saved_finite_nonzero <= !a_is_inf && !b_is_inf && !a_is_nan && !b_is_nan && !a_is_zero && !b_is_zero;
++        end
++    end
++    assign flags_o = fpu_done ? {saved_nv,saved_dz,
++        saved_finite_nonzero ? arithmetic_flags : 3'b0} : 5'b0;
++
+     // Handshaking:
+     // fpu_busy is HIGH during multi-cycle computation, drops to LOW on S_DONE
+     assign fpu_busy = is_fpu && (state != S_DONE);
+diff -ru baseline_source/integration/modules/branch/btb_branch_pred.v work/integration/modules/branch/btb_branch_pred.v
+--- baseline_source/integration/modules/branch/btb_branch_pred.v	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/modules/branch/btb_branch_pred.v	2026-11-03 10:09:38.135880604 +0000
+@@ -46,7 +46,7 @@
+     reg [31:0]          target_array [0:ENTRIES-1];
+ 
+     ////////////////////////////////////////////////////////////////////////////
+-    // TODO 1: Index and Tag Extraction
++    // 1: Index and Tag Extraction
+     //
+     // - For a 32-entry table (2^5 = 32), word-aligned address PC[1:0] is ignored.
+     // - Index is 5 bits: PC[6:2].
+@@ -58,15 +58,15 @@
+     //     2. update_pc (Update from EX stage)
+     ////////////////////////////////////////////////////////////////////////////
+ 
+-    wire [4:0]           fetch_index  = /* TODO: fetch_pc index [6:2] */  fetch_pc[6:2];
+-    wire [TAG_WIDTH-1:0] fetch_tag    = /* TODO: fetch_pc tag [31:7] */   fetch_pc[31:7];
++    wire [4:0]           fetch_index  = fetch_pc[6:2];
++    wire [TAG_WIDTH-1:0] fetch_tag    = fetch_pc[31:7];
+ 
+-    wire [4:0]           update_index = /* TODO: update_pc index [6:2] */ update_pc[6:2];
+-    wire [TAG_WIDTH-1:0] update_tag   = /* TODO: update_pc tag [31:7] */  update_pc[31:7];
++    wire [4:0]           update_index = update_pc[6:2];
++    wire [TAG_WIDTH-1:0] update_tag   = update_pc[31:7];
+ 
+ 
+     ////////////////////////////////////////////////////////////////////////////
+-    // TODO 2: BTB Query & Prediction Logic (IF Stage)
++    // 2: BTB Query & Prediction Logic (IF Stage)
+     //
+     // - A BTB Hit occurs when:
+     //     1. The indexed entry in valid_array is 1 (valid_array[fetch_index] == 1)
+@@ -77,17 +77,15 @@
+     //     - If it misses in BTB, predict NOT TAKEN (pred_taken = 0), target = fetch_pc + 4.
+     ////////////////////////////////////////////////////////////////////////////
+ 
+-    wire btb_hit = /* TODO: valid_array[fetch_index] && (tag_array[fetch_index] == fetch_tag) */
+-                   (valid_array[fetch_index] && (tag_array[fetch_index] == fetch_tag));
++    wire btb_hit = (valid_array[fetch_index] && (tag_array[fetch_index] == fetch_tag));
+ 
+     assign pred_hit    = btb_hit;
+-    assign pred_taken  = /* TODO: btb_hit */ btb_hit;
+-    assign pred_target = /* TODO: btb_hit ? target_array[fetch_index] : (fetch_pc + 32'd4) */
+-                         btb_hit ? target_array[fetch_index] : (fetch_pc + 32'd4);
++    assign pred_taken  = btb_hit;
++    assign pred_target = btb_hit ? target_array[fetch_index] : (fetch_pc + 32'd4);
+ 
+ 
+     ////////////////////////////////////////////////////////////////////////////
+-    // TODO 3: BTB State Allocation & Update on Clock Edge (EX Stage)
++    // 3: BTB State Allocation & Update on Clock Edge (EX Stage)
+     //
+     // On Reset:
+     //   - Clear all valid bits in valid_array (set to 0).
+@@ -105,18 +103,18 @@
+     always @(posedge clk or negedge reset_n) begin
+         if (!reset_n) begin
+             for (i = 0; i < ENTRIES; i = i + 1) begin
+-                valid_array[i]  <= /* TODO: 1'b0 */ 1'b0;
++                valid_array[i]  <= 1'b0;
+                 tag_array[i]    <= {TAG_WIDTH{1'b0}};
+                 target_array[i] <= 32'd0;
+             end
+         end else if (update_en) begin
+             if (update_taken) begin
+-                valid_array[update_index]  <= /* TODO: 1'b1 */ 1'b1;
+-                tag_array[update_index]    <= /* TODO: update_tag */ update_tag;
+-                target_array[update_index] <= /* TODO: update_target */ update_target;
++                valid_array[update_index]  <= 1'b1;
++                tag_array[update_index]    <= update_tag;
++                target_array[update_index] <= update_target;
+             end else begin
+                 // Invalidate on branch not-taken
+-                valid_array[update_index]  <= /* TODO: 1'b0 */ 1'b0;
++                valid_array[update_index]  <= 1'b0;
+             end
+         end
+     end
+diff -ru baseline_source/integration/modules/cache/dcache_controller.v work/integration/modules/cache/dcache_controller.v
+--- baseline_source/integration/modules/cache/dcache_controller.v	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/modules/cache/dcache_controller.v	2026-11-04 01:31:09.652622707 +0000
+@@ -1,7 +1,7 @@
+ // ============================================================================
+ // File: dcache_controller.v
+ // Module: dcache_controller
+-// Description: Direct-Mapped 2 KB L1 Data Cache with 10-Cycle Read Miss FSM,
++// Description: Direct-Mapped 2 KB L1 Data Cache with 9-Stall-Cycle Read Miss FSM,
+ //              Write-Through with Write Buffer, and No-Write-Allocate (Write-Around).
+ // Project: Pipelined RV32IMF RISC-V Core (Feature 5: L1 D-Cache)
+ //
+@@ -15,7 +15,7 @@
+ //   - Byte Offset:        2 bits  [1:0]
+ //   - Read Hit Latency:   1 cycle (combinational SRAM read, zero penalty)
+ //   - Write Hit Latency:  1 cycle (cache line update + write-through)
+-//   - Read Miss Penalty:  10 cycles (burst refill FSM: 4 words)
++//   - Read Miss Penalty:  9 stall cycles + 1 service cycle (4-word burst refill)
+ //   - Write Miss Policy:  No-Write-Allocate / Write-Around (1 cycle, 0 stall)
+ //   - Write Policy:       Write-Through with Write Buffer
+ //   - Sub-word Support:   Byte write enables for SB (1B), SH (2B), SW (4B)
+@@ -35,10 +35,13 @@
+     parameter ADDR_WIDTH     = 32,
+     parameter TAG_WIDTH      = 21,    // [31:11]
+     parameter INDEX_WIDTH    = 7,     // [10:4]
++    parameter MISS_PENALTY   = 9,     // Stall cycles, plus one service cycle
+     parameter OFFSET_WIDTH   = 2      // [3:2] word offset
+ )(
+     input  wire        clk,
+     input  wire        reset_n,
++    input wire hit_accept_i,
++    input wire mem_grant,
+     input  wire        counter_reset_i,
+     input  wire        cache_bypass_i,  // 0 = D-Cache Enabled, 1 = D-Cache Bypassed
+ 
+@@ -62,6 +65,7 @@
+     // Diagnostic & Performance Monitoring Counters
+     output wire        cache_hit,
+     output wire        cache_miss,
++    output wire [3:0] refill_progress_o,
+     output wire        miss_pulse_o,
+     output reg  [31:0] hit_count,
+     output reg  [31:0] miss_count
+@@ -77,10 +81,10 @@
+     reg valid_array [0:NUM_LINES-1];
+ 
+     // Data array: 128 lines x 4 words = 512 words (4 BRAM banks with byte enables)
+-    (* ram_style = "block" *) reg [31:0] data_mem0 [0:NUM_LINES-1];
+-    (* ram_style = "block" *) reg [31:0] data_mem1 [0:NUM_LINES-1];
+-    (* ram_style = "block" *) reg [31:0] data_mem2 [0:NUM_LINES-1];
+-    (* ram_style = "block" *) reg [31:0] data_mem3 [0:NUM_LINES-1];
++    (* ram_style = "distributed" *) reg [31:0] data_mem0 [0:NUM_LINES-1];
++    (* ram_style = "distributed" *) reg [31:0] data_mem1 [0:NUM_LINES-1];
++    (* ram_style = "distributed" *) reg [31:0] data_mem2 [0:NUM_LINES-1];
++    (* ram_style = "distributed" *) reg [31:0] data_mem3 [0:NUM_LINES-1];
+ 
+     // ------------------------------------------------------------------------
+     // Address Field Extraction
+@@ -104,25 +108,31 @@
+     localparam STATE_IDLE   = 2'b00;
+     localparam STATE_REFILL = 2'b01;
+     localparam STATE_BYPASS = 2'b10;
++    localparam STATE_STORE = 2'b11;
+ 
+     reg [1:0]  state;
+     reg [3:0]  refill_cnt;
+     reg [31:0] latched_addr;
+     reg [31:0] bypass_word;
++    reg refill_bypass;
++    reg [31:0] held_store_data;
++    reg [3:0] held_store_strb;
+ 
+     wire [INDEX_WIDTH-1:0]  refill_index  = latched_addr[10:4];
+     wire [TAG_WIDTH-1:0]    refill_tag    = latched_addr[31:11];
+     wire [OFFSET_WIDTH-1:0] refill_offset = latched_addr[3:2];
+ 
++    assign refill_progress_o=(state==STATE_REFILL || state==STATE_STORE) ? refill_cnt+4'd2 :
++        state==STATE_IDLE && (load_miss || (cpu_we && bypass_act)) ? 4'd1 : 4'd0;
+     // Combinational hit/miss status
+     assign cache_hit  = (state == STATE_IDLE) && !bypass_act && ((cpu_re && hit_condition) || (cpu_we && hit_condition)) && reset_n;
+-    assign cache_miss   = (state == STATE_REFILL) || ((state == STATE_IDLE) && (load_miss || store_miss) && reset_n);
+-    assign miss_pulse_o = (state == STATE_IDLE) && (load_miss || store_miss) && reset_n;
++    assign cache_miss   = (state == STATE_STORE) || (state == STATE_REFILL) || ((state == STATE_IDLE) && (load_miss || store_miss) && reset_n);
++    assign miss_pulse_o = (state == STATE_IDLE) && (load_miss || (store_miss && (bypass_act || mem_grant))) && reset_n;
+ 
+     // Pipeline stall: ONLY asserts on Load Miss!
+     // In STATE_BYPASS, deassert stall for exactly 1 cycle so MEM stage captures bypass data!
+     assign dcache_stall = (state == STATE_BYPASS) ? 1'b0 :
+-                          (state == STATE_REFILL) || ((state == STATE_IDLE) && load_miss && reset_n);
++                          (state == STATE_REFILL) || (state == STATE_STORE) || ((state == STATE_IDLE) && (load_miss || (cpu_we && (bypass_act || !mem_grant))) && reset_n);
+ 
+     // ------------------------------------------------------------------------
+     // Combinational Word Selection (Read Port)
+@@ -147,6 +157,10 @@
+     assign cpu_rdata = (state == STATE_BYPASS) ? bypass_word :
+                        (hit_condition && cpu_re) ? selected_word : 32'h0;
+ 
++    reg response_valid;
++    always @(posedge clk or negedge reset_n)
++        if (!reset_n) response_valid <= 0;
++        else response_valid <= mem_req && mem_grant;
+     // ------------------------------------------------------------------------
+     // Backing Memory Bus & Write Buffer Multiplexing
+     // ------------------------------------------------------------------------
+@@ -166,19 +180,19 @@
+     wire [31:0] refill_mem_addr = {latched_addr[31:4], burst_word_sel, 2'b00};
+ 
+     // Multiplex memory bus between Refill (read) and Write-Through (write)
+-    assign mem_addr  = (state == STATE_REFILL) ? refill_mem_addr : cpu_addr;
++    assign mem_addr  = state==STATE_STORE ? latched_addr : (state == STATE_REFILL) ? refill_mem_addr : cpu_addr;
+     assign mem_req   = (state == STATE_REFILL) && (refill_cnt >= 4'd2 && refill_cnt <= 4'd5);
+ 
+     // Write-Through with Write Buffer:
+     // When CPU issues a store (hit or miss), forward directly to backing memory
+-    assign mem_we    = (state == STATE_IDLE) && cpu_we;
+-    assign mem_wdata = cpu_wdata;
+-    assign mem_wstrb = cpu_wstrb;
++    assign mem_we = ((state == STATE_IDLE) && cpu_we && !bypass_act) || (state==STATE_STORE && refill_cnt==(MISS_PENALTY-2));
++    assign mem_wdata = state==STATE_STORE ? held_store_data : cpu_wdata;
++    assign mem_wstrb = state==STATE_STORE ? held_store_strb : cpu_wstrb;
+ 
+     // ------------------------------------------------------------------------
+     // Store Hit Byte-Level Cache Line Update Logic
+     // ------------------------------------------------------------------------
+-    wire store_hit = (state == STATE_IDLE) && cpu_we && hit_condition;
++    wire store_hit = (state == STATE_IDLE) && cpu_we && hit_condition && mem_grant;
+ 
+     // Bank 0 (Word 0)
+     always @(posedge clk) begin
+@@ -187,9 +201,8 @@
+             if (cpu_wstrb[1]) data_mem0[curr_index][15:8]  <= cpu_wdata[15:8];
+             if (cpu_wstrb[2]) data_mem0[curr_index][23:16] <= cpu_wdata[23:16];
+             if (cpu_wstrb[3]) data_mem0[curr_index][31:24] <= cpu_wdata[31:24];
+-        end else if ((state == STATE_REFILL) && (refill_cnt == 4'd3)) begin
+-            if (!bypass_act) data_mem0[refill_index] <= mem_rdata;
+-            if (refill_offset == 2'b00) bypass_word <= mem_rdata;
++        end else if ((state == STATE_REFILL) && (refill_cnt == 4'd3) && response_valid) begin
++            if (!refill_bypass) data_mem0[refill_index] <= mem_rdata;
+         end
+     end
+ 
+@@ -200,9 +213,8 @@
+             if (cpu_wstrb[1]) data_mem1[curr_index][15:8]  <= cpu_wdata[15:8];
+             if (cpu_wstrb[2]) data_mem1[curr_index][23:16] <= cpu_wdata[23:16];
+             if (cpu_wstrb[3]) data_mem1[curr_index][31:24] <= cpu_wdata[31:24];
+-        end else if ((state == STATE_REFILL) && (refill_cnt == 4'd4)) begin
+-            if (!bypass_act) data_mem1[refill_index] <= mem_rdata;
+-            if (refill_offset == 2'b01) bypass_word <= mem_rdata;
++        end else if ((state == STATE_REFILL) && (refill_cnt == 4'd4) && response_valid) begin
++            if (!refill_bypass) data_mem1[refill_index] <= mem_rdata;
+         end
+     end
+ 
+@@ -213,9 +225,8 @@
+             if (cpu_wstrb[1]) data_mem2[curr_index][15:8]  <= cpu_wdata[15:8];
+             if (cpu_wstrb[2]) data_mem2[curr_index][23:16] <= cpu_wdata[23:16];
+             if (cpu_wstrb[3]) data_mem2[curr_index][31:24] <= cpu_wdata[31:24];
+-        end else if ((state == STATE_REFILL) && (refill_cnt == 4'd5)) begin
+-            if (!bypass_act) data_mem2[refill_index] <= mem_rdata;
+-            if (refill_offset == 2'b10) bypass_word <= mem_rdata;
++        end else if ((state == STATE_REFILL) && (refill_cnt == 4'd5) && response_valid) begin
++            if (!refill_bypass) data_mem2[refill_index] <= mem_rdata;
+         end
+     end
+ 
+@@ -226,12 +237,16 @@
+             if (cpu_wstrb[1]) data_mem3[curr_index][15:8]  <= cpu_wdata[15:8];
+             if (cpu_wstrb[2]) data_mem3[curr_index][23:16] <= cpu_wdata[23:16];
+             if (cpu_wstrb[3]) data_mem3[curr_index][31:24] <= cpu_wdata[31:24];
+-        end else if ((state == STATE_REFILL) && (refill_cnt == 4'd6)) begin
+-            if (!bypass_act) data_mem3[refill_index] <= mem_rdata;
+-            if (refill_offset == 2'b11) bypass_word <= mem_rdata;
++        end else if ((state == STATE_REFILL) && (refill_cnt == 4'd6) && response_valid) begin
++            if (!refill_bypass) data_mem3[refill_index] <= mem_rdata;
+         end
+     end
+ 
++    always @(posedge clk or negedge reset_n) begin
++        if (!reset_n) bypass_word <= 0;
++        else if (state == STATE_REFILL && response_valid && refill_cnt == {2'b0,refill_offset}+4'd3)
++            bypass_word <= mem_rdata;
++    end
+     // ------------------------------------------------------------------------
+     // FSM State Updates & Diagnostic Counters
+     // ------------------------------------------------------------------------
+@@ -242,7 +257,8 @@
+             state         <= STATE_IDLE;
+             refill_cnt    <= 4'd0;
+             latched_addr  <= 32'd0;
+-            bypass_word   <= 32'd0;
++            refill_bypass<=0;held_store_data<=0;held_store_strb<=0;
++            
+             hit_count     <= 32'd0;
+             miss_count    <= 32'd0;
+             just_refilled <= 1'b0;
+@@ -259,28 +275,34 @@
+             case (state)
+                 STATE_IDLE: begin
+                     just_refilled <= 1'b0;
+-                    if (load_miss) begin
+-                        // Load miss triggers 10-cycle burst refill
++                    if (cpu_we && bypass_act) begin
++                        state<=STATE_STORE;refill_cnt<=0;latched_addr<=cpu_addr;
++                        held_store_data<=cpu_wdata;held_store_strb<=cpu_wstrb;
++                        valid_array[curr_index]<=0;
++                        if(counter_reset_i !== 1'b1) miss_count<=miss_count+1;
++                    end else if (load_miss) begin
++                        refill_bypass<=bypass_act;
++                        // Load miss stalls for 9 cycles, then completes on cycle 10
+                         state        <= STATE_REFILL;
+                         refill_cnt   <= 4'd0;
+                         latched_addr <= cpu_addr;
+                         if (counter_reset_i !== 1'b1)
+                             miss_count   <= miss_count + 32'd1;
+-                    end else if (store_miss) begin
++                    end else if (store_miss && mem_grant) begin
+                         // Store miss with No-Write-Allocate: bypass cache, no stall
+                         if (counter_reset_i !== 1'b1)
+                             miss_count   <= miss_count + 32'd1;
+-                    end else if ((cpu_re || cpu_we) && hit_condition && !just_refilled) begin
++                    end else if ((cpu_re || (cpu_we && mem_grant)) && hit_condition && !just_refilled && hit_accept_i) begin
+                         if (counter_reset_i !== 1'b1)
+                             hit_count    <= hit_count + 32'd1;
+                     end
+                 end
+ 
+                 STATE_REFILL: begin
+-                    refill_cnt <= refill_cnt + 4'd1;
++                    if (!mem_req || mem_grant) refill_cnt <= refill_cnt + 4'd1;
+ 
+-                    if (refill_cnt == 4'd7) begin
+-                        if (bypass_act) begin
++                    if (refill_cnt == (MISS_PENALTY-2)) begin
++                        if (refill_bypass) begin
+                             // In bypass mode, do not write tag or valid bit
+                             state      <= STATE_BYPASS;
+                             refill_cnt <= 4'd0;
+@@ -295,6 +317,10 @@
+                     end
+                 end
+ 
++                STATE_STORE: begin
++                    if(refill_cnt<(MISS_PENALTY-2)) refill_cnt<=refill_cnt+1;
++                    else if(mem_grant) begin state<=STATE_BYPASS;refill_cnt<=0;end
++                end
+                 STATE_BYPASS: begin
+                     // Release the CPU for exactly 1 cycle to latch load data
+                     state         <= STATE_IDLE;
+diff -ru baseline_source/integration/modules/cache/icache_controller.v work/integration/modules/cache/icache_controller.v
+--- baseline_source/integration/modules/cache/icache_controller.v	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/modules/cache/icache_controller.v	2026-11-04 02:43:30.638847533 +0000
+@@ -1,7 +1,7 @@
+ // ============================================================================
+ // File: icache_controller.v
+ // Module: icache_controller
+-// Description: Direct-Mapped 2 KB L1 Instruction Cache with 10-Cycle Miss FSM,
++// Description: Direct-Mapped 2 KB L1 Instruction Cache with 9-Stall-Cycle Miss FSM,
+ //              Hardware Burst Refill, Flush On Branch, and Cache Bypass Mode.
+ // Project: Pipelined RV32IMF RISC-V Core (Feature 6: L1 I-Cache)
+ //
+@@ -14,8 +14,8 @@
+ //   - Word Offset:        2 bits  [3:2]
+ //   - Byte Offset:        2 bits  [1:0] (ignored for word fetches)
+ //   - Hit Latency:        1 cycle (combinational SRAM read, zero stall)
+-//   - Miss Penalty:       10 cycles (burst refill FSM: 4 words from IMEM)
+-//   - Cache Bypass Mode:  When cache_bypass_i = 1, each fetch incurs 10 cycles
++//   - Miss Penalty:       9 stall cycles + 1 service cycle (4-word burst refill)
++//   - Cache Bypass Mode:  When cache_bypass_i = 1, each fetch occupies 10 cycles (9 stalled)
+ //                         directly from backing memory without line caching.
+ //   - Flush Support:      Active-high flush_i resets FSM to IDLE upon branch/jump.
+ //
+@@ -40,6 +40,8 @@
+ )(
+     input  wire        clk,
+     input  wire        reset_n,
++    input wire hit_accept_i,
++    input wire mem_grant,
+     input  wire        flush_i,          // Flushes refill FSM on branch/jump in EX stage
+     input  wire        counter_reset_i,  // Resets diagnostic performance counters
+ 
+@@ -79,10 +81,10 @@
+     reg valid_array [0:NUM_LINES-1];
+ 
+     // Data array: 128 lines x 4 words = 512 words (4 BRAM banks, 1 bank per word offset)
+-    (* ram_style = "block" *) reg [31:0] data_mem0 [0:NUM_LINES-1];
+-    (* ram_style = "block" *) reg [31:0] data_mem1 [0:NUM_LINES-1];
+-    (* ram_style = "block" *) reg [31:0] data_mem2 [0:NUM_LINES-1];
+-    (* ram_style = "block" *) reg [31:0] data_mem3 [0:NUM_LINES-1];
++    (* ram_style = "distributed" *) reg [31:0] data_mem0 [0:NUM_LINES-1];
++    (* ram_style = "distributed" *) reg [31:0] data_mem1 [0:NUM_LINES-1];
++    (* ram_style = "distributed" *) reg [31:0] data_mem2 [0:NUM_LINES-1];
++    (* ram_style = "distributed" *) reg [31:0] data_mem3 [0:NUM_LINES-1];
+ 
+     // ------------------------------------------------------------------------
+     // Address Field Extraction
+@@ -149,6 +151,10 @@
+                        cache_hit               ? selected_word :
+                                                  32'h0000_0013; // NOP during refill stall
+ 
++    reg response_valid;
++    always @(posedge clk or negedge reset_n)
++        if (!reset_n) response_valid <= 0;
++        else response_valid <= mem_req && mem_grant;
+     // ------------------------------------------------------------------------
+     // Backing Memory Burst Request Logic
+     // ------------------------------------------------------------------------
+@@ -173,16 +179,29 @@
+     // ------------------------------------------------------------------------
+     integer i;
+     reg just_refilled;
++    reg refill_bypass;
+ 
+     assign state_o         = state;
+     assign refill_cnt_o    = refill_cnt;
+     assign latched_pc_o    = latched_pc;
+     assign just_refilled_o = just_refilled;
++    // Reset/flush invalidate tags; payload banks need only synchronous write enables.
++    always @(posedge clk) begin
++        if (reset_n && !flush_act && state == STATE_REFILL && response_valid && !refill_bypass) begin
++            case (refill_cnt)
++                4'd3: data_mem0[refill_index] <= mem_rdata;
++                4'd4: data_mem1[refill_index] <= mem_rdata;
++                4'd5: data_mem2[refill_index] <= mem_rdata;
++                4'd6: data_mem3[refill_index] <= mem_rdata;
++            endcase
++        end
++    end
+     always @(posedge clk or negedge reset_n) begin
+         if (!reset_n) begin
+             state         <= STATE_IDLE;
+             refill_cnt    <= 4'd0;
+             latched_pc    <= 32'd0;
++            refill_bypass<=0;
+             bypass_word   <= 32'd0;
+             hit_count     <= 32'd0;
+             miss_count    <= 32'd0;
+@@ -209,32 +228,29 @@
+                         state        <= STATE_REFILL;
+                         refill_cnt   <= 4'd0;
+                         latched_pc   <= cpu_addr;
++                        refill_bypass<=bypass_act;
+                         if (counter_reset_i !== 1'b1)
+                             miss_count   <= miss_count + 32'd1;
+-                    end else if (!just_refilled) begin
++                    end else if (!just_refilled && hit_accept_i) begin
+                         if (counter_reset_i !== 1'b1)
+                             hit_count    <= hit_count + 32'd1;
+                     end
+                 end
+ 
+                 STATE_REFILL: begin
+-                    refill_cnt <= refill_cnt + 4'd1;
++                    if (!mem_req || mem_grant) refill_cnt <= refill_cnt + 4'd1;
+ 
+                     // Latch burst words into cache data banks
+-                    if (refill_cnt == 4'd3) begin
+-                        if (!bypass_act) data_mem0[refill_index] <= mem_rdata;
++                    if (response_valid && refill_cnt == 4'd3) begin
+                         if (refill_offset == 2'b00) bypass_word <= mem_rdata;
+-                    end else if (refill_cnt == 4'd4) begin
+-                        if (!bypass_act) data_mem1[refill_index] <= mem_rdata;
++                    end else if (response_valid && refill_cnt == 4'd4) begin
+                         if (refill_offset == 2'b01) bypass_word <= mem_rdata;
+-                    end else if (refill_cnt == 4'd5) begin
+-                        if (!bypass_act) data_mem2[refill_index] <= mem_rdata;
++                    end else if (response_valid && refill_cnt == 4'd5) begin
+                         if (refill_offset == 2'b10) bypass_word <= mem_rdata;
+-                    end else if (refill_cnt == 4'd6) begin
+-                        if (!bypass_act) data_mem3[refill_index] <= mem_rdata;
++                    end else if (response_valid && refill_cnt == 4'd6) begin
+                         if (refill_offset == 2'b11) bypass_word <= mem_rdata;
+                     end else if (refill_cnt == (MISS_PENALTY - 2)) begin
+-                        if (bypass_act) begin
++                        if (refill_bypass) begin
+                             // In bypass mode, do not write tag or valid bit
+                             state         <= STATE_BYPASS;
+                             refill_cnt    <= 4'd0;
+diff -ru baseline_source/integration/modules/core/pipeline_5stage.v work/integration/modules/core/pipeline_5stage.v
+--- baseline_source/integration/modules/core/pipeline_5stage.v	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/modules/core/pipeline_5stage.v	2026-11-04 14:00:07.974830807 +0000
+@@ -25,6 +25,16 @@
+     input  wire        stall_ext,        // External freeze (debug / testbench)
+     input  wire        use_dsp_i,        // 1: DSP48E1, 0: Booth Radix-4
+ 
++    output wire mmio_req, mmio_we,
++    output wire [31:0] mmio_addr, mmio_wdata,
++    output wire [3:0] mmio_wstrb,
++    input wire [31:0] mmio_rdata,
++    output wire [31:0] ihit_o,imiss_o,dhit_o,dmiss_o,
++    output wire [3:0] dcache_refill_o,
++    output wire int_divzero_o,mul_active_o,
++    output wire [4:0] fp_flags_o,
++    output wire load_use_o, zbb_active_o, retire_o,
++    output wire [31:0] wb_instruction_o,
+     // Cache Bypass Controls
+     input  wire        icache_bypass_i,  // 0 = Normal L1 I-Cache, 1 = Bypass
+     input  wire        dcache_bypass_i,  // 0 = Normal L1 D-Cache, 1 = Bypass
+@@ -44,7 +54,7 @@
+     output wire [31:0] pc_mem,
+     output wire [31:0] pc_wb,
+     output wire        wb_reg_write,
+-    output wire [4:0]  wb_dest_reg,
++    output wire [5:0]  wb_dest_reg,
+     output wire [31:0] wb_data,
+ 
+     // Performance & Unit Status Signals
+@@ -76,6 +86,11 @@
+     // ------------------------------------------------------------------------
+     // Pipeline Interconnect Wires
+     // ------------------------------------------------------------------------
++    wire        ex_valid;
++    wire        ex_is_mul;
++    wire wb_valid;
++    wire [2:0] frm_wire;
++    wire [31:0] csr_operand_wire;
+     wire        stall_if;
+     wire        stall_if_id;
+     wire        stall_id_ex;
+@@ -87,6 +102,9 @@
+ 
+     wire        icache_stall;
+     wire        dcache_stall;
++    wire int_divzero_wire;
++    assign int_divzero_o=ex_valid && !stall_id_ex && !stall_ext && int_divzero_wire;
++    assign mul_active_o=ex_valid && ex_is_mul && !stall_id_ex && !stall_ext;
+     wire        div_busy_wire;
+     wire        fpu_busy_wire;
+ 
+@@ -105,7 +123,7 @@
+     wire [31:0] ex_btb_update_pc;
+     wire [31:0] ex_btb_update_target;
+ 
+-    assign btb_mispredict = ex_mispredict;
++    assign btb_mispredict = ex_valid && ex_mispredict && !stall_id_ex && !stall_ext;
+ 
+     // ========================================================================
+     // 1. INSTRUCTION FETCH (IF) STAGE & L1 I-CACHE
+@@ -128,9 +146,9 @@
+         .clk               (clk),
+         .reset_n           (reset_n),
+         .stall_if          (stall_if || stall_ext),
+-        .ex_mispredict     (ex_mispredict),
++        .ex_mispredict     (btb_mispredict),
+         .ex_redirect_pc    (ex_redirect_pc),
+-        .btb_update_en     (ex_btb_update_en),
++        .btb_update_en     (ex_valid && ex_btb_update_en && !stall_id_ex && !stall_ext),
+         .btb_update_pc     (ex_btb_update_pc),
+         .btb_update_target (ex_btb_update_target),
+         .btb_update_taken  (ex_btb_update_taken),
+@@ -160,9 +178,11 @@
+         .INDEX_WIDTH    (7),
+         .OFFSET_WIDTH   (2)
+     ) u_icache (
++        .hit_accept_i(!stall_if && !stall_ext),
++        .mem_grant(icache_mem_grant),
+         .clk             (clk),
+         .reset_n         (reset_n),
+-        .flush_i         (ex_mispredict),
++        .flush_i         (btb_mispredict),
+         .counter_reset_i (1'b0),
+         .cache_bypass_i  (icache_bypass_i),
+         .cpu_addr        (icache_cpu_addr),
+@@ -174,8 +194,8 @@
+         .cache_hit       (icache_hit),
+         .cache_miss      (icache_miss),
+         .miss_pulse_o    (icache_miss_pulse),
+-        .hit_count       (),
+-        .miss_count      (),
++        .hit_count       (ihit_o),
++        .miss_count      (imiss_o),
+         .state_o         (),
+         .refill_cnt_o    (),
+         .latched_pc_o    (),
+@@ -242,9 +262,9 @@
+     wire [31:0] id_rdata1;
+     wire [31:0] id_rdata2;
+     wire [31:0] id_imm;
+-    wire [4:0]  id_rs1;
+-    wire [4:0]  id_rs2;
+-    wire [4:0]  id_rd;
++    wire [5:0]  id_rs1;
++    wire [5:0]  id_rs2;
++    wire [5:0]  id_rd;
+     wire [2:0]  id_funct3;
+     wire [6:0]  id_funct7;
+     wire        id_rs1_used;
+@@ -307,7 +327,6 @@
+     wire        ex_mem_to_reg;
+     wire        ex_reg_write;
+     wire        ex_immediate_sel;
+-    wire        ex_is_mul;
+     wire        ex_is_div;
+     wire        ex_is_fpu;
+     wire        ex_is_csr;
+@@ -317,14 +336,14 @@
+     wire [31:0] ex_rdata1;
+     wire [31:0] ex_rdata2;
+     wire [31:0] ex_imm;
+-    wire        ex_valid;
+-    wire [4:0]  ex_rs1;
+-    wire [4:0]  ex_rs2;
+-    wire [4:0]  ex_rd;
++    wire [5:0]  ex_rs1;
++    wire [5:0]  ex_rs2;
++    wire [5:0]  ex_rd;
+     wire        ex_pred_taken;
+     wire [31:0] ex_pred_target;
+ 
+     id_ex_reg u_id_ex_reg (
++        .snoop_we(wb_valid && wb_reg_write),.snoop_rd(wb_dest_reg),.snoop_data(wb_data),
+         .clk             (clk),
+         .reset_n         (reset_n),
+         .stall           (stall_id_ex || stall_ext),
+@@ -435,6 +454,7 @@
+         .funct7_i               (ex_funct7),
+         .use_dsp_i              (ex_use_dsp),
+         .csr_rdata_i            (csr_rdata_wire),
++        .frm_i(frm_wire),.csr_operand_o(csr_operand_wire),
+         .pred_taken_i           (ex_pred_taken),
+         .pred_target_i          (ex_pred_target),
+         .alu_result_o           (ex_alu_result),
+@@ -444,6 +464,7 @@
+         .branch_or_jump_taken_o (ex_branch_or_jump_taken),
+         .div_busy_o             (div_busy_wire),
+         .fpu_busy_o             (fpu_busy_wire),
++        .fp_flags_o(fp_flags_o),.int_divzero_o(int_divzero_wire),
+         .mispredict_o           (ex_mispredict),
+         .redirect_pc_o          (ex_redirect_pc),
+         .btb_update_en_o        (ex_btb_update_en),
+@@ -453,10 +474,14 @@
+     );
+ 
+     wire mem_valid;
+-    wire wb_valid;
+ 
+     // Feature 8 Passive Hardware Performance Counters
+     csr_perf_counters u_csr_perf (
++        .ihits_i(ihit_o),.dhits_i(dhit_o),
++        .frm_o(frm_wire),.csr_funct3_i(ex_alu_op),
++        .csr_write_i(ex_valid && ex_is_csr && ex_alu_op!=0 && !stall_id_ex && !stall_ext),
++        .csr_operand_i(ex_alu_op[2] ? {27'b0,ex_rs1[4:0]} : csr_operand_wire),
++        .wb_data_i(wb_data),.wb_commit_i(wb_valid && wb_reg_write && wb_dest_reg!=0 && !stall_ext),.fp_flags_i(fp_flags_o),
+         .clk                (clk),
+         .reset_n            (reset_n),
+         .stall_cycle        (hazard_stall),
+@@ -480,7 +505,7 @@
+     wire [31:0] mem_pc;
+     wire [31:0] mem_pc_plus4;
+     wire [31:0] mem_store_data;
+-    wire [4:0]  mem_rd;
++    wire [5:0]  mem_rd;
+     wire [2:0]  mem_funct3;
+     wire        mem_mem_read;
+     wire        mem_mem_write;
+@@ -540,6 +565,45 @@
+         .dmem_re_o    (dmem_stage_re)
+     );
+ 
++    wire mmio_select = dmem_stage_addr[31:4] == 28'h8000000;
++    assign mmio_req = mem_valid && mmio_select && (dmem_stage_re || dmem_stage_we) && !stall_ext;
++    assign mmio_we = dmem_stage_we;
++    assign mmio_addr = dmem_stage_addr;
++    assign mmio_wdata = dmem_stage_wdata;
++    assign mmio_wstrb = dmem_stage_wstrb;
++    assign retire_o = wb_valid && !stall_ext;
++    assign load_use_o = id_valid && ex_valid && ex_mem_read && ex_rd != 0 &&
++        ((id_rs1_used && ex_rd == id_rs1) || (id_rs2_used && ex_rd == id_rs2));
++    reg [31:0] ex_instruction_trace, mem_instruction_trace, wb_instruction_trace;
++    // Observation must decode a Zbb opcode, not mistake arbitrary immediate
++    // upper bits (e.g. ADDI imm=0x600) for a Zbb funct7.
++    wire [6:0] z_op = ex_instruction_trace[6:0];
++    wire [6:0] z_f7 = ex_instruction_trace[31:25];
++    wire [2:0] z_f3 = ex_instruction_trace[14:12];
++    wire [11:0] z_imm = ex_instruction_trace[31:20];
++    wire zbb_register = z_op==7'h33 && (
++        (z_f7==7'h20 && (z_f3==4 || z_f3==6 || z_f3==7)) ||
++        (z_f7==7'h05 && z_f3>=4) ||
++        (z_f7==7'h30 && (z_f3==1 || z_f3==5)) ||
++        (z_f7==7'h04 && z_f3==4 && ex_instruction_trace[24:20]==0));
++    wire zbb_immediate = z_op==7'h13 && (
++        (z_f3==1 && (z_imm==12'h600 || z_imm==12'h601 || z_imm==12'h602 ||
++                    z_imm==12'h604 || z_imm==12'h605)) ||
++        (z_f3==5 && (z_imm==12'h698 || z_imm==12'h287 || z_f7==7'h30)));
++    assign zbb_active_o = ex_valid && !stall_id_ex && !stall_ext &&
++                          (zbb_register || zbb_immediate);
++    assign wb_instruction_o = wb_instruction_trace;
++    always @(posedge clk or negedge reset_n) begin
++        if (!reset_n) begin ex_instruction_trace<=0; mem_instruction_trace<=0; wb_instruction_trace<=0; end
++        else begin
++            if(flush_id_ex) ex_instruction_trace<=0;
++            else if(!stall_id_ex && !stall_ext) ex_instruction_trace<=id_instruction;
++            if(flush_ex_mem) mem_instruction_trace<=0;
++            else if(!stall_ex_mem && !stall_ext) mem_instruction_trace<=ex_instruction_trace;
++            if(flush_mem_wb) wb_instruction_trace<=0;
++            else if(!stall_ext) wb_instruction_trace<=mem_instruction_trace;
++        end
++    end
+     wire [31:0] dcache_cpu_rdata;
+     wire [31:0] dcache_mem_addr;
+     wire [31:0] dcache_mem_rdata;
+@@ -557,6 +621,9 @@
+         .INDEX_WIDTH    (7),
+         .OFFSET_WIDTH   (2)
+     ) u_dcache (
++        .hit_accept_i(!dcache_stall && !stall_ext && mem_valid),
++        .refill_progress_o(dcache_refill_o),
++        .mem_grant(dcache_mem_grant),
+         .clk             (clk),
+         .reset_n         (reset_n),
+         .counter_reset_i (1'b0),
+@@ -564,8 +631,8 @@
+         .cpu_addr        (dmem_stage_addr),
+         .cpu_wdata       (dmem_stage_wdata),
+         .cpu_wstrb       (dmem_stage_wstrb),
+-        .cpu_we          (dmem_stage_we),
+-        .cpu_re          (dmem_stage_re),
++        .cpu_we          (dmem_stage_we && mem_valid && !mmio_select && !stall_ext),
++        .cpu_re          (dmem_stage_re && mem_valid && !mmio_select && !stall_ext),
+         .cpu_rdata       (dcache_cpu_rdata),
+         .dcache_stall    (dcache_stall),
+         .mem_addr        (dcache_mem_addr),
+@@ -577,8 +644,8 @@
+         .cache_hit       (dcache_hit),
+         .cache_miss      (dcache_miss),
+         .miss_pulse_o    (dcache_miss_pulse),
+-        .hit_count       (),
+-        .miss_count      ()
++        .hit_count       (dhit_o),
++        .miss_count      (dmiss_o)
+     );
+ 
+     // ========================================================================
+@@ -612,7 +679,7 @@
+     wire [31:0] wb_pc_reg;
+     wire [31:0] wb_alu_result_reg;
+     wire [31:0] wb_mem_rdata_reg;
+-    wire [4:0]  wb_rd_reg;
++    wire [5:0]  wb_rd_reg;
+     wire [2:0]  wb_funct3_reg;
+     wire        wb_mem_to_reg_reg;
+     wire        wb_reg_write_reg;
+@@ -625,7 +692,7 @@
+         .valid_i      (mem_valid),
+         .pc_i         (mem_pc),
+         .alu_result_i (mem_alu_result),
+-        .mem_rdata_i  (dcache_cpu_rdata),
++        .mem_rdata_i  (mmio_select ? mmio_rdata : dcache_cpu_rdata),
+         .rd_i         (mem_rd),
+         .funct3_i     (mem_funct3),
+         .mem_to_reg_i (mem_mem_to_reg),
+@@ -678,7 +745,7 @@
+         .fpu_busy         (fpu_busy_wire),
+         .icache_stall     (icache_stall),
+         .dcache_stall     (dcache_stall),
+-        .mispredict       (ex_mispredict),
++        .mispredict       (btb_mispredict),
+         .forward_a        (forward_a),
+         .forward_b        (forward_b),
+         .stall_if         (stall_if),
+diff -ru baseline_source/integration/modules/core/rv32imf_core.v work/integration/modules/core/rv32imf_core.v
+--- baseline_source/integration/modules/core/rv32imf_core.v	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/modules/core/rv32imf_core.v	2026-11-03 15:20:02.557226659 +0000
+@@ -22,6 +22,16 @@
+     input  wire        reset_n,
+     input  wire        stall_ext,
+ 
++    output wire mmio_req, mmio_we,
++    output wire [31:0] mmio_addr, mmio_wdata,
++    output wire [3:0] mmio_wstrb,
++    input wire [31:0] mmio_rdata,
++    output wire [31:0] ihit_o,imiss_o,dhit_o,dmiss_o,
++    output wire [3:0] dcache_refill_o,
++    output wire int_divzero_o,mul_active_o,
++    output wire [4:0] fp_flags_o,
++    output wire load_use_o, zbb_active_o, retire_o,
++    output wire [31:0] wb_instruction_o,
+     // Performance & Diagnostic Configuration Switches
+     input  wire        use_dsp_i,        // 1: Hardware DSP multiplier, 0: Booth Radix-4
+     input  wire        icache_bypass_i,  // 0: L1 I-Cache Active, 1: Bypass
+@@ -42,7 +52,7 @@
+     output wire [31:0] pc_mem,
+     output wire [31:0] pc_wb,
+     output wire        wb_reg_write,
+-    output wire [4:0]  wb_dest_reg,
++    output wire [5:0]  wb_dest_reg,
+     output wire [31:0] wb_data,
+ 
+     // Status & Diagnostics
+@@ -68,6 +78,19 @@
+     pipeline_5stage #(
+         .RESET_PC (RESET_PC)
+     ) u_pipeline (
++        .mmio_req(mmio_req),
++        .mmio_we(mmio_we),
++        .mmio_addr(mmio_addr),
++        .mmio_wdata(mmio_wdata),
++        .mmio_wstrb(mmio_wstrb),
++        .mmio_rdata(mmio_rdata),
++        .load_use_o(load_use_o),
++        .zbb_active_o(zbb_active_o),
++        .retire_o(retire_o),
++        .fp_flags_o(fp_flags_o),.int_divzero_o(int_divzero_o),.mul_active_o(mul_active_o),
++        .dcache_refill_o(dcache_refill_o),
++        .ihit_o(ihit_o),.imiss_o(imiss_o),.dhit_o(dhit_o),.dmiss_o(dmiss_o),
++        .wb_instruction_o(wb_instruction_o),
+         .clk                (clk),
+         .reset_n            (reset_n),
+         .stall_ext          (stall_ext),
+diff -ru baseline_source/integration/modules/csr/csr_perf_counters.v work/integration/modules/csr/csr_perf_counters.v
+--- baseline_source/integration/modules/csr/csr_perf_counters.v	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/modules/csr/csr_perf_counters.v	2026-11-03 15:20:02.556195097 +0000
+@@ -4,15 +4,10 @@
+ // Description: Fully Implemented 64-Bit Passive Hardware Performance Counters & CSR Unit
+ // Compliant with RISC-V Privileged / Unprivileged Specification (Counters & Timers)
+ //
+-// Supported 64-bit Passive CSRs:
+-//   - cycle / cycleh         (0xC00 / 0xC80) : Monotonic clock cycles elapsed
+-//   - time / timeh           (0xC01 / 0xC81) : Real-time timer ticks (mirrors cycle)
+-//   - instret / instreth     (0xC02 / 0xC82) : Instructions retired/committed in WB
+-//   - hpmcounter3 / 3h       (0xC03 / 0xC83) : Pipeline stall cycles (Hazard/Math/Cache)
+-//   - hpmcounter4 / 4h       (0xC04 / 0xC84) : Branch & Jump instructions executed
+-//   - hpmcounter5 / 5h       (0xC05 / 0xC85) : Branch mispredictions
+-//   - hpmcounter6 / 6h       (0xC06 / 0xC86) : L1 I-Cache miss events
+-//   - hpmcounter7 / 7h       (0xC07 / 0xC87) : L1 D-Cache miss events
++// CSR map: C00 cycle, C01 cycle mirror, C02 instret, C03 D misses,
++// C04 I misses, C05 stalls, C06 mispredicts, C07 branch executions.
++// Add 0x80 for high halves. C08 is the latest valid WB data snapshot.
++// 001/003 expose accrued flags read-only; rounding is fixed to explicit RNE.
+ // ============================================================================
+ 
+ `timescale 1ns/1ps
+@@ -20,6 +15,12 @@
+ module csr_perf_counters (
+     input  wire        clk,
+     input  wire        reset_n,
++    input wire [31:0] wb_data_i,
++    input wire wb_commit_i,
++    input wire [31:0] ihits_i,dhits_i,
++    input wire [4:0] fp_flags_i,
++    input wire csr_write_i,input wire [2:0] csr_funct3_i,input wire [31:0] csr_operand_i,
++    output reg [2:0] frm_o,
+ 
+     // Performance Event Triggers from Pipeline & Caches
+     input  wire        stall_cycle,       // 1 if pipeline is stalled this cycle
+@@ -43,6 +44,34 @@
+ 
+     `include "opcode.vh"
+ 
++    reg [31:0] last_wb;
++    reg [4:0] accrued_flags;
++    reg [31:0] writable_old,writable_new;
++    always @(*) begin
++        case(csr_addr)
++            12'h001:writable_old={27'b0,accrued_flags};
++            12'h002:writable_old={29'b0,frm_o};
++            default:writable_old={24'b0,frm_o,accrued_flags};
++        endcase
++        case(csr_funct3_i[1:0])
++            1:writable_new=csr_operand_i;
++            2:writable_new=writable_old | csr_operand_i;
++            3:writable_new=writable_old & ~csr_operand_i;
++            default:writable_new=writable_old;
++        endcase
++    end
++    always @(posedge clk or negedge reset_n) begin
++        if(!reset_n) begin last_wb<=0;accrued_flags<=0;frm_o<=0;end
++        else begin
++            if(wb_commit_i) last_wb<=wb_data_i;
++            accrued_flags<=accrued_flags | fp_flags_i;
++            if(csr_write_i) case(csr_addr)
++                12'h001:accrued_flags<=writable_new[4:0] | fp_flags_i;
++                12'h002:frm_o<=writable_new[2:0];
++                12'h003:begin accrued_flags<=writable_new[4:0] | fp_flags_i;frm_o<=writable_new[7:5];end
++            endcase
++        end
++    end
+     // 64-bit Internal Passive Counters
+     reg [63:0] cycle_cnt;
+     reg [63:0] instret_cnt;
+@@ -99,22 +128,28 @@
+     // ------------------------------------------------------------------------
+     always @(*) begin
+         case (csr_addr)
++            12'h001: csr_rdata={27'b0,accrued_flags};
++            12'h002: csr_rdata={29'b0,frm_o};
++            12'h003: csr_rdata={24'b0,frm_o,accrued_flags};
++            12'hC08: csr_rdata=last_wb;
++            12'hC09: csr_rdata=dhits_i;
++            12'hC0A: csr_rdata=ihits_i;
+             CSR_CYCLE:        csr_rdata = cycle_cnt[31:0];
+             CSR_CYCLEH:       csr_rdata = cycle_cnt[63:32];
+             CSR_TIME:         csr_rdata = cycle_cnt[31:0];
+             CSR_TIMEH:        csr_rdata = cycle_cnt[63:32];
+             CSR_INSTRET:      csr_rdata = instret_cnt[31:0];
+             CSR_INSTRETH:     csr_rdata = instret_cnt[63:32];
+-            CSR_HPMCOUNTER3:  csr_rdata = stall_cnt[31:0];
+-            CSR_HPMCOUNTER3H: csr_rdata = stall_cnt[63:32];
+-            CSR_HPMCOUNTER4:  csr_rdata = branch_cnt[31:0];
+-            CSR_HPMCOUNTER4H: csr_rdata = branch_cnt[63:32];
+-            CSR_HPMCOUNTER5:  csr_rdata = mispredict_cnt[31:0];
+-            CSR_HPMCOUNTER5H: csr_rdata = mispredict_cnt[63:32];
+-            CSR_HPMCOUNTER6:  csr_rdata = icache_miss_cnt[31:0];
+-            CSR_HPMCOUNTER6H: csr_rdata = icache_miss_cnt[63:32];
+-            CSR_HPMCOUNTER7:  csr_rdata = dcache_miss_cnt[31:0];
+-            CSR_HPMCOUNTER7H: csr_rdata = dcache_miss_cnt[63:32];
++            CSR_HPMCOUNTER3:  csr_rdata = dcache_miss_cnt[31:0];
++            CSR_HPMCOUNTER3H: csr_rdata = dcache_miss_cnt[63:32];
++            CSR_HPMCOUNTER4:  csr_rdata = icache_miss_cnt[31:0];
++            CSR_HPMCOUNTER4H: csr_rdata = icache_miss_cnt[63:32];
++            CSR_HPMCOUNTER5:  csr_rdata = stall_cnt[31:0];
++            CSR_HPMCOUNTER5H: csr_rdata = stall_cnt[63:32];
++            CSR_HPMCOUNTER6:  csr_rdata = mispredict_cnt[31:0];
++            CSR_HPMCOUNTER6H: csr_rdata = mispredict_cnt[63:32];
++            CSR_HPMCOUNTER7:  csr_rdata = branch_cnt[31:0];
++            CSR_HPMCOUNTER7H: csr_rdata = branch_cnt[63:32];
+             default:          csr_rdata = 32'h0000_0000;
+         endcase
+     end
+diff -ru baseline_source/integration/modules/hazard/hazard_unit.v work/integration/modules/hazard/hazard_unit.v
+--- baseline_source/integration/modules/hazard/hazard_unit.v	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/modules/hazard/hazard_unit.v	2026-11-03 09:56:46.874296605 +0000
+@@ -14,23 +14,23 @@
+ 
+ module hazard_unit (
+     // Decode Stage (ID) Register Specifiers & Usage
+-    input  wire [4:0] id_rs1,
+-    input  wire [4:0] id_rs2,
++    input  wire [5:0] id_rs1,
++    input  wire [5:0] id_rs2,
+     input  wire       id_rs1_used,
+     input  wire       id_rs2_used,
+ 
+     // Execute Stage (ID/EX) Register Specifiers & Flags
+-    input  wire [4:0] id_ex_rd,
++    input  wire [5:0] id_ex_rd,
+     input  wire       id_ex_mem_read,
+-    input  wire [4:0] ex_rs1,
+-    input  wire [4:0] ex_rs2,
++    input  wire [5:0] ex_rs1,
++    input  wire [5:0] ex_rs2,
+ 
+     // Memory Stage (EX/MEM) Register Specifiers & Flags
+-    input  wire [4:0] ex_mem_rd,
++    input  wire [5:0] ex_mem_rd,
+     input  wire       ex_mem_reg_write,
+ 
+     // Writeback Stage (MEM/WB) Register Specifiers & Flags
+-    input  wire [4:0] mem_wb_rd,
++    input  wire [5:0] mem_wb_rd,
+     input  wire       mem_wb_reg_write,
+ 
+     // Multi-Cycle Execution Units & Cache Miss Status
+diff -ru baseline_source/integration/modules/registers/ex_mem_reg.v work/integration/modules/registers/ex_mem_reg.v
+--- baseline_source/integration/modules/registers/ex_mem_reg.v	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/modules/registers/ex_mem_reg.v	2026-11-03 09:56:46.873753732 +0000
+@@ -18,7 +18,7 @@
+     input  wire [31:0] pc_plus4_i,
+     input  wire [31:0] alu_result_i,
+     input  wire [31:0] mem_wdata_i,
+-    input  wire [4:0]  rd_i,
++    input  wire [5:0]  rd_i,
+     input  wire [2:0]  funct3_i,
+     input  wire        mem_read_i,
+     input  wire        mem_write_i,
+@@ -31,7 +31,7 @@
+     output reg  [31:0] pc_plus4_o,
+     output reg  [31:0] alu_result_o,
+     output reg  [31:0] mem_wdata_o,
+-    output reg  [4:0]  rd_o,
++    output reg  [5:0]  rd_o,
+     output reg  [2:0]  funct3_o,
+     output reg         mem_read_o,
+     output reg         mem_write_o,
+diff -ru baseline_source/integration/modules/registers/id_ex_reg.v work/integration/modules/registers/id_ex_reg.v
+--- baseline_source/integration/modules/registers/id_ex_reg.v	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/modules/registers/id_ex_reg.v	2026-11-03 10:04:28.074654234 +0000
+@@ -9,6 +9,7 @@
+ module id_ex_reg (
+     input  wire        clk,
+     input  wire        reset_n,
++    input wire snoop_we, input wire [5:0] snoop_rd, input wire [31:0] snoop_data,
+     input  wire        stall,
+     input  wire        flush,
+ 
+@@ -39,9 +40,9 @@
+     input  wire [31:0] rdata1_i,
+     input  wire [31:0] rdata2_i,
+     input  wire [31:0] imm_i,
+-    input  wire [4:0]  rs1_i,
+-    input  wire [4:0]  rs2_i,
+-    input  wire [4:0]  rd_i,
++    input  wire [5:0]  rs1_i,
++    input  wire [5:0]  rs2_i,
++    input  wire [5:0]  rd_i,
+ 
+     // BTB Metadata from IF/ID
+     input  wire        pred_taken_i,
+@@ -74,9 +75,9 @@
+     output reg  [31:0] rdata1_o,
+     output reg  [31:0] rdata2_o,
+     output reg  [31:0] imm_o,
+-    output reg  [4:0]  rs1_o,
+-    output reg  [4:0]  rs2_o,
+-    output reg  [4:0]  rd_o,
++    output reg  [5:0]  rs1_o,
++    output reg  [5:0]  rs2_o,
++    output reg  [5:0]  rd_o,
+     output reg         pred_taken_o,
+     output reg  [31:0] pred_target_o
+ );
+@@ -178,6 +179,10 @@
+             rd_o            <= rd_i;
+             pred_taken_o    <= pred_taken_i;
+             pred_target_o   <= pred_target_i;
++        end else begin
++            // Preserve a WB bypass when EX is held beyond the WB lifetime.
++            if(snoop_we && snoop_rd!=0 && snoop_rd==rs1_o) rdata1_o<=snoop_data;
++            if(snoop_we && snoop_rd!=0 && snoop_rd==rs2_o) rdata2_o<=snoop_data;
+         end
+     end
+ 
+diff -ru baseline_source/integration/modules/registers/mem_wb_reg.v work/integration/modules/registers/mem_wb_reg.v
+--- baseline_source/integration/modules/registers/mem_wb_reg.v	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/modules/registers/mem_wb_reg.v	2026-11-03 09:56:46.873623745 +0000
+@@ -17,7 +17,7 @@
+     input  wire [31:0] pc_i,
+     input  wire [31:0] alu_result_i,
+     input  wire [31:0] mem_rdata_i,
+-    input  wire [4:0]  rd_i,
++    input  wire [5:0]  rd_i,
+     input  wire [2:0]  funct3_i,
+     input  wire        mem_to_reg_i,
+     input  wire        reg_write_i,
+@@ -27,7 +27,7 @@
+     output reg  [31:0] pc_o,
+     output reg  [31:0] alu_result_o,
+     output reg  [31:0] mem_rdata_o,
+-    output reg  [4:0]  rd_o,
++    output reg  [5:0]  rd_o,
+     output reg  [2:0]  funct3_o,
+     output reg         mem_to_reg_o,
+     output reg         reg_write_o
+diff -ru baseline_source/integration/modules/stages/decode_stage.v work/integration/modules/stages/decode_stage.v
+--- baseline_source/integration/modules/stages/decode_stage.v	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/modules/stages/decode_stage.v	2026-11-04 02:43:30.639039336 +0000
+@@ -18,7 +18,7 @@
+ 
+     // Writeback Interface from WB stage
+     input  wire        wb_reg_write_i,
+-    input  wire [4:0]  wb_dest_reg_i,
++    input  wire [5:0]  wb_dest_reg_i,
+     input  wire [31:0] wb_data_i,
+ 
+     // Decoded Control Signals to ID/EX
+@@ -48,9 +48,9 @@
+     output reg  [31:0] imm_o,
+ 
+     // Register specifiers
+-    output wire [4:0]  rs1_o,
+-    output wire [4:0]  rs2_o,
+-    output wire [4:0]  rd_o,
++    output wire [5:0]  rs1_o,
++    output wire [5:0]  rs2_o,
++    output wire [5:0]  rd_o,
+     output wire [2:0]  funct3_o,
+     output wire [6:0]  funct7_o,
+ 
+@@ -64,24 +64,28 @@
+     // ------------------------------------------------------------------------
+     // Field Extraction
+     // ------------------------------------------------------------------------
+-    assign rs1_o    = instruction_i[`RS1];
+-    assign rs2_o    = instruction_i[`RS2];
+-    assign rd_o     = instruction_i[`RD];
++    wire [6:0] opcode = instruction_i[`OPCODE];
++
++    wire op_fp = opcode == OP_FP;
++    wire fp_rs1 = op_fp && funct7_o != 7'b1101000 && funct7_o != 7'b1111000;
++    wire fp_rs2 = opcode == STORE_FP || (op_fp && funct7_o != 7'b1101000 && funct7_o != 7'b1111000);
++    wire fp_rd = opcode == LOAD_FP || (op_fp && funct7_o != 7'b1110000 && funct7_o != 7'b1100000 && funct7_o != 7'b1010000);
++    assign rs1_o    = {fp_rs1, instruction_i[`RS1]};
++    assign rs2_o    = {fp_rs2, instruction_i[`RS2]};
++    assign rd_o     = {fp_rd, instruction_i[`RD]};
+     assign funct3_o = instruction_i[`FUNC3];
+     assign funct7_o = instruction_i[31:25];
+ 
+-    wire [6:0] opcode = instruction_i[`OPCODE];
+-
+     // ------------------------------------------------------------------------
+-    // General-Purpose Integer Register File (x0..x31, x0 hardwired to 0)
++    // Banked Register Storage: IDs 0..31 = x0..x31, 32..63 = f0..f31; only x0 is hardwired
+     // ------------------------------------------------------------------------
+-    reg [31:0] regs [1:31];
++    reg [31:0] regs [1:63];
+     integer i;
+ 
+     // Synchronous Write Port
+     always @(posedge clk or negedge reset_n) begin
+         if (!reset_n) begin
+-            for (i = 1; i < 32; i = i + 1) begin
++            for (i = 1; i < 64; i = i + 1) begin
+                 regs[i] <= 32'h0000_0000;
+             end
+         end else if (wb_reg_write_i && (wb_dest_reg_i != 5'd0)) begin
+@@ -175,12 +179,13 @@
+             // ----------------------------------------------------------------
+             OP_FP: begin
+                 case (funct7_o)
+-                    FUNCT7_FADD, FUNCT7_FSUB, FUNCT7_FMUL, FUNCT7_FDIV: begin
++                    FUNCT7_FADD, FUNCT7_FSUB, FUNCT7_FMUL, FUNCT7_FDIV, 7'b1101000, 7'b1111000, 7'b1110000, 7'b0010000: begin
+                         is_fpu_o      = 1'b1;
+                         alu_o         = 1'b0;
+                         reg_write_o   = 1'b1;
+                         id_rs1_used_o = 1'b1;
+-                        id_rs2_used_o = 1'b1;
++                        id_rs2_used_o = funct7_o != 7'b1101000 && funct7_o != 7'b1111000 && funct7_o != 7'b1110000;
++                        if (funct7_o == 7'b1101000) imm_o = {27'd0, instruction_i[24:20]};
+                     end
+                     default: illegal_inst_o = 1'b1;
+                 endcase
+@@ -190,6 +195,7 @@
+             // 4. SYSTEM (1110011): Passive Performance Counters & CSR Read (Feature 8)
+             // ----------------------------------------------------------------
+             SYSTEM: begin
++                id_rs1_used_o = !instruction_i[14] && instruction_i[14:12]!=0;
+                 is_csr_o        = 1'b1;
+                 reg_write_o     = 1'b1; // CSR read value writes to destination rd
+                 csr_addr_o      = instruction_i[31:20];
+diff -ru baseline_source/integration/modules/stages/execute_stage.v work/integration/modules/stages/execute_stage.v
+--- baseline_source/integration/modules/stages/execute_stage.v	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/modules/stages/execute_stage.v	2026-11-04 02:43:30.639372738 +0000
+@@ -45,6 +45,8 @@
+ 
+     // Feature 8 CSR Read Data Input
+     input  wire [31:0] csr_rdata_i,
++    input wire [2:0] frm_i,
++    output wire [31:0] csr_operand_o,
+ 
+     // Feature 7 BTB Predictions from ID/EX
+     input  wire        pred_taken_i,
+@@ -58,6 +60,8 @@
+     output wire        branch_or_jump_taken_o,
+     output wire        div_busy_o,
+     output wire        fpu_busy_o,
++    output wire [4:0] fp_flags_o,
++    output wire int_divzero_o,
+ 
+     // Feature 7 BTB Resolution Outputs
+     output wire        mispredict_o,
+@@ -97,6 +101,7 @@
+     wire [31:0] alu_in2 = immediate_sel_i ? imm_i : forwarded_rdata2;
+ 
+     assign mem_wdata_o = forwarded_rdata2;
++    assign csr_operand_o = forwarded_rdata1;
+ 
+     // Subtractions for comparisons
+     wire [32:0] sub_signed   = {alu_in1[31], alu_in1} - {alu_in2[31], alu_in2};
+@@ -187,26 +192,57 @@
+     );
+ 
+     assign div_busy_o = div_busy;
++    assign int_divzero_o=is_div_i && !div_busy && forwarded_rdata2==0;
+ 
+     // (d) IEEE 754 Floating-Point Unit (FADD/FSUB 5c, FMUL 4c, FDIV 15c)
+     wire [31:0] fpu_result;
+     wire        fpu_busy;
+     wire        fpu_done;
+ 
++    wire fp_arithmetic = funct7_i == FUNCT7_FADD || funct7_i == FUNCT7_FSUB || funct7_i == FUNCT7_FMUL || funct7_i == FUNCT7_FDIV;
++
+     fpu_single_core u_fpu (
+         .clk        (clk),
+         .reset_n    (reset_n),
+-        .is_fpu     (is_fpu_i),
++        .is_fpu     (is_fpu_i && fp_arithmetic),
+         .funct7     (funct7_i),
+-        .funct3     (alu_op_i),
++        .funct3     (alu_op_i==7 ? frm_i : alu_op_i),
+         .op_a       (alu_in1),
+         .op_b       (forwarded_rdata2),
+         .fpu_result (fpu_result),
+         .fpu_busy   (fpu_busy),
+-        .fpu_done   (fpu_done)
++        .fpu_done   (fpu_done),
++        .flags_o(fp_flags_o)
+     );
+ 
+     assign fpu_busy_o = fpu_busy;
++    function [31:0] int_to_float;
++        input [31:0] bits;
++        input uns;
++        reg sign_bit, found, guard_bit, sticky_bit;
++        reg [31:0] magnitude;
++        reg [24:0] significand;
++        reg [7:0] exponent;
++        integer i, highest, shift;
++        begin
++            sign_bit = !uns && bits[31];
++            magnitude = sign_bit ? -bits : bits;
++            highest=0; found=0;
++            for (i=31;i>=0;i=i-1) if(magnitude[i] && !found) begin highest=i; found=1; end
++            exponent = 127+highest;
++            guard_bit=0; sticky_bit=0;
++            if(highest<=23) significand = {1'b0,magnitude << (23-highest)};
++            else begin
++                shift=highest-23;
++                significand = magnitude >> shift;
++                guard_bit=magnitude[shift-1];
++                for(i=0;i<31;i=i+1) if(i<shift-1) sticky_bit=sticky_bit|magnitude[i];
++                if(guard_bit && (sticky_bit || significand[0])) significand=significand+1;
++                if(significand[24]) begin significand=significand>>1; exponent=exponent+1; end
++            end
++            int_to_float = magnitude==0 ? 0 : {sign_bit,exponent,significand[22:0]};
++        end
++    endfunction
+ 
+     // ------------------------------------------------------------------------
+     // 4. Execution Result Multiplexer with Full Feature Arbitration
+@@ -220,7 +256,16 @@
+         end else if (is_div_i) begin
+             alu_result_o = div_result;
+         end else if (is_fpu_i) begin
+-            alu_result_o = fpu_result;
++            case(funct7_i)
++                7'b1101000: alu_result_o = int_to_float(alu_in1, imm_i[0]);
++                7'b1111000,7'b1110000: alu_result_o = alu_in1;
++                7'b0010000: case(alu_op_i)
++                    3'b000: alu_result_o={forwarded_rdata2[31],alu_in1[30:0]};
++                    3'b001: alu_result_o={~forwarded_rdata2[31],alu_in1[30:0]};
++                    default: alu_result_o={alu_in1[31]^forwarded_rdata2[31],alu_in1[30:0]};
++                endcase
++                default: alu_result_o = fpu_result;
++            endcase
+         end else if (lui_i) begin
+             alu_result_o = imm_i;
+         end else if (auipc_i) begin
+diff -ru baseline_source/integration/modules/stages/writeback_stage.v work/integration/modules/stages/writeback_stage.v
+--- baseline_source/integration/modules/stages/writeback_stage.v	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/modules/stages/writeback_stage.v	2026-11-03 09:56:46.874114418 +0000
+@@ -14,11 +14,11 @@
+     input  wire [1:0]  byte_offset_i,
+     input  wire [31:0] alu_result_i,
+     input  wire [31:0] mem_rdata_i,
+-    input  wire [4:0]  rd_i,
++    input  wire [5:0]  rd_i,
+ 
+     // Outputs to Register File & Hazard/Debug
+     output wire        wb_reg_write_o,
+-    output wire [4:0]  wb_dest_reg_o,
++    output wire [5:0]  wb_dest_reg_o,
+     output wire [31:0] wb_data_o
+ );
+ 
+Only in work/integration/testbench: integration_prog.S
+diff -ru baseline_source/integration/testbench/integration_prog.hex work/integration/testbench/integration_prog.hex
+--- baseline_source/integration/testbench/integration_prog.hex	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/testbench/integration_prog.hex	2026-11-03 10:06:01.080299756 +0000
+@@ -1,29 +1,30 @@
+-00A00093
++00a00093
+ 01400113
+-002081B3
++002081b3
+ 02208233
+-021242B3
+-0200C333
++021242b3
++0200c333
+ 60009393
+ 60209413
+-0A20E4B3
+-0A20C533
+-4020F5B3
+-3FC00BB7
+-40200C37
+-018B86D3
+-40000CB7
+-11968753
+-10000893
+-0048A023
+-0008A903
++0a20e4b3
++0a20c533
++4020f5b3
++3fc00637
++f0060653
++402007b7
++f00787d3
++00f606d3
++40000837
++f0080853
++11068753
++000018b7
++0048a023
++0008a903
++c00029f3
++c0202a73
++c0502af3
+ 00108463
+-06300D13
+-00100D13
+-C00029F3
+-C0202A73
+-C0302AF3
+-C0402B73
+-00000013
+-00000013
+-00000013
++06300d13
++00100d13
++c0702b73
++0000006f
+diff -ru baseline_source/integration/testbench/tb_integrated_core.v work/integration/testbench/tb_integrated_core.v
+--- baseline_source/integration/testbench/tb_integrated_core.v	2026-11-03 09:48:53.000000000 +0000
++++ work/integration/testbench/tb_integrated_core.v	2026-11-03 10:09:38.136020275 +0000
+@@ -33,7 +33,7 @@
+     // Pipeline Monitoring Signals
+     wire [31:0] pc_if, pc_id, pc_ex, pc_mem, pc_wb;
+     wire        wb_reg_write;
+-    wire [4:0]  wb_dest_reg;
++    wire [5:0]  wb_dest_reg;
+     wire [31:0] wb_data;
+ 
+     wire        hazard_stall;
+@@ -64,6 +64,7 @@
+     rv32imf_core #(
+         .RESET_PC (32'h0000_0000)
+     ) dut (
++        .mmio_rdata(32'b0),
+         .clk                (clk),
+         .reset_n            (reset_n),
+         .stall_ext          (stall_ext),
+@@ -120,12 +121,12 @@
+     // ------------------------------------------------------------------------
+     // Scoreboard for Register Verification
+     // ------------------------------------------------------------------------
+-    reg [31:0] reg_file_mirror [0:31];
++    reg [31:0] reg_file_mirror [0:63];
+     integer k;
+ 
+     always @(posedge clk or negedge reset_n) begin
+         if (!reset_n) begin
+-            for (k = 0; k < 32; k = k + 1) reg_file_mirror[k] <= 32'h0;
++            for (k = 0; k < 64; k = k + 1) reg_file_mirror[k] <= 32'h0;
+         end else begin
+             if (wb_reg_write && (wb_dest_reg != 5'd0)) begin
+                 reg_file_mirror[wb_dest_reg] <= wb_data;
+@@ -141,7 +142,7 @@
+     integer fail_count = 0;
+ 
+     task check_reg;
+-        input [4:0]  reg_num;
++        input [5:0]  reg_num;
+         input [31:0] expected;
+         input [127:0] desc;
+         begin
+@@ -199,8 +200,8 @@
+         check_reg(11, 32'd10,         "Zbb ANDN x11   ");
+ 
+         // 5. IEEE 754 Floating-Point Unit
+-        check_reg(13, 32'h4080_0000,  "FADD.S 1.5+2.5 ");
+-        check_reg(14, 32'h4100_0000,  "FMUL.S 4.0*2.0 ");
++        check_reg(45, 32'h4080_0000,  "FADD.S 1.5+2.5 ");
++        check_reg(46, 32'h4100_0000,  "FMUL.S 4.0*2.0 ");
+ 
+         // 6. Memory Store / Load via L1 D-Cache
+         check_reg(18, 32'd200,        "D-Cache SW/LW  ");
+@@ -226,30 +227,31 @@
+         end
+ 
+         if (reg_file_mirror[21] >= 32'd30) begin
+-            $display("[PASS] CSR_HPMCOUNTER3: Read %0d stall cycles (Accurately captured math stalls)", reg_file_mirror[21]);
++            $display("[PASS] CSR_HPMCOUNTER5: Read %0d stall cycles (Accurately captured math stalls)", reg_file_mirror[21]);
+             pass_count = pass_count + 1;
+         end else begin
+-            $display("[FAIL] CSR_HPMCOUNTER3 returned %0d (Expected >= 30 stall cycles)", reg_file_mirror[21]);
++            $display("[FAIL] CSR_HPMCOUNTER5 returned %0d (Expected >= 30 stall cycles)", reg_file_mirror[21]);
+             fail_count = fail_count + 1;
+         end
+ 
+         if (reg_file_mirror[22] >= 32'd1) begin
+-            $display("[PASS] CSR_HPMCOUNTER4: Read %0d branch executions", reg_file_mirror[22]);
++            $display("[PASS] CSR_HPMCOUNTER7: Read %0d branch executions", reg_file_mirror[22]);
+             pass_count = pass_count + 1;
+         end else begin
+-            $display("[FAIL] CSR_HPMCOUNTER4 returned %0d (Expected >= 1)", reg_file_mirror[22]);
++            $display("[FAIL] CSR_HPMCOUNTER7 returned %0d (Expected >= 1)", reg_file_mirror[22]);
+             fail_count = fail_count + 1;
+         end
+ 
+         $display("\n==================================================================");
+         if (fail_count == 0) begin
+             $display("   *** ALL %0d INTEGRATION TESTS PASSED SUCCESSFULLY! ***", pass_count);
+-            $display("   Full RV32IMF + Zbb + BTB + Caches + CSR Processor Operational!");
++            $display("   Tested integration cases passed; this is not exhaustive ISA compliance.");
+         end else begin
+             $display("   *** VERIFICATION FAILED: %0d Passed, %0d Failed ***", pass_count, fail_count);
+         end
+         $display("==================================================================\n");
+ 
++        if(fail_count) $fatal(1,"Integration failure");
+         $finish;
+     end
+ 

@@ -1,0 +1,831 @@
+#-----------------------------------------------------------
+# Vivado v2025.2 (64-bit)
+# SW Build 6299465 on Fri Nov 14 19:35:11 GMT 2025
+# IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
+# SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
+# Start of session at: Thu Nov  5 15:36:34 2026
+# Process ID         : 35124
+# Current directory  : C:/Users/prane/Downloads/processor_demo_updated/build/vivado_40mhz/avionics.runs/synth_1
+# Command line       : vivado.exe -log nexys_a7_top.vds -product Vivado -mode batch -messageDb vivado.pb -notrace -source nexys_a7_top.tcl
+# Log file           : C:/Users/prane/Downloads/processor_demo_updated/build/vivado_40mhz/avionics.runs/synth_1/nexys_a7_top.vds
+# Journal file       : C:/Users/prane/Downloads/processor_demo_updated/build/vivado_40mhz/avionics.runs/synth_1\vivado.jou
+# Running On         : SPSB2928
+# Platform           : Windows Server 2016 or Windows 10
+# Operating System   : 26300
+# Processor Detail   : Intel(R) Core(TM) Ultra 5 125H
+# CPU Frequency      : 2995 MHz
+# CPU Physical cores : 14
+# CPU Logical cores  : 18
+# Host memory        : 16766 MB
+# Swap memory        : 33293 MB
+# Total Virtual      : 50059 MB
+# Available Virtual  : 7749 MB
+#-----------------------------------------------------------
+source nexys_a7_top.tcl -notrace
+create_project: Time (s): cpu = 00:00:10 ; elapsed = 00:00:08 . Memory (MB): peak = 524.809 ; gain = 218.355
+Command: synth_design -top nexys_a7_top -part xc7a100tcsg324-1
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7a100t'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7a100t'
+INFO: [Device 21-403] Loading part xc7a100tcsg324-1
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 2 processes.
+INFO: [Synth 8-7078] Launching helper process for spawning children vivado processes
+INFO: [Synth 8-7075] Helper process launched with PID 26652
+---------------------------------------------------------------------------------
+Starting RTL Elaboration : Time (s): cpu = 00:00:07 ; elapsed = 00:00:08 . Memory (MB): peak = 1271.211 ; gain = 540.543
+---------------------------------------------------------------------------------
+INFO: [Synth 8-6157] synthesizing module 'nexys_a7_top' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:2]
+	Parameter SYSTEM_CLOCK_HZ bound to: 40000000 - type: integer 
+INFO: [Synth 8-3876] $readmem data file 'avionics_demo.mem' is read successfully [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:54]
+INFO: [Synth 8-6157] synthesizing module 'MMCME2_BASE' [C:/AMDDesignTools/2025.2/Vivado/scripts/rt/data/unisim_comp.v:95964]
+	Parameter CLKFBOUT_MULT_F bound to: 1.000000e+01 - type: double 
+	Parameter CLKIN1_PERIOD bound to: 1.000000e+01 - type: double 
+	Parameter CLKOUT0_DIVIDE_F bound to: 2.500000e+01 - type: double 
+	Parameter DIVCLK_DIVIDE bound to: 1 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'MMCME2_BASE' (0#1) [C:/AMDDesignTools/2025.2/Vivado/scripts/rt/data/unisim_comp.v:95964]
+WARNING: [Synth 8-7071] port 'CLKFBOUTB' of module 'MMCME2_BASE' is unconnected for instance 'pll' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:10]
+WARNING: [Synth 8-7071] port 'CLKOUT0B' of module 'MMCME2_BASE' is unconnected for instance 'pll' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:10]
+WARNING: [Synth 8-7071] port 'CLKOUT1' of module 'MMCME2_BASE' is unconnected for instance 'pll' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:10]
+WARNING: [Synth 8-7071] port 'CLKOUT1B' of module 'MMCME2_BASE' is unconnected for instance 'pll' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:10]
+WARNING: [Synth 8-7071] port 'CLKOUT2' of module 'MMCME2_BASE' is unconnected for instance 'pll' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:10]
+WARNING: [Synth 8-7071] port 'CLKOUT2B' of module 'MMCME2_BASE' is unconnected for instance 'pll' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:10]
+WARNING: [Synth 8-7071] port 'CLKOUT3' of module 'MMCME2_BASE' is unconnected for instance 'pll' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:10]
+WARNING: [Synth 8-7071] port 'CLKOUT3B' of module 'MMCME2_BASE' is unconnected for instance 'pll' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:10]
+WARNING: [Synth 8-7071] port 'CLKOUT4' of module 'MMCME2_BASE' is unconnected for instance 'pll' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:10]
+WARNING: [Synth 8-7071] port 'CLKOUT5' of module 'MMCME2_BASE' is unconnected for instance 'pll' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:10]
+WARNING: [Synth 8-7071] port 'CLKOUT6' of module 'MMCME2_BASE' is unconnected for instance 'pll' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:10]
+WARNING: [Synth 8-7023] instance 'pll' of module 'MMCME2_BASE' has 18 connections declared, but only 7 given [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:10]
+INFO: [Synth 8-6157] synthesizing module 'BUFG' [C:/AMDDesignTools/2025.2/Vivado/scripts/rt/data/unisim_comp.v:2678]
+INFO: [Synth 8-6155] done synthesizing module 'BUFG' (0#1) [C:/AMDDesignTools/2025.2/Vivado/scripts/rt/data/unisim_comp.v:2678]
+INFO: [Synth 8-6157] synthesizing module 'BUFGCE' [C:/AMDDesignTools/2025.2/Vivado/scripts/rt/data/unisim_comp.v:2688]
+	Parameter SIM_DEVICE bound to: 7SERIES - type: string 
+INFO: [Synth 8-6155] done synthesizing module 'BUFGCE' (0#1) [C:/AMDDesignTools/2025.2/Vivado/scripts/rt/data/unisim_comp.v:2688]
+INFO: [Synth 8-155] case statement is not full and has no default [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:97]
+INFO: [Synth 8-6157] synthesizing module 'uart_trace_transport' [C:/Users/prane/Downloads/processor_demo_updated/board/uart_trace_transport.v:5]
+	Parameter CLOCK_HZ bound to: 40000000 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'uart_tx' [C:/Users/prane/Downloads/processor_demo_updated/board/uart_tx.v:2]
+	Parameter CLOCK_HZ bound to: 40000000 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'uart_tx' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/board/uart_tx.v:2]
+INFO: [Synth 8-6155] done synthesizing module 'uart_trace_transport' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/board/uart_trace_transport.v:5]
+INFO: [Synth 8-6157] synthesizing module 'rv32imf_core' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/core/rv32imf_core.v:18]
+INFO: [Synth 8-6157] synthesizing module 'pipeline_5stage' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/core/pipeline_5stage.v:20]
+	Parameter RESET_PC bound to: 0 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'fetch_stage' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/stages/fetch_stage.v:14]
+INFO: [Synth 8-6157] synthesizing module 'btb_branch_pred' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/branch/btb_branch_pred.v:19]
+	Parameter ENTRIES bound to: 32 - type: integer 
+	Parameter TAG_WIDTH bound to: 25 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'btb_branch_pred' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/branch/btb_branch_pred.v:19]
+INFO: [Synth 8-6155] done synthesizing module 'fetch_stage' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/stages/fetch_stage.v:14]
+INFO: [Synth 8-6157] synthesizing module 'icache_controller' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/icache_controller.v:31]
+	Parameter NUM_LINES bound to: 128 - type: integer 
+	Parameter WORDS_PER_LINE bound to: 4 - type: integer 
+	Parameter ADDR_WIDTH bound to: 32 - type: integer 
+	Parameter TAG_WIDTH bound to: 21 - type: integer 
+	Parameter INDEX_WIDTH bound to: 7 - type: integer 
+	Parameter OFFSET_WIDTH bound to: 2 - type: integer 
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/icache_controller.v:100]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/icache_controller.v:101]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/icache_controller.v:140]
+INFO: [Synth 8-155] case statement is not full and has no default [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/icache_controller.v:191]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/icache_controller.v:219]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/icache_controller.v:232]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/icache_controller.v:235]
+INFO: [Synth 8-155] case statement is not full and has no default [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/icache_controller.v:224]
+INFO: [Synth 8-6155] done synthesizing module 'icache_controller' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/icache_controller.v:31]
+INFO: [Synth 8-6157] synthesizing module 'if_id_reg' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/registers/if_id_reg.v:9]
+INFO: [Synth 8-6155] done synthesizing module 'if_id_reg' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/registers/if_id_reg.v:9]
+INFO: [Synth 8-6157] synthesizing module 'decode_stage' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/stages/decode_stage.v:11]
+INFO: [Synth 8-6155] done synthesizing module 'decode_stage' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/stages/decode_stage.v:11]
+INFO: [Synth 8-6157] synthesizing module 'id_ex_reg' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/registers/id_ex_reg.v:9]
+INFO: [Synth 8-6155] done synthesizing module 'id_ex_reg' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/registers/id_ex_reg.v:9]
+INFO: [Synth 8-6157] synthesizing module 'execute_stage' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/stages/execute_stage.v:11]
+INFO: [Synth 8-6157] synthesizing module 'alu_zbb' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/alu_zbb.v:11]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/alu_zbb.v:107]
+INFO: [Synth 8-6155] done synthesizing module 'alu_zbb' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/alu_zbb.v:11]
+INFO: [Synth 8-6157] synthesizing module 'multiplier_unit' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/multiplier_unit.v:18]
+	Parameter use_dsp bound to: 1 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'multiplier_dsp' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/multiplier_dsp.v:16]
+INFO: [Synth 8-6155] done synthesizing module 'multiplier_dsp' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/multiplier_dsp.v:16]
+INFO: [Synth 8-6157] synthesizing module 'booth_radix4_multiplier' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:15]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:40]
+INFO: [Synth 8-6155] done synthesizing module 'booth_radix4_multiplier' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/booth_radix4_multiplier.v:15]
+INFO: [Synth 8-6155] done synthesizing module 'multiplier_unit' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/multiplier_unit.v:18]
+INFO: [Synth 8-6157] synthesizing module 'divider_unit' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/divider_unit.v:20]
+INFO: [Synth 8-6155] done synthesizing module 'divider_unit' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/divider_unit.v:20]
+INFO: [Synth 8-6157] synthesizing module 'fpu_single_core' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:21]
+INFO: [Synth 8-6155] done synthesizing module 'fpu_single_core' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:21]
+INFO: [Synth 8-6155] done synthesizing module 'execute_stage' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/stages/execute_stage.v:11]
+INFO: [Synth 8-6157] synthesizing module 'csr_perf_counters' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/csr/csr_perf_counters.v:15]
+INFO: [Synth 8-155] case statement is not full and has no default [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/csr/csr_perf_counters.v:68]
+INFO: [Synth 8-6155] done synthesizing module 'csr_perf_counters' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/csr/csr_perf_counters.v:15]
+INFO: [Synth 8-6157] synthesizing module 'ex_mem_reg' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/registers/ex_mem_reg.v:9]
+INFO: [Synth 8-6155] done synthesizing module 'ex_mem_reg' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/registers/ex_mem_reg.v:9]
+INFO: [Synth 8-6157] synthesizing module 'memory_stage' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/stages/memory_stage.v:9]
+INFO: [Synth 8-6155] done synthesizing module 'memory_stage' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/stages/memory_stage.v:9]
+INFO: [Synth 8-6157] synthesizing module 'dcache_controller' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/dcache_controller.v:32]
+	Parameter NUM_LINES bound to: 128 - type: integer 
+	Parameter WORDS_PER_LINE bound to: 4 - type: integer 
+	Parameter ADDR_WIDTH bound to: 32 - type: integer 
+	Parameter TAG_WIDTH bound to: 21 - type: integer 
+	Parameter INDEX_WIDTH bound to: 7 - type: integer 
+	Parameter OFFSET_WIDTH bound to: 2 - type: integer 
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/dcache_controller.v:100]
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/dcache_controller.v:147]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/dcache_controller.v:270]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/dcache_controller.v:282]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/dcache_controller.v:289]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/dcache_controller.v:293]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/dcache_controller.v:296]
+INFO: [Synth 8-6155] done synthesizing module 'dcache_controller' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/dcache_controller.v:32]
+INFO: [Synth 8-6157] synthesizing module 'mem_bus_arbiter' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/mem_bus_arbiter.v:15]
+INFO: [Synth 8-6155] done synthesizing module 'mem_bus_arbiter' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/cache/mem_bus_arbiter.v:15]
+INFO: [Synth 8-6157] synthesizing module 'mem_wb_reg' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/registers/mem_wb_reg.v:9]
+INFO: [Synth 8-6155] done synthesizing module 'mem_wb_reg' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/registers/mem_wb_reg.v:9]
+INFO: [Synth 8-6157] synthesizing module 'writeback_stage' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/stages/writeback_stage.v:9]
+INFO: [Synth 8-6155] done synthesizing module 'writeback_stage' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/stages/writeback_stage.v:9]
+INFO: [Synth 8-6157] synthesizing module 'hazard_unit' [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/hazard/hazard_unit.v:15]
+INFO: [Synth 8-6155] done synthesizing module 'hazard_unit' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/hazard/hazard_unit.v:15]
+INFO: [Synth 8-6155] done synthesizing module 'pipeline_5stage' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/core/pipeline_5stage.v:20]
+INFO: [Synth 8-6155] done synthesizing module 'rv32imf_core' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/core/rv32imf_core.v:18]
+WARNING: [Synth 8-7071] port 'pc_id' of module 'rv32imf_core' is unconnected for instance 'core' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:109]
+WARNING: [Synth 8-7071] port 'pc_ex' of module 'rv32imf_core' is unconnected for instance 'core' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:109]
+WARNING: [Synth 8-7071] port 'pc_mem' of module 'rv32imf_core' is unconnected for instance 'core' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:109]
+WARNING: [Synth 8-7071] port 'btb_pred_hit' of module 'rv32imf_core' is unconnected for instance 'core' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:109]
+WARNING: [Synth 8-7071] port 'btb_pred_taken' of module 'rv32imf_core' is unconnected for instance 'core' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:109]
+WARNING: [Synth 8-7071] port 'icache_hit' of module 'rv32imf_core' is unconnected for instance 'core' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:109]
+WARNING: [Synth 8-7071] port 'dcache_hit' of module 'rv32imf_core' is unconnected for instance 'core' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:109]
+WARNING: [Synth 8-7071] port 'instret_count_o' of module 'rv32imf_core' is unconnected for instance 'core' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:109]
+WARNING: [Synth 8-7071] port 'stall_count_o' of module 'rv32imf_core' is unconnected for instance 'core' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:109]
+WARNING: [Synth 8-7071] port 'branch_count_o' of module 'rv32imf_core' is unconnected for instance 'core' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:109]
+WARNING: [Synth 8-7071] port 'mispredict_count_o' of module 'rv32imf_core' is unconnected for instance 'core' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:109]
+WARNING: [Synth 8-7023] instance 'core' of module 'rv32imf_core' has 54 connections declared, but only 43 given [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:109]
+INFO: [Synth 8-6157] synthesizing module 'nexys_a7_io_controller' [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_io_controller.v:2]
+	Parameter CLOCK_HZ bound to: 40000000 - type: integer 
+INFO: [Synth 8-226] default block is never used [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_io_controller.v:111]
+INFO: [Synth 8-6155] done synthesizing module 'nexys_a7_io_controller' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_io_controller.v:2]
+INFO: [Synth 8-6155] done synthesizing module 'nexys_a7_top' (0#1) [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7_top.v:2]
+WARNING: [Synth 8-6014] Unused sequential element hybrid_events_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/board/uart_trace_transport.v:88]
+WARNING: [Synth 8-6014] Unused sequential element saved_cycle_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/board/uart_trace_transport.v:90]
+WARNING: [Synth 8-6014] Unused sequential element carry_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/board/uart_trace_transport.v:96]
+WARNING: [Synth 8-6014] Unused sequential element fmul_zero_res_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:293]
+WARNING: [Synth 8-6014] Unused sequential element fmul_frac_raw_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:381]
+WARNING: [Synth 8-6014] Unused sequential element fmul_g_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:382]
+WARNING: [Synth 8-6014] Unused sequential element fmul_r_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:383]
+WARNING: [Synth 8-6014] Unused sequential element fmul_s_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:384]
+WARNING: [Synth 8-6014] Unused sequential element fmul_norm_e_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:385]
+WARNING: [Synth 8-6014] Unused sequential element fmul_round_up_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:394]
+WARNING: [Synth 8-6014] Unused sequential element fmul_frac_final_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:397]
+WARNING: [Synth 8-6014] Unused sequential element fmul_final_e_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:398]
+WARNING: [Synth 8-6014] Unused sequential element packed_result_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:408]
+WARNING: [Synth 8-6014] Unused sequential element fdiv_rem_cur_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:421]
+WARNING: [Synth 8-6014] Unused sequential element fdiv_q0_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:425]
+WARNING: [Synth 8-6014] Unused sequential element fdiv_q1_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:434]
+WARNING: [Synth 8-6014] Unused sequential element fdiv_quot_comb_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:441]
+WARNING: [Synth 8-6014] Unused sequential element fdiv_frac_raw_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:451]
+WARNING: [Synth 8-6014] Unused sequential element fdiv_g_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:452]
+WARNING: [Synth 8-6014] Unused sequential element fdiv_r_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:453]
+WARNING: [Synth 8-6014] Unused sequential element fdiv_s_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:454]
+WARNING: [Synth 8-6014] Unused sequential element fdiv_final_exp_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:455]
+WARNING: [Synth 8-6014] Unused sequential element fdiv_round_up_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:457]
+WARNING: [Synth 8-6014] Unused sequential element fdiv_frac_final_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:460]
+WARNING: [Synth 8-6014] Unused sequential element fadd_lz_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:500]
+WARNING: [Synth 8-6014] Unused sequential element fadd_frac_raw_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:514]
+WARNING: [Synth 8-6014] Unused sequential element fadd_g_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:515]
+WARNING: [Synth 8-6014] Unused sequential element fadd_r_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:516]
+WARNING: [Synth 8-6014] Unused sequential element fadd_s_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:517]
+WARNING: [Synth 8-6014] Unused sequential element fadd_round_up_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:519]
+WARNING: [Synth 8-6014] Unused sequential element fadd_frac_final_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:522]
+WARNING: [Synth 8-6014] Unused sequential element fadd_final_e_reg was removed.  [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/arith/fpu_single_core.v:523]
+WARNING: [Synth 8-3936] Found unconnected internal register 'writable_new_reg' and it is trimmed from '32' to '8' bits. [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/csr/csr_perf_counters.v:57]
+WARNING: [Synth 8-3936] Found unconnected internal register 'writable_old_reg' and it is trimmed from '32' to '8' bits. [C:/Users/prane/Downloads/processor_demo_updated/integration/modules/csr/csr_perf_counters.v:52]
+WARNING: [Synth 8-7129] Port csr_funct3_i[2] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[31] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[30] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[29] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[28] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[27] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[26] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[25] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[24] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[23] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[22] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[21] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[20] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[19] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[18] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[17] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[16] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[15] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[14] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[13] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[12] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[11] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[10] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[9] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port csr_operand_i[8] in module csr_perf_counters is either unconnected or has no load
+WARNING: [Synth 8-7129] Port clk in module multiplier_unit is either unconnected or has no load
+WARNING: [Synth 8-7129] Port reset_n in module multiplier_unit is either unconnected or has no load
+WARNING: [Synth 8-7129] Port is_mul in module multiplier_unit is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[31] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[30] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[29] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[28] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[27] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[26] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[25] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[24] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[23] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[22] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[21] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[20] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[19] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[18] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[17] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[16] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[15] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[14] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[13] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port imm_i[12] in module alu_zbb is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[31] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[30] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[29] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[28] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[27] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[26] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[25] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[24] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[23] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[22] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[21] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[20] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[19] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[18] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[17] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[16] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[15] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[14] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[13] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[12] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[11] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[10] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[9] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[8] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[7] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[6] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[5] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[4] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[3] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[2] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[1] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pc_i[0] in module decode_stage is either unconnected or has no load
+WARNING: [Synth 8-7129] Port update_pc[1] in module btb_branch_pred is either unconnected or has no load
+WARNING: [Synth 8-7129] Port update_pc[0] in module btb_branch_pred is either unconnected or has no load
+---------------------------------------------------------------------------------
+Finished RTL Elaboration : Time (s): cpu = 00:00:15 ; elapsed = 00:00:18 . Memory (MB): peak = 1589.875 ; gain = 859.207
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:16 ; elapsed = 00:00:19 . Memory (MB): peak = 1589.875 ; gain = 859.207
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:00:16 ; elapsed = 00:00:19 . Memory (MB): peak = 1589.875 ; gain = 859.207
+---------------------------------------------------------------------------------
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.508 . Memory (MB): peak = 1589.875 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-570] Preparing netlist for logic optimization
+
+Processing XDC Constraints
+Initializing timing engine
+Parsing XDC File [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7.xdc]
+Finished Parsing XDC File [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7.xdc]
+INFO: [Project 1-236] Implementation specific constraints were found while reading constraint file [C:/Users/prane/Downloads/processor_demo_updated/board/nexys_a7.xdc]. These constraints will be ignored for synthesis but will be used in implementation. Impacted constraints are listed in the file [.Xil/nexys_a7_top_propImpl.xdc].
+Resolution: To avoid this warning, move constraints listed in [.Xil/nexys_a7_top_propImpl.xdc] to another XDC file and exclude this new file from synthesis with the used_in_synthesis property (File Properties dialog in GUI) and re-run elaboration/synthesis.
+INFO: [Timing 38-2] Deriving generated clocks
+Completed Processing XDC Constraints
+
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.018 . Memory (MB): peak = 1645.820 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 2 instances were transformed.
+  BUFGCE => BUFGCTRL: 1 instance 
+  MMCME2_BASE => MMCME2_ADV: 1 instance 
+
+Constraint Validation Runtime : Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.344 . Memory (MB): peak = 1645.820 ; gain = 0.000
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:37 ; elapsed = 00:00:41 . Memory (MB): peak = 1645.820 ; gain = 915.152
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7a100tcsg324-1
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:37 ; elapsed = 00:00:41 . Memory (MB): peak = 1645.820 ; gain = 915.152
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying 'set_property' XDC Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished applying 'set_property' XDC Constraints : Time (s): cpu = 00:00:37 ; elapsed = 00:00:41 . Memory (MB): peak = 1645.820 ; gain = 915.152
+---------------------------------------------------------------------------------
+INFO: [Synth 8-802] inferred FSM for state register 'state_reg' in module 'icache_controller'
+INFO: [Synth 8-802] inferred FSM for state register 'state_reg' in module 'divider_unit'
+INFO: [Synth 8-802] inferred FSM for state register 'state_reg' in module 'fpu_single_core'
+INFO: [Synth 8-802] inferred FSM for state register 'state_reg' in module 'dcache_controller'
+INFO: [Synth 8-802] inferred FSM for state register 'current_grant_reg' in module 'mem_bus_arbiter'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+              STATE_IDLE |                              001 |                               00
+            STATE_REFILL |                              010 |                               01
+            STATE_BYPASS |                              100 |                               10
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'state_reg' using encoding 'one-hot' in module 'icache_controller'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+                  S_IDLE |                                0 |                               00
+                  S_CALC |                                1 |                               01
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'state_reg' using encoding 'sequential' in module 'divider_unit'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+                  S_IDLE |                              001 |                               00
+                  S_CALC |                              010 |                               01
+                  S_DONE |                              100 |                               10
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'state_reg' using encoding 'one-hot' in module 'fpu_single_core'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+              STATE_IDLE |                               01 |                               00
+             STATE_STORE |                               10 |                               11
+            STATE_REFILL |                               11 |                               01
+            STATE_BYPASS |                               00 |                               10
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'state_reg' using encoding 'sequential' in module 'dcache_controller'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+              GRANT_IDLE |                              001 |                               00
+            GRANT_ICACHE |                              010 |                               10
+            GRANT_DCACHE |                              100 |                               01
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'current_grant_reg' using encoding 'one-hot' in module 'mem_bus_arbiter'
+WARNING: [Synth 8-6841] Block RAM (ram_reg) originally specified as a Byte Wide Write Enable RAM cannot take advantage of ByteWide feature and is implemented with single write enable per RAM due to following reason.
+(address width (14) is more than optimal threshold of 12. Implementing using BWWE will require more logic and timing would be suboptimal. Please use attribute ram_decomp = power if BWWE is desired.)
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:52 ; elapsed = 00:01:00 . Memory (MB): peak = 1645.820 ; gain = 915.152
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---Adders : 
+	  17 Input   64 Bit       Adders := 1     
+	   3 Input   33 Bit       Adders := 4     
+	   3 Input   32 Bit       Adders := 3     
+	   2 Input   32 Bit       Adders := 29    
+	   3 Input   29 Bit       Adders := 1     
+	   2 Input   27 Bit       Adders := 1     
+	   3 Input   26 Bit       Adders := 2     
+	   2 Input   25 Bit       Adders := 3     
+	   2 Input   23 Bit       Adders := 2     
+	   2 Input   21 Bit       Adders := 14    
+	   2 Input   14 Bit       Adders := 2     
+	   3 Input   13 Bit       Adders := 4     
+	   2 Input   13 Bit       Adders := 6     
+	   2 Input   12 Bit       Adders := 2     
+	   3 Input   10 Bit       Adders := 2     
+	   4 Input   10 Bit       Adders := 1     
+	   2 Input    9 Bit       Adders := 5     
+	   3 Input    9 Bit       Adders := 1     
+	   3 Input    8 Bit       Adders := 1     
+	   2 Input    8 Bit       Adders := 4     
+	   2 Input    7 Bit       Adders := 11    
+	  32 Input    6 Bit       Adders := 1     
+	   2 Input    6 Bit       Adders := 1     
+	   2 Input    5 Bit       Adders := 1     
+	   2 Input    4 Bit       Adders := 15    
+	   2 Input    3 Bit       Adders := 1     
++---XORs : 
+	   2 Input     32 Bit         XORs := 1     
+	   2 Input      1 Bit         XORs := 5     
++---Registers : 
+	               64 Bit    Registers := 1     
+	               48 Bit    Registers := 2     
+	               40 Bit    Registers := 2     
+	               32 Bit    Registers := 143   
+	               29 Bit    Registers := 1     
+	               28 Bit    Registers := 3     
+	               26 Bit    Registers := 2     
+	               25 Bit    Registers := 32    
+	               24 Bit    Registers := 3     
+	               23 Bit    Registers := 1     
+	               21 Bit    Registers := 270   
+	               16 Bit    Registers := 5     
+	               14 Bit    Registers := 1     
+	               12 Bit    Registers := 1     
+	               10 Bit    Registers := 3     
+	                9 Bit    Registers := 3     
+	                8 Bit    Registers := 130   
+	                7 Bit    Registers := 2     
+	                6 Bit    Registers := 6     
+	                5 Bit    Registers := 2     
+	                4 Bit    Registers := 4     
+	                3 Bit    Registers := 8     
+	                2 Bit    Registers := 1     
+	                1 Bit    Registers := 349   
++---Multipliers : 
+	              33x33  Multipliers := 1     
++---RAMs : 
+	             512K Bit	(16384 X 32 bit)          RAMs := 1     
++---Muxes : 
+	   8 Input  454 Bit        Muxes := 1     
+	   2 Input   64 Bit        Muxes := 7     
+	   2 Input   48 Bit        Muxes := 4     
+	   2 Input   40 Bit        Muxes := 15    
+	   5 Input   40 Bit        Muxes := 1     
+	   2 Input   34 Bit        Muxes := 2     
+	   2 Input   33 Bit        Muxes := 2     
+	   2 Input   32 Bit        Muxes := 139   
+	   4 Input   32 Bit        Muxes := 10    
+	   3 Input   32 Bit        Muxes := 12    
+	   2 Input   29 Bit        Muxes := 1     
+	   2 Input   28 Bit        Muxes := 2     
+	   2 Input   26 Bit        Muxes := 3     
+	   3 Input   26 Bit        Muxes := 2     
+	   2 Input   25 Bit        Muxes := 5     
+	   2 Input   24 Bit        Muxes := 2     
+	   2 Input   23 Bit        Muxes := 5     
+	   2 Input   21 Bit        Muxes := 14    
+	   2 Input   16 Bit        Muxes := 1     
+	   2 Input   13 Bit        Muxes := 4     
+	   2 Input   12 Bit        Muxes := 1     
+	   2 Input   10 Bit        Muxes := 1     
+	   2 Input    9 Bit        Muxes := 4     
+	   2 Input    8 Bit        Muxes := 24    
+	   4 Input    8 Bit        Muxes := 4     
+	   3 Input    8 Bit        Muxes := 1     
+	   2 Input    7 Bit        Muxes := 13    
+	   3 Input    7 Bit        Muxes := 4     
+	   2 Input    6 Bit        Muxes := 7     
+	   2 Input    5 Bit        Muxes := 4     
+	   4 Input    5 Bit        Muxes := 1     
+	   2 Input    4 Bit        Muxes := 17    
+	   3 Input    4 Bit        Muxes := 4     
+	   4 Input    4 Bit        Muxes := 1     
+	   3 Input    3 Bit        Muxes := 2     
+	   2 Input    3 Bit        Muxes := 11    
+	   6 Input    3 Bit        Muxes := 1     
+	   4 Input    3 Bit        Muxes := 1     
+	   2 Input    2 Bit        Muxes := 9     
+	   6 Input    2 Bit        Muxes := 2     
+	   4 Input    2 Bit        Muxes := 1     
+	   2 Input    1 Bit        Muxes := 936   
+	   3 Input    1 Bit        Muxes := 301   
+	   5 Input    1 Bit        Muxes := 5     
+	   4 Input    1 Bit        Muxes := 266   
+	   8 Input    1 Bit        Muxes := 1     
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 240 (col length:80)
+BRAMs: 270 (col length: RAMB18 80 RAMB36 40)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+DSP Report: Generating DSP u_dsp_mult/raw_product, operation Mode is: A*B.
+DSP Report: operator u_dsp_mult/raw_product is absorbed into DSP u_dsp_mult/raw_product.
+DSP Report: operator u_dsp_mult/raw_product is absorbed into DSP u_dsp_mult/raw_product.
+DSP Report: Generating DSP u_dsp_mult/raw_product, operation Mode is: (PCIN>>17)+A*B.
+DSP Report: operator u_dsp_mult/raw_product is absorbed into DSP u_dsp_mult/raw_product.
+DSP Report: operator u_dsp_mult/raw_product is absorbed into DSP u_dsp_mult/raw_product.
+DSP Report: Generating DSP u_dsp_mult/raw_product, operation Mode is: A*B.
+DSP Report: operator u_dsp_mult/raw_product is absorbed into DSP u_dsp_mult/raw_product.
+DSP Report: operator u_dsp_mult/raw_product is absorbed into DSP u_dsp_mult/raw_product.
+DSP Report: Generating DSP u_dsp_mult/raw_product, operation Mode is: (PCIN>>17)+A*B.
+DSP Report: operator u_dsp_mult/raw_product is absorbed into DSP u_dsp_mult/raw_product.
+DSP Report: operator u_dsp_mult/raw_product is absorbed into DSP u_dsp_mult/raw_product.
+DSP Report: Generating DSP fmul_prod0, operation Mode is: A*B.
+DSP Report: operator fmul_prod0 is absorbed into DSP fmul_prod0.
+DSP Report: operator fmul_prod0 is absorbed into DSP fmul_prod0.
+DSP Report: Generating DSP fmul_prod0, operation Mode is: (PCIN>>17)+A*B.
+DSP Report: operator fmul_prod0 is absorbed into DSP fmul_prod0.
+DSP Report: operator fmul_prod0 is absorbed into DSP fmul_prod0.
+WARNING: [Synth 8-6841] Block RAM (ram_reg) originally specified as a Byte Wide Write Enable RAM cannot take advantage of ByteWide feature and is implemented with single write enable per RAM due to following reason.
+(address width (14) is more than optimal threshold of 12. Implementing using BWWE will require more logic and timing would be suboptimal. Please use attribute ram_decomp = power if BWWE is desired.)
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[47]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[46]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[45]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[44]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[43]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[42]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[41]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[40]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[39]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[38]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[37]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[36]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[35]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[34]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[33]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[32]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[31]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[30]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[29]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[28]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[27]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[26]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[25]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[24]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[23]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[22]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[21]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[20]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[19]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[18]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[17]) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[47]__0) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[46]__0) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[45]__0) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[44]__0) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[43]__0) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[42]__0) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[41]__0) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[40]__0) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[39]__0) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[38]__0) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[37]__0) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[36]__0) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[35]__0) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[34]__0) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[33]__0) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[32]__0) is unused and will be removed from module fpu_single_core.
+WARNING: [Synth 8-3332] Sequential element (fmul_prod_reg[31]__0) is unused and will be removed from module fpu_single_core.
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:10:04 ; elapsed = 00:11:47 . Memory (MB): peak = 2489.082 ; gain = 1758.414
+---------------------------------------------------------------------------------
+ Sort Area is execute_stage__GB0 u_dsp_mult/raw_product_0 : 0 0 : 3101 5879 : Used 1 time 100
+ Sort Area is execute_stage__GB0 u_dsp_mult/raw_product_0 : 0 1 : 2778 5879 : Used 1 time 100
+ Sort Area is execute_stage__GB0 u_dsp_mult/raw_product_3 : 0 0 : 2759 5418 : Used 1 time 100
+ Sort Area is execute_stage__GB0 u_dsp_mult/raw_product_3 : 0 1 : 2659 5418 : Used 1 time 100
+ Sort Area is execute_stage__GB0 fmul_prod0_6 : 0 0 : 3446 4851 : Used 1 time 0
+ Sort Area is execute_stage__GB0 fmul_prod0_6 : 0 1 : 1405 4851 : Used 1 time 0
+---------------------------------------------------------------------------------
+Start ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+
+Block RAM: Preliminary Mapping Report (see note below)
++-------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+|Module Name  | RTL Object | PORT A (Depth x Width) | W | R | PORT B (Depth x Width) | W | R | Ports driving FF | RAMB18 | RAMB36 | 
++-------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+|nexys_a7_top | ram_reg    | 16 K x 32(READ_FIRST)  | W |   | 16 K x 32(WRITE_FIRST) |   | R | Port A and B     | 0      | 16     | 
++-------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+
+Note: The table above is a preliminary report that shows the Block RAMs at the current stage of the synthesis flow. Some Block RAMs may be reimplemented as non Block RAM primitives later in the synthesis flow. Multiple instantiated Block RAMs are reported only once. 
+
+Distributed RAM: Preliminary Mapping Report (see note below)
++-----------------------+---------------+----------------+----------------------+--------------+
+|Module Name            | RTL Object    | Inference      | Size (Depth x Width) | Primitives   | 
++-----------------------+---------------+----------------+----------------------+--------------+
+|u_pipelinei_3/u_icache | data_mem3_reg | User Attribute | 128 x 32             | RAM64M x 22  | 
+|u_pipelinei_3/u_icache | data_mem2_reg | User Attribute | 128 x 32             | RAM64M x 22  | 
+|u_pipelinei_3/u_icache | data_mem1_reg | User Attribute | 128 x 32             | RAM64M x 22  | 
+|u_pipelinei_3/u_icache | data_mem0_reg | User Attribute | 128 x 32             | RAM64M x 22  | 
+|u_pipelinei_4/u_dcache | data_mem3_reg | User Attribute | 128 x 32             | RAM64M x 44  | 
+|u_pipelinei_4/u_dcache | data_mem2_reg | User Attribute | 128 x 32             | RAM64M x 44  | 
+|u_pipelinei_4/u_dcache | data_mem1_reg | User Attribute | 128 x 32             | RAM64M x 44  | 
+|u_pipelinei_4/u_dcache | data_mem0_reg | User Attribute | 128 x 32             | RAM64M x 44  | 
++-----------------------+---------------+----------------+----------------------+--------------+
+
+Note: The table above is a preliminary report that shows the Distributed RAMs at the current stage of the synthesis flow. Some Distributed RAMs may be reimplemented as non Distributed RAM primitives later in the synthesis flow. Multiple instantiated RAMs are reported only once.
+
+DSP: Preliminary Mapping Report (see note below. The ' indicates corresponding REG is set)
++----------------+----------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+|Module Name     | DSP Mapping    | A Size | B Size | C Size | D Size | P Size | AREG | BREG | CREG | DREG | ADREG | MREG | PREG | 
++----------------+----------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+|multiplier_unit | A*B            | 18     | 16     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|multiplier_unit | (PCIN>>17)+A*B | 16     | 16     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|multiplier_unit | A*B            | 18     | 18     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|multiplier_unit | (PCIN>>17)+A*B | 18     | 16     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|fpu_single_core | A*B            | 25     | 18     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|fpu_single_core | (PCIN>>17)+A*B | 25     | 8      | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
++----------------+----------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+
+Note: The table above is a preliminary report that shows the DSPs inferred at the current stage of the synthesis flow. Some DSP may be reimplemented as non DSP primitives later in the synthesis flow. Multiple instantiated DSPs are reported only once.
+---------------------------------------------------------------------------------
+Finished ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying XDC Timing Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Applying XDC Timing Constraints : Time (s): cpu = 00:10:16 ; elapsed = 00:12:00 . Memory (MB): peak = 2489.082 ; gain = 1758.414
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:12:56 ; elapsed = 00:14:51 . Memory (MB): peak = 2489.082 ; gain = 1758.414
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+
+Block RAM: Final Mapping Report
++-------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+|Module Name  | RTL Object | PORT A (Depth x Width) | W | R | PORT B (Depth x Width) | W | R | Ports driving FF | RAMB18 | RAMB36 | 
++-------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+|nexys_a7_top | ram_reg    | 16 K x 32(READ_FIRST)  | W |   | 16 K x 32(WRITE_FIRST) |   | R | Port A and B     | 0      | 16     | 
++-------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+
+
+Distributed RAM: Final Mapping Report
++-----------------------+---------------+----------------+----------------------+--------------+
+|Module Name            | RTL Object    | Inference      | Size (Depth x Width) | Primitives   | 
++-----------------------+---------------+----------------+----------------------+--------------+
+|u_pipelinei_3/u_icache | data_mem3_reg | User Attribute | 128 x 32             | RAM64M x 22  | 
+|u_pipelinei_3/u_icache | data_mem2_reg | User Attribute | 128 x 32             | RAM64M x 22  | 
+|u_pipelinei_3/u_icache | data_mem1_reg | User Attribute | 128 x 32             | RAM64M x 22  | 
+|u_pipelinei_3/u_icache | data_mem0_reg | User Attribute | 128 x 32             | RAM64M x 22  | 
+|u_pipelinei_4/u_dcache | data_mem3_reg | User Attribute | 128 x 32             | RAM64M x 44  | 
+|u_pipelinei_4/u_dcache | data_mem2_reg | User Attribute | 128 x 32             | RAM64M x 44  | 
+|u_pipelinei_4/u_dcache | data_mem1_reg | User Attribute | 128 x 32             | RAM64M x 44  | 
+|u_pipelinei_4/u_dcache | data_mem0_reg | User Attribute | 128 x 32             | RAM64M x 44  | 
++-----------------------+---------------+----------------+----------------------+--------------+
+
+---------------------------------------------------------------------------------
+Finished ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+INFO: [Synth 8-7052] The timing for the instance ram_reg_0_0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance ram_reg_0_1 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance ram_reg_0_2 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance ram_reg_0_3 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance ram_reg_1_0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance ram_reg_1_1 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance ram_reg_1_2 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance ram_reg_1_3 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance ram_reg_2_0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance ram_reg_2_1 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance ram_reg_2_2 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance ram_reg_2_3 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance ram_reg_3_0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance ram_reg_3_1 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance ram_reg_3_2 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance ram_reg_3_3 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:13:43 ; elapsed = 00:15:43 . Memory (MB): peak = 2489.082 ; gain = 1758.414
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:13:52 ; elapsed = 00:15:53 . Memory (MB): peak = 2489.082 ; gain = 1758.414
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:13:52 ; elapsed = 00:15:53 . Memory (MB): peak = 2489.082 ; gain = 1758.414
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:13:58 ; elapsed = 00:15:59 . Memory (MB): peak = 2489.082 ; gain = 1758.414
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:13:59 ; elapsed = 00:16:00 . Memory (MB): peak = 2489.082 ; gain = 1758.414
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:14:00 ; elapsed = 00:16:01 . Memory (MB): peak = 2489.082 ; gain = 1758.414
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:14:00 ; elapsed = 00:16:01 . Memory (MB): peak = 2489.082 ; gain = 1758.414
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+DSP Final Report (the ' indicates corresponding REG is set)
++----------------+-----------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+|Module Name     | DSP Mapping     | A Size | B Size | C Size | D Size | P Size | AREG | BREG | CREG | DREG | ADREG | MREG | PREG | 
++----------------+-----------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+|fpu_single_core | A*B             | 24     | 17     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|fpu_single_core | (PCIN>>17+A*B)' | 0      | 7      | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 1    | 
+|multiplier_unit | A*B             | 17     | 18     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|multiplier_unit | PCIN>>17+A*B    | 30     | 18     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|multiplier_unit | A*B             | 17     | 17     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|multiplier_unit | PCIN>>17+A*B    | 17     | 18     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
++----------------+-----------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+
+
+Report BlackBoxes: 
++-+--------------+----------+
+| |BlackBox name |Instances |
++-+--------------+----------+
++-+--------------+----------+
+
+Report Cell Usage: 
++------+------------+------+
+|      |Cell        |Count |
++------+------------+------+
+|1     |BUFG        |     2|
+|2     |BUFGCE      |     1|
+|3     |CARRY4      |   695|
+|4     |DSP48E1     |     6|
+|6     |LUT1        |   566|
+|7     |LUT2        |  1638|
+|8     |LUT3        |  1349|
+|9     |LUT4        |  1916|
+|10    |LUT5        |  1954|
+|11    |LUT6        |  7884|
+|12    |MMCME2_BASE |     1|
+|13    |MUXF7       |  1584|
+|14    |MUXF8       |   370|
+|15    |RAM64M      |   264|
+|16    |RAMB36E1    |    16|
+|32    |FDCE        | 12573|
+|33    |FDPE        |    16|
+|34    |FDRE        |  1024|
+|35    |IBUF        |    18|
+|36    |OBUF        |    33|
++------+------------+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:14:00 ; elapsed = 00:16:01 . Memory (MB): peak = 2489.082 ; gain = 1758.414
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 0 critical warnings and 50 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:13:34 ; elapsed = 00:15:51 . Memory (MB): peak = 2489.082 ; gain = 1702.469
+Synthesis Optimization Complete : Time (s): cpu = 00:14:00 ; elapsed = 00:16:02 . Memory (MB): peak = 2489.082 ; gain = 1758.414
+INFO: [Project 1-571] Translating synthesized netlist
+Netlist sorting complete. Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.373 . Memory (MB): peak = 2489.082 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2937 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.014 . Memory (MB): peak = 2489.082 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 266 instances were transformed.
+  BUFGCE => BUFGCTRL: 1 instance 
+  MMCME2_BASE => MMCME2_ADV: 1 instance 
+  RAM64M => RAM64M (RAMD64E(x4)): 264 instances
+
+Synth Design complete | Checksum: 2aa8371
+INFO: [Common 17-83] Releasing license: Synthesis
+130 Infos, 201 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:14:16 ; elapsed = 00:16:22 . Memory (MB): peak = 2489.082 ; gain = 1964.273
+Write ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.075 . Memory (MB): peak = 2489.082 ; gain = 0.000
+INFO: [Common 17-1381] The checkpoint 'C:/Users/prane/Downloads/processor_demo_updated/build/vivado_40mhz/avionics.runs/synth_1/nexys_a7_top.dcp' has been generated.
+INFO: [Vivado 12-24828] Executing command : report_utilization -file nexys_a7_top_utilization_synth.rpt -pb nexys_a7_top_utilization_synth.pb
+INFO: [Common 17-206] Exiting Vivado at Thu Nov  5 15:53:12 2026...

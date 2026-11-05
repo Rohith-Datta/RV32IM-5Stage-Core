@@ -1,0 +1,5 @@
+read_verilog board/uart_tx.v board/uart_trace_transport.v
+hierarchy -check -top uart_trace_transport
+proc
+check
+stat

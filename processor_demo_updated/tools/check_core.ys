@@ -1,0 +1,5 @@
+read_verilog -Iintegration/modules/csr integration/modules/branch/btb_branch_pred.v integration/modules/csr/csr_perf_counters.v integration/modules/registers/id_ex_reg.v integration/modules/registers/mem_wb_reg.v integration/modules/registers/ex_mem_reg.v integration/modules/registers/if_id_reg.v integration/modules/core/pipeline_5stage.v integration/modules/core/rv32imf_core.v integration/modules/hazard/hazard_unit.v integration/modules/stages/execute_stage.v integration/modules/stages/decode_stage.v integration/modules/stages/writeback_stage.v integration/modules/stages/memory_stage.v integration/modules/stages/fetch_stage.v integration/modules/cache/mem_bus_arbiter.v integration/modules/cache/icache_controller.v integration/modules/cache/dcache_controller.v integration/modules/arith/booth_radix4_multiplier.v integration/modules/arith/alu_zbb.v integration/modules/arith/fpu_single_core.v integration/modules/arith/divider_unit.v integration/modules/arith/multiplier_unit.v integration/modules/arith/multiplier_dsp.v
+hierarchy -check -top rv32imf_core
+proc
+check
+stat
